@@ -1,14 +1,14 @@
 % se puede agregar la opción [english] para 
 %  memorias o tesis en inglés (borrando el archivo .aux)
-\documentclass{umemoria} 
+\documentclass[english]{umemoria} 
 
 \depto{Departamento de Ingeniería Eléctrica}
 \author{Ignacio Romero Aravena}
-\title{Aprendizaje Continuo para la Clasificación de Objetos utilizando Modelos Gaussianos (título preliminar)}
+\title{Continual Learning for Object Classification using Gaussian Models (Preliminary title)}
 
 % incluir ambos comandos para una doble titulación
 %  o quitar el comando que no aplica
-\memoria{Ingeniero Civil Eléctrico}
+\memoria{Electrical Engineering}
 \tesis{Magíster en Ciencias de la Ingeniería Mención Eléctrica}
 %\tesis{Doctor en ???} % incluir solo este comando para doctorados
 
@@ -44,9 +44,9 @@
 % opcional: incluir para tesis en inglés;
 %  en este caso hay que tener el resumen y abstract
 %   en ambos idiomas
-%\begin{abstract}
-%\lipsum[1-4]
-%\end{abstract}
+\begin{abstract}
+Continual learning (CL) in object recognition is the ability of a model to acquire new knowledge over time without forgetting previously learned classes. Conventional deep learning models are monolithic and prone to catastrophic forgetting, requiring expensive retraining to incorporate new classes.   To overcome these limitations, this thesis  proposes a framework that separates feature extraction from classification, combining an unsupervised pretrained feature extractor with independent Gaussian models to represent each class. The study explores the use of Gaussian representations for stable incremental learning, extends the approach to real-time object detection by replacing classification heads with Gaussian-based models, and investigates autoencoders as alternative feature extractors optimized for continual learning. In addition, it addresses the challenge of automatically detecting when a new class should be introduced, and examines the feasibility of replacing Gaussian models with Radial Basis Functions (RBF) networks using Gaussian functions as hidden units. Experiments on ImageNet and Caltech-256 datasets show that the proposed method achieves accuracy comparable to baseline ViT models, with performance degradation below $0.5\%$  while new classes are added and high precision using as few as 20–30 samples per class. These results validate the effectiveness and scalability of Gaussian-based continual learning for classification and object detection in open and evolving environments. 
+\end{abstract}
 
 \begin{dedicatoria}
 A los completos con Coca Cola Zero.

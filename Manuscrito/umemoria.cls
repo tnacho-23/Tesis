@@ -47,9 +47,9 @@
 \RequirePackage[titletoc]{appendix}
 
 \if@en
-	\RequirePackage{babel}
+\RequirePackage{babel}
 \else
-	\RequirePackage[spanish, es-nolists, es-lcroman]{babel} % Lenguaje
+\RequirePackage[spanish, es-nolists, es-lcroman]{babel} % Lenguaje
 \fi
 \RequirePackage[pdfpagelabels,hidelinks]{hyperref} % Links y numeracion del PDF
 \RequirePackage{listings} % Codigo Fuente
@@ -63,9 +63,9 @@
 \renewcommand{\bibliography}[1]{%
 	\oldbib{#1}%
 	\if@en
-		\addcontentsline{toc}{chapter}{\protect\numberline{}Bibliography}%
+	\addcontentsline{toc}{chapter}{\protect\numberline{}Bibliography}%
 	\else
-		\addcontentsline{toc}{chapter}{\protect\numberline{}Bibliograf\'ia}%
+	\addcontentsline{toc}{chapter}{\protect\numberline{}Bibliograf\'ia}%
 	\fi
 }
 \addto\captionsspanish{\renewcommand\listtablename{Índice de Tablas}}
@@ -84,16 +84,16 @@
 
 %% Entornos nuevos
 \newenvironment{abstract}{%
-\clearpage
-\if@en
+	\clearpage
+	\if@en
 	\chapter*{Abstract}
-\else
+	\else
 	\chapter*{Resumen}
-\fi
+	\fi
 }{\vfill\null}
 
 \newenvironment{resumen}{%
-\chapter*{Resumen}
+	\chapter*{Resumen}
 }{\vfill\null}
 
 \newenvironment{dedicatoria}{\clearpage\null\vspace{\stretch{1}}\begin{flushright}\itshape}{\end{flushright}\vspace{\stretch{2}}\null}
@@ -102,9 +102,9 @@
 \newenvironment{thanks}{
 	\clearpage
 	\if@en
-		\chapter*{Acknowledgments}
+	\chapter*{Acknowledgments}
 	\else
-		\chapter*{Agradecimientos}
+	\chapter*{Agradecimientos}
 	\fi
 	
 }
@@ -116,43 +116,43 @@
 \newtheoremstyle{miestilo}{\baselineskip}{3pt}{\itshape}{}{\bfseries}{}{.5em}{}
 \newtheoremstyle{miobs}{\baselineskip}{3pt}{}{}{\bfseries}{}{.5em}{}
 \if@swapnum
-	\swapnumbers
+\swapnumbers
 \fi
 \theoremstyle{miestilo}
 \newtheorem{defn}{Definición}[chapter]
 \if@contnum
-	\if@en
-		\newtheorem{teo}[defn]{Theorem}
-		\newtheorem{cor}[defn]{Corollary}
-		\newtheorem{lema}[defn]{Lemma}
-		\newtheorem{prop}[defn]{Proposition}
-	\else
-		\newtheorem{teo}[defn]{Teorema}
-		\newtheorem{cor}[defn]{Corolario}
-		\newtheorem{lema}[defn]{Lema}
-		\newtheorem{prop}[defn]{Proposición}
-	\fi
+\if@en
+\newtheorem{teo}[defn]{Theorem}
+\newtheorem{cor}[defn]{Corollary}
+\newtheorem{lema}[defn]{Lemma}
+\newtheorem{prop}[defn]{Proposition}
 \else
-	\if@en
-		\newtheorem{teo}{Theorem}[chapter]
-		\newtheorem{cor}{Corollary}[chapter]
-		\newtheorem{lema}{Lemma}[chapter]
-		\newtheorem{prop}{Proposition}[chapter]
-	\else
-		\newtheorem{teo}{Teorema}[chapter]
-		\newtheorem{cor}{Corolario}[chapter]
-		\newtheorem{lema}{Lema}[chapter]
-		\newtheorem{prop}{Proposición}[chapter]
-	\fi
+\newtheorem{teo}[defn]{Teorema}
+\newtheorem{cor}[defn]{Corolario}
+\newtheorem{lema}[defn]{Lema}
+\newtheorem{prop}[defn]{Proposición}
+\fi
+\else
+\if@en
+\newtheorem{teo}{Theorem}[chapter]
+\newtheorem{cor}{Corollary}[chapter]
+\newtheorem{lema}{Lemma}[chapter]
+\newtheorem{prop}{Proposition}[chapter]
+\else
+\newtheorem{teo}{Teorema}[chapter]
+\newtheorem{cor}{Corolario}[chapter]
+\newtheorem{lema}{Lema}[chapter]
+\newtheorem{prop}{Proposición}[chapter]
+\fi
 \fi
 \theoremstyle{miobs}
 
 \if@en
-	\newtheorem*{ej}{Example}
-	\newtheorem*{obs}{Observation}
+\newtheorem*{ej}{Example}
+\newtheorem*{obs}{Observation}
 \else
-	\newtheorem*{ej}{Ejemplo}
-	\newtheorem*{obs}{Observación}
+\newtheorem*{ej}{Ejemplo}
+\newtheorem*{obs}{Observación}
 \fi
 
 %% Comandos para la portada
@@ -235,50 +235,50 @@
 		\begin{minipage}[t]{12cm}
 			\MakeUppercase\@universidad\\\MakeUppercase\@facultad\\\MakeUppercase\@depto
 		\end{minipage}
-
+		
 		\vspace{2cm}
 		\centering
-			\MakeUppercase\@title
-
+		\MakeUppercase\@title
+		
 		\vspace{1cm}
 		\if\@tesis\@empty\else
-			TESIS PARA OPTAR AL GRADO DE\\\MakeUppercase\@tesis
-			\if\@cotutela\@empty\else
-				\\\bigskip EN COTUTELA CON \MakeUppercase\@cotutela
-			\fi
+		TESIS PARA OPTAR AL GRADO DE\\\MakeUppercase\@tesis
+		\if\@cotutela\@empty\else
+		\\\bigskip EN COTUTELA CON \MakeUppercase\@cotutela
+		\fi
 		\fi
 		\if\@memoria\@empty\else
-			\if\@tesis\@empty\else
-				\\\bigskip
-			\fi
-			 MEMORIA PARA OPTAR AL TÍTULO DE\\\MakeUppercase\@memoria
+		\if\@tesis\@empty\else
+		\\\bigskip
 		\fi
-
+		MEMORIA PARA OPTAR AL TÍTULO DE\\\MakeUppercase\@memoria
+		\fi
+		
 		\vspace{1cm}
-			\MakeUppercase\@author
-
+		\MakeUppercase\@author
+		
 		\vspace{2cm}
-			\foreach \x [count=\xi] in \@guia {
-				PROFESOR GUÍA\ifnum\xi>1 \ \xi \fi:\\ \MakeUppercase\x\\
-			}
-
+		\foreach \x [count=\xi] in \@guia {
+			PROFESOR GUÍA\ifnum\xi>1 \ \xi \fi:\\ \MakeUppercase\x\\
+		}
+		
 		\vspace{1cm}
-			\foreach \x [count=\xi] in \@coguia {
-				PROFESOR CO-GUÍA\ifnum\xi>1 \ \xi \fi:\\ \MakeUppercase\x\\
-			}
-
+		\foreach \x [count=\xi] in \@coguia {
+			PROFESOR CO-GUÍA\ifnum\xi>1 \ \xi \fi:\\ \MakeUppercase\x\\
+		}
+		
 		\vspace{1cm}
-			MIEMBROS DE LA COMISIÓN:\\
-			\foreach \x in \@comision { \MakeUppercase\x\\ }
-
+		MIEMBROS DE LA COMISIÓN:\\
+		\foreach \x in \@comision { \MakeUppercase\x\\ }
+		
 		\if\@auspicio\@empty\else
 		\vfill
-			\normalfont
-			Este trabajo ha sido parcialmente financiado por \@auspicio
+		\normalfont
+		Este trabajo ha sido parcialmente financiado por \@auspicio
 		\fi
-
+		
 		\vfill
-			\MakeUppercase\@lugar\\ \MakeUppercase\@anho
+		\MakeUppercase\@lugar\\ \MakeUppercase\@anho
 	\end{titlepage}
 	
 	%% Configuración de hyperref

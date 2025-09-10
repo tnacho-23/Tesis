@@ -1,25 +1,33 @@
-\chapter{Marco Teórico}
+\chapter{Theoretical framework}
 
-In continual learning tasks are defined as  often arrive sequentially. The model must learn each new task without forgetting how to perform the earlier ones.
+In the context of continual learning, a task refers to a distinct portion of the training experience, usually presented sequentially to the model. Instead of having access to the entire dataset at once (as in standard supervised learning), the model receives data in sequential chunks \cite{taskarithmeticloracontinual}. Each task may correspond to a set of new classes to recognize, a different domain, or a specific distribution of samples. The main challenge is that when the model is trained task by task, it tends to forget previously learned knowledge, a phenomenon known as catastrophic forgetting \cite{catastrophic}. In this context, the models must learn each new task without forgetting how to perform the earlier ones.
 
 State-of-the-art (SOTA) continual learning methods for object classification address catastrophic forgetting by seeking a balance between stability and plasticity. Stability refers to a model’s capacity to retain previously acquired knowledge and resist catastrophic forgetting, while plasticity describes the model’s ability to adapt and learn new tasks \cite{API}.
 
-- Elasticity and plasticity
+
+
 - Task Incremental/class incremental
+
+
 - SOTA methods can be separated in three categories.
 
 \section{Rehearsal Methods}
 \subsection{Experience Replay (ER)}
+Experience Replay \cite{Chaudhry2019ContinualLW}.
 
 \subsection{Average Gradient Episodic Memory (A-GEM)}
+A-GEM \cite{agem}.
 
 \subsection{Dark Experience Replay (DER)}
 %INCLUDE DER++ HERE
+DER \cite{buzzega2020darkexperiencegeneralcontinual}.
 
 \section{Regularization Methods}
 \subsection{Elastic Weight Consolidation (EWC)}
+EWC \cite{Kirkpatrick_2017}.
 
 \subsection{Synaptic Intelligence (SI)}
+SI \cite{zenke2017continuallearningsynapticintelligence}.
 
 
 \subsection{Learning Without Forgetting (LwF)}
