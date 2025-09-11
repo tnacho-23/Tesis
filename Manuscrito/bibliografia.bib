@@ -48,14 +48,20 @@
 	bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
 
-@misc{buzzega2020darkexperiencegeneralcontinual,
-	title={Dark Experience for General Continual Learning: a Strong, Simple Baseline}, 
-	author={Pietro Buzzega and Matteo Boschini and Angelo Porrello and Davide Abati and Simone Calderara},
-	year={2020},
-	eprint={2004.07211},
-	archivePrefix={arXiv},
-	primaryClass={stat.ML},
-	url={https://arxiv.org/abs/2004.07211}, 
+
+@inproceedings{buzzega2020darkexperiencegeneralcontinual,
+	author = {Buzzega, Pietro and Boschini, Matteo and Porrello, Angelo and Abati, Davide and Calderara, Simone},
+	title = {Dark experience for general continual learning: a strong, simple baseline},
+	year = {2020},
+	isbn = {9781713829546},
+	publisher = {Curran Associates Inc.},
+	address = {Red Hook, NY, USA},
+	abstract = {Continual Learning has inspired a plethora of approaches and evaluation settings; however, the majority of them overlooks the properties of a practical scenario, where the data stream cannot be shaped as a sequence of tasks and offline training is not viable. We work towards General Continual Learning (GCL), where task boundaries blur and the domain and class distributions shift either gradually or suddenly. We address it through mixing rehearsal with knowledge distillation and regularization; our simple baseline, Dark Experience Replay, matches the network's logits sampled throughout the optimization trajectory, thus promoting consistency with its past. By conducting an extensive analysis on both standard benchmarks and a novel GCL evaluation setting (MNIST-360), we show that such a seemingly simple baseline outperforms consolidated approaches and leverages limited resources. We further explore the generalization capabilities of our objective, showing its regularization being beneficial beyond mere performance.},
+	booktitle = {Proceedings of the 34th International Conference on Neural Information Processing Systems},
+	articleno = {1335},
+	numpages = {11},
+	location = {Vancouver, BC, Canada},
+	series = {NIPS '20}
 }
 
 @article{Kirkpatrick_2017,
@@ -71,16 +77,32 @@
 	year={2017},
 	month=mar, pages={3521–3526} }
 
-@misc{zenke2017continuallearningsynapticintelligence,
-	title={Continual Learning Through Synaptic Intelligence}, 
-	author={Friedemann Zenke and Ben Poole and Surya Ganguli},
-	year={2017},
-	eprint={1703.04200},
-	archivePrefix={arXiv},
-	primaryClass={cs.LG},
-	url={https://arxiv.org/abs/1703.04200}, 
+@inproceedings{zenke2017continuallearningsynapticintelligence,
+	author = {Zenke, Friedemann and Poole, Ben and Ganguli, Surya},
+	title = {Continual learning through synaptic intelligence},
+	year = {2017},
+	publisher = {JMLR.org},
+	abstract = {While deep learning has led to remarkable advances across diverse applications, it struggles in domains where the data distribution changes over the course of learning. In stark contrast, biological neural networks continually adapt to changing domains, possibly by leveraging complex molecular machinery to solve many tasks simultaneously. In this study, we introduce intelligent synapses that bring some of this biological complexity into artificial neural networks. Each synapse accumulates task relevant information over time, and exploits this information to rapidly store new memories without forgetting old ones. We evaluate our approach on continual learning of classification tasks, and show that it dramatically reduces forgetting while maintaining computational efficiency.},
+	booktitle = {Proceedings of the 34th International Conference on Machine Learning - Volume 70},
+	pages = {3987–3995},
+	numpages = {9},
+	location = {Sydney, NSW, Australia},
+	series = {ICML'17}
 }
-
+@article{li2017learningforgetting,
+	author       = {Zhizhong Li and
+	Derek Hoiem},
+	title        = {Learning without Forgetting},
+	journal      = {CoRR},
+	volume       = {abs/1606.09282},
+	year         = {2016},
+	url          = {http://arxiv.org/abs/1606.09282},
+	eprinttype    = {arXiv},
+	eprint       = {1606.09282},
+	timestamp    = {Thu, 31 Dec 2020 11:34:47 +0100},
+	biburl       = {https://dblp.org/rec/journals/corr/LiH16e.bib},
+	bibsource    = {dblp computer science bibliography, https://dblp.org}
+}
 
 @INPROCEEDINGS{API,
 	author={Liang, Yan-Shuo and Li, Wu-Jun},
@@ -93,3 +115,66 @@
 	keywords={Adaptation models;Computer vision;Pattern recognition;Task analysis;Testing;Transfer;meta;low-shot;continual;or long-tail learning},
 	doi={10.1109/CVPR52729.2023.00755}}
 	
+@inproceedings{liang2024inflora,
+	title={InfLoRA: Interference-Free Low-Rank Adaptation for Continual Learning},
+	author={Liang, Yan-Shuo and Li, Wu-Jun},
+	booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+	pages={23638--23647},
+	year={2024}
+}
+
+@inproceedings{wang2022learning,
+	title={Learning to prompt for continual learning},
+	author={Wang, Zifeng and Zhang, Zizhao and Lee, Chen-Yu and Zhang, Han and Sun, Ruoxi and Ren, Xiaoqi and Su, Guolong and Perot, Vincent and Dy, Jennifer and Pfister, Tomas},
+	booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+	pages={139--149},
+	year={2022}
+}
+
+@article{wang2022dualprompt,
+	title={DualPrompt: Complementary Prompting for Rehearsal-free Continual Learning},
+	author={Wang, Zifeng and Zhang, Zizhao and Ebrahimi, Sayna and Sun, Ruoxi and Zhang, Han and Lee, Chen-Yu and Ren, Xiaoqi and Su, Guolong and Perot, Vincent and Dy, Jennifer and others},
+	journal={European Conference on Computer Vision},
+	year={2022}
+}
+
+@InProceedings{Smith_2023_CVPR,
+	author    = {Smith, James Seale and Karlinsky, Leonid and Gutta, Vyshnavi and Cascante-Bonilla, Paola and Kim, Donghyun and Arbelle, Assaf and Panda, Rameswar and Feris, Rogerio and Kira, Zsolt},
+	title     = {CODA-Prompt: COntinual Decomposed Attention-Based Prompting for Rehearsal-Free Continual Learning},
+	booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+	month     = {June},
+	year      = {2023},
+	pages     = {11909-11919}
+}
+
+@misc{salami2025federatedclassincrementallearninghierarchical,
+	title={Federated Class-Incremental Learning with Hierarchical Generative Prototypes}, 
+	author={Riccardo Salami and Pietro Buzzega and Matteo Mosconi and Mattia Verasani and Simone Calderara},
+	year={2025},
+	eprint={2406.02447},
+	archivePrefix={arXiv},
+	primaryClass={cs.LG},
+	url={https://arxiv.org/abs/2406.02447}, 
+}
+
+
+@INPROCEEDINGS{vandeVen,
+	author={van de Ven, Gido M. and Li, Zhe and Tolias, Andreas S.},
+	booktitle={2021 IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops (CVPRW)}, 
+	title={Class-Incremental Learning with Generative Classifiers}, 
+	year={2021},
+	volume={},
+	number={},
+	pages={3606-3615},
+	keywords={Training;Learning systems;Deep learning;Computer vision;Monte Carlo methods;Conferences;Benchmark testing},
+	doi={10.1109/CVPRW53098.2021.00400}}
+	
+	@inbook{Sluyters90,
+		author  = {R.C. Van Sluyters and J. Atkinson and M.S. Banks and R.M. Held and K.-P. Hoffmann and C.J. Shatz},
+		title   = {Visual Perception: The Neurophysiological Foundations},
+		chapter = {The Development of Vision and Visual Perception},
+		editor = {L. Spillman and J. Werner},
+		year    = {1990},
+		publisher = {Academic Press},
+		address   = {San Diego, CA},
+	}

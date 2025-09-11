@@ -1,1 +1,39 @@
 \chapter{Introduction}
+
+\section{Motivation}
+
+State-of-the-art (SOTA) object recognition methods utilize deep learning models that are either trained end-to-end on the target application or initially trained in one application and then fine-tuned for a different target application. In either case, they are monolithic models, meaning that the same single model is used for feature extraction and for classification, and is normally trained on a vast dataset. These models are highly effective when the set of object classes to be recognized is fixed and known at the training/fine-tuning time. However, when new object classes need to be incorporated, the model must be retrained or fine-tuned to accommodate them. This training requires significant computational resources and access to the entire training dataset, and in some cases leads to catastrophic forgetting \cite{catastrophic}.
+
+In continual or class-incremental object recognition, an algorithm must learn to distinguish between a growing number of object classes \cite{vandeVen}. In the context of continual learning, a task refers to a distinct portion of the training experience, usually presented sequentially to the model. Instead of having access to the entire dataset at once, as in standard supervised learning, the model receives data in sequential chunks \cite{taskarithmeticloracontinual}. Each task generally correspond to a set of new classes to recognize. The main challenge is that when the model is trained task by task, it tends to overwrite previously learned knowledge. Given that current monolithic models are not capable of handling this type of application, an alternative paradigm is required.
+
+This limitation has motivated SOTA methods for object classification to focus on balancing stability and plasticity. Stability refers to a model’s ability to preserve previously learned knowledge, while plasticity describes its capacity to adapt and incorporate new tasks \cite{API}. However, traditional approaches rarely optimize both aspects simultaneously: when stability dominates, the model struggles to integrate new knowledge; when plasticity dominates, it loses access to past information. This trade-off is compounded by the limited capacity of neural networks to integrate new representations without interfering with old ones, and by the need to continually adjust the network’s structure to match the increasing number of object classes.
+
+ One solution to this problem is to divide the monolithic models into two distinct components: one responsible for feature extraction and the other for object classification. These components must be trained separately, at different times. The feature extraction model must be trained when the recognition system is initialized/created, and the obtained features must be general enough to characterize all possible classes of objects to be seen (not just the ones known at training time). The object classification model should be easily updated or trained as new object classes are detected. Ideally, it should be able to incorporate new object classes without modifying the parts of the model responsible for recognizing the already known object classes. This mirrors the functionality of the human visual system, where the structures responsible for the extraction of characteristics (simple and complex cells in cortical areas V1 and V2) undergo adaptation during the initial postnatal weeks/months \cite{Sluyters90}. However, the ability to learn new categories of objects persists throughout life. Object recognition occurs in high-level cognitive areas, and acquiring knowledge of a new object class can result in a slight reduction in the ability to recognize similar classes of objects over time.
+
+We are inspired by this idea and propose a continual learning object recognition system based on two components. The first component is a feature extraction model built using a pre-trained foundation model. The second component is a statistical classifier built using various Gaussian models. Each model (single Gaussian or mixture of Gaussians) characterizes a specific object class independently of the others. Since these Gaussian models can be trained or built at different times, a new Gaussian model is created to characterize a new object class when it needs to be incorporated. For classification, the class whose Gaussian model yields the highest likelihood of the input features is selected. This approach is analogous to a Bayes classifier, in which new classes are incorporated over time.
+
+Gaussian models offer two key advantages for characterizing object classes. First, each object class model operates independently from the others, facilitating the straightforward incorporation of new classes into the model. Second, Gaussian models provide a compact representation of object classes, requiring few samples to construct a model that can be refined as new samples become available.
+
+\section{Hypothesis}
+
+We hypothesize that the use of independent Gaussian models, combined with an unsupervised pretrained feature extractor, enables continual learning that can incorporate new classes in object classification and detection without retraining the entire model. This design mitigates catastrophic forgetting and further allows the automatic detection of previously unknown classes.
+
+\section{General Objectives}
+The main objective of this work is to develop and validate a continual learning system for real-time object classification and detection, based on an unsupervised pretrained feature extractor and independent Gaussian models, with the purpose of enabling the incremental incorporation of new classes, preventing catastrophic forgetting of previously learned classes, and enabling the automatic detection of unknown classes in real application scenarios.
+
+\section{Specific Objectives}
+
+For the purpose of fulfilling the general objective and verifying the hypothesis of this work, the following specific objectives are defined:
+
+\begin{itemize}
+	\item Evaluate Gaussian representations in continual learning. Empirically verify that representing classes using separable and non-separable Gaussians enables stable continual learning without significant degradation in previously learned classes.
+	
+	\item Extend the approach to real-time object detection. Investigate and apply object detection architectures in which the classification head can be modified and replaced by Gaussian models to allow the incremental incorporation of new classes.
+	
+	\item Explore autoencoders as feature extractors. Research, train, and validate an autoencoder that achieves performance comparable to the backbones used so far as feature extractors, but optimized for continual learning environments.
+	
+	\item Implement automatic detection of new classes. Develop a mechanism to automatically identify when an observed object does not belong to any known class, in order to dynamically create new classes in the system.
+	
+	\item Analyze alternatives with RBF networks. Study the feasibility of replacing Gaussian models with RBF networks using Gaussian functions as hidden units, evaluating their performance and viability in incremental learning.
+	
+\end{itemize}

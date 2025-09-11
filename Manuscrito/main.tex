@@ -4,11 +4,11 @@
 
 \depto{Departamento de Ingeniería Eléctrica}
 \author{Ignacio Romero Aravena}
-\title{Continual Learning for Object Classification using Gaussian Models (Preliminary title)}
+\title{Continual Learning for Object Classification using Gaussian Modeling (Preliminary title)}
 
 % incluir ambos comandos para una doble titulación
 %  o quitar el comando que no aplica
-\memoria{Electrical Engineering}
+\memoria{Ingeniero Civil Eléctrico}
 \tesis{Magíster en Ciencias de la Ingeniería Mención Eléctrica}
 %\tesis{Doctor en ???} % incluir solo este comando para doctorados
 
@@ -28,24 +28,42 @@
 %\auspicio{Nombre Institución} % incluir en caso de recibir financiamiento
 
 % tiene que ser el año en que se da el examen de título/grado (defensa)
-%\anho{2021} % incluir solo para reemplazar el año actual
+\anho{2026} % incluir solo para reemplazar el año actual
 
 \usepackage{lipsum}
+\usepackage{changepage} % para ajustar márgenes localmente
+
 
 \begin{document}
 
 \frontmatter
 \maketitle
 
-\begin{resumen}
-%\lipsum[1-4]
-\end{resumen}
+\begin{adjustwidth}{2cm}{}
+	\MakeUppercase{Resumen de la tesis para optar al grado de magíster}\\
+	\MakeUppercase{en ciencias de la ingeniería, mención eléctrica}\\
+	\MakeUppercase{Resumen de la memoria para optar al título de}\\
+	\MakeUppercase{ingeniero civil eléctrico}\\
+	\MakeUppercase{Por: Ignacio Romero Aravena}\\
+	\MakeUppercase{Fecha: 2026}\\
+	\MakeUppercase{Profesor Guía: Javier Ruiz del Solar San Martín}\\
+\end{adjustwidth}
+
+\vspace{-1cm}
+
+\begin{center}
+	\textbf{\MakeUppercase{Continual Learning for Object Classification using Gaussian Modeling (Preliminary title)}}
+\end{center}
+
+
+This research addresses the challenge of continual learning for real-time object classification and detection. It focuses on integrating an unsupervised pretrained feature extractor with independent Gaussian models to characterize object classes. The main objective of this work is to develop and validate a system capable of incrementally incorporating new classes without retraining the entire model, mitigating catastrophic forgetting of previously learned categories, and enabling the automatic detection of unknown classes in real application scenarios. To achieve this, the study evaluates the effectiveness of separable and non-separable Gaussian representations, analyzes their compactness and sample efficiency, and explores their extension to object detection pipelines by replacing traditional classification heads with Gaussian models. Additionally, the research investigates the use of autoencoders as feature extractors adapted for continual learning, and examines the feasibility of employing RBF networks with Gaussian hidden units as an alternative to Gaussian models. The proposed approach seeks to combine the independence of Gaussian models with the generalization capacity of unsupervised feature learning, providing a scalable and efficient solution for dynamic environments where new object classes continuously emerge.
+
 
 % opcional: incluir para tesis en inglés;
 %  en este caso hay que tener el resumen y abstract
 %   en ambos idiomas
 \begin{abstract}
-Continual learning (CL) in object recognition is the ability of a model to acquire new knowledge over time without forgetting previously learned classes. Conventional deep learning models are monolithic and prone to catastrophic forgetting, requiring expensive retraining to incorporate new classes.   To overcome these limitations, this thesis  proposes a framework that separates feature extraction from classification, combining an unsupervised pretrained feature extractor with independent Gaussian models to represent each class. The study explores the use of Gaussian representations for stable incremental learning, extends the approach to real-time object detection by replacing classification heads with Gaussian-based models, and investigates autoencoders as alternative feature extractors optimized for continual learning. In addition, it addresses the challenge of automatically detecting when a new class should be introduced, and examines the feasibility of replacing Gaussian models with Radial Basis Functions (RBF) networks using Gaussian functions as hidden units. Experiments on ImageNet and Caltech-256 datasets show that the proposed method achieves accuracy comparable to baseline ViT models, with performance degradation below $0.5\%$  while new classes are added and high precision using as few as 20–30 samples per class. These results validate the effectiveness and scalability of Gaussian-based continual learning for classification and object detection in open and evolving environments. 
+Conventional deep learning (DL) models are often monolithic and struggle to adapt when exposed to new classes, typically requiring retraining on the entire dataset. This limits their applicability in real-world systems that must evolve and incorporate novel information over time. To address these challenges, this work introduces a continual learning (CL) approach that decouples feature extraction from classification, pairing an unsupervised pretrained feature extractor with independent Gaussian models that capture each class representation. The study demonstrates that Gaussian representations can provide stable and efficient CL. We further extend the method to real-time object detection by replacing standard classification heads with our Gaussian-based models and explore autoencoders as an alternative feature extractors optimized for CL. Additionally, we tackle the critical problem of automatically identifying when a new class should be introduced, and investigate the use of Radial Basis Function (RBF) networks with Gaussian kernels as potential substitutes for the class models. Experiments on the large-scale ImageNet benchmark and other datasets like Caltech-256 and CIFAR-100 reveal that our method reaches performance on par with state-of-the-art prompt-based CL approaches, while incurring less than a $0.5\%$ accuracy drop even as new classes are sequentially added. These results highlight that the proposed approach is not only effective and scalable but also simple and elegant, enabling systems to seamlessly learn class by class and continuously adapt to dynamic, real-world environments.
 \end{abstract}
 
 \begin{dedicatoria}
@@ -77,6 +95,6 @@ A los completos con Coca Cola Zero.
 
 % opcional ...
 \begin{appendices}
-\input{anexoA.tex}
+%\input{anexoA.tex}
 \end{appendices}
 \end{document}

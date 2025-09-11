@@ -1,10 +1,10 @@
 \chapter{Theoretical framework}
 
-In the context of continual learning, a task refers to a distinct portion of the training experience, usually presented sequentially to the model. Instead of having access to the entire dataset at once (as in standard supervised learning), the model receives data in sequential chunks \cite{taskarithmeticloracontinual}. Each task may correspond to a set of new classes to recognize, a different domain, or a specific distribution of samples. The main challenge is that when the model is trained task by task, it tends to forget previously learned knowledge, a phenomenon known as catastrophic forgetting \cite{catastrophic}. In this context, the models must learn each new task without forgetting how to perform the earlier ones.
+- Imagenet
 
-State-of-the-art (SOTA) continual learning methods for object classification address catastrophic forgetting by seeking a balance between stability and plasticity. Stability refers to a model’s capacity to retain previously acquired knowledge and resist catastrophic forgetting, while plasticity describes the model’s ability to adapt and learn new tasks \cite{API}.
+- Caltech256
 
-
+- CIFAR100
 
 - Task Incremental/class incremental
 
@@ -32,19 +32,31 @@ SI \cite{zenke2017continuallearningsynapticintelligence}.
 
 \subsection{Learning Without Forgetting (LwF)}
 
+LWF \cite{li2017learningforgetting}
+
 \subsection{Adaptive Plasticity Improvement (API)}
+API \cite{API}
 
 \subsection{Inference Free Low-Rank Adaptation (InFLoRA)}
 
+InFloRa \cite{liang2024inflora}.
+
 \subsection{Distributed Online LoRA for Federated INcremental learning method (DOLFIN)}
+
+DOLFIN xxxADD WHEN RELEASEDxxx
 
 \section{Prompt Based Methods}
 \subsection{Learning to Prompt (L2P)}
+L2P \cite{wang2022learning}.
 
 \subsection{Dual Prompt}
 
+Dual Prompt \cite{wang2022dualprompt}.
+
 \subsection{CODA-Prompt}
 
-\subsection{Hierarchical Generative Prototypes (HGP)}
+CODA-Prompt \cite{Smith_2023_CVPR}
 
+\subsection{Hierarchical Generative Prototypes (HGP)}
+HGP \cite{salami2025federatedclassincrementallearninghierarchical}.
 
