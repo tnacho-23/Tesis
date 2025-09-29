@@ -64,16 +64,16 @@ This research addresses the challenge of continual learning for real-time object
 %  en este caso hay que tener el resumen y abstract
 %   en ambos idiomas
 \begin{abstract}
-Conventional deep learning (DL) models are often monolithic and struggle to adapt when exposed to new classes, typically requiring retraining on the entire dataset. This limits their applicability in real-world systems that must evolve and incorporate novel information over time. To address these challenges, this work introduces a continual learning (CL) approach that decouples feature extraction from classification, pairing an unsupervised pretrained feature extractor with independent Gaussian models that capture each class representation. The study demonstrates that Gaussian representations can provide stable and efficient CL. We further extend the method to real-time object detection by replacing standard classification heads with our Gaussian-based models and explore autoencoders as an alternative feature extractors optimized for CL. Additionally, we tackle the critical problem of automatically identifying when a new class should be introduced, and investigate the use of Radial Basis Function (RBF) networks with Gaussian kernels as potential substitutes for the class models. Experiments on the large-scale ImageNet benchmark and other datasets like Caltech-256 and CIFAR-100 reveal that our method reaches performance on par with state-of-the-art prompt-based CL approaches, while incurring less than a $0.5\%$ accuracy drop even as new classes are sequentially added. These results highlight that the proposed approach is not only effective and scalable but also simple and elegant, enabling systems to seamlessly learn class by class and continuously adapt to dynamic, real-world environments.
+Conventional deep learning (DL) models are often monolithic and struggle to adapt when exposed to new classes, typically requiring retraining on the entire dataset. This limits their applicability in real-world systems that must evolve and incorporate novel information over time. To address these challenges, this work introduces a continual learning (CL) approach that decouples feature extraction from classification, pairing an unsupervised pretrained feature extractor with independent Gaussian models that capture each class representation. The study demonstrates that Gaussian representations can provide stable and efficient CL. We further extend the method to real-time object detection by replacing standard classification heads with our Gaussian-based models and explore autoencoders as an alternative feature extractor optimized for CL. Additionally, we tackle the critical problem of automatically identifying when a new class should be introduced and investigate the use of Radial Basis Function (RBF) networks with Gaussian kernels as potential substitutes for the class models. Experiments on the large-scale ImageNet benchmark and other datasets like Caltech-256 and CIFAR-100 reveal that our method reaches performance on par with state-of-the-art (SOTA) prompt-based CL approaches, while incurring less than a 0.5\% accuracy drop even as new classes are sequentially added. These results demonstrate that the proposed approach is not only effective and scalable, but also simpler to implement compared to SOTA methods. This simplicity facilitates seamless class-by-class learning while enabling continuous adaptation to dynamic and evolving real-world environments.
 \end{abstract}
 
-\begin{dedicatoria}
-A los completos con Coca Cola Zero.
-\end{dedicatoria}
+%\begin{dedicatoria}
+%A los completos con Coca Cola Zero.
+%\end{dedicatoria}
 
-\begin{thanks}
+%\begin{thanks}
 %\lipsum[1-2]
-\end{thanks}
+%\end{thanks}
 
 \tableofcontents
 %\listoftables % opcional
@@ -83,8 +83,8 @@ A los completos con Coca Cola Zero.
 
 \input{cap1_intro.tex}
 \input{cap2_marco.tex}
-\input{cap3_metodologia.tex}
-\input{conclu.tex}
+%\input{cap3_metodologia.tex}
+%\input{conclu.tex}
 
 % ver https://www.overleaf.com/learn/latex/Glossaries
 % \input{glosario.tex} % opcional
