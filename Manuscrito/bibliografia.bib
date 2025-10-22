@@ -16,7 +16,7 @@
 	title = {Catastrophic forgetting in connectionist networks},
 	volume = {3},
 	journal = {Trends in cognitive sciences},
-	doi = {10.1016/S1364-6613(99)01294-2}
+	note = {doi: 10.1016/S1364-6613(99)01294-2}
 }
 
 %% Marco teorico
@@ -69,7 +69,7 @@
 	volume={114},
 	ISSN={1091-6490},
 	url={http://dx.doi.org/10.1073/pnas.1611835114},
-	DOI={10.1073/pnas.1611835114},
+	note ={doi: 10.1073/pnas.1611835114},
 	number={13},
 	journal={Proceedings of the National Academy of Sciences},
 	publisher={Proceedings of the National Academy of Sciences},
@@ -113,7 +113,7 @@
 	number={},
 	pages={7816-7825},
 	keywords={Adaptation models;Computer vision;Pattern recognition;Task analysis;Testing;Transfer;meta;low-shot;continual;or long-tail learning},
-	doi={10.1109/CVPR52729.2023.00755}}
+	note ={doi: 10.1109/CVPR52729.2023.00755}}
 	
 @inproceedings{liang2024inflora,
 	title={InfLoRA: Interference-Free Low-Rank Adaptation for Continual Learning},
@@ -167,7 +167,7 @@
 	number={},
 	pages={3606-3615},
 	keywords={Training;Learning systems;Deep learning;Computer vision;Monte Carlo methods;Conferences;Benchmark testing},
-	doi={10.1109/CVPRW53098.2021.00400}}
+	note ={doi: 10.1109/CVPRW53098.2021.00400}}
 	
 	@inbook{Sluyters90,
 		author  = {R.C. Van Sluyters and J. Atkinson and M.S. Banks and R.M. Held and K.-P. Hoffmann and C.J. Shatz},
@@ -188,7 +188,7 @@
 	number={},
 	pages={248-255},
 	keywords={Large-scale systems;Image databases;Explosions;Internet;Robustness;Information retrieval;Image retrieval;Multimedia databases;Ontologies;Spine},
-	doi={10.1109/CVPR.2009.5206848}}
+	note ={doi: 10.1109/CVPR.2009.5206848}}
 
 @article{imagenet21k,
 	author       = {Tal Ridnik and
@@ -214,17 +214,16 @@
 	year={2020}
 }
 
- @misc{caltech256, title={Caltech 256}, DOI={10.22002/D1.20087}, abstractNote={We introduce a challenging set of 256 object categories containing a total of 30607 images. The original Caltech-101 was collected by choosing a set of object categories, downloading examples from Google Images and then manually screening out all images that did not fit the category. Caltech-256 is collected in a similar manner with several improvements: a) the number of categories is more than doubled, b) the minimum number of images in any category is increased from 31 to 80, c) artifacts due to image rotation are avoided and d) a new and larger clutter category is introduced for testing background rejection. We suggest several testing paradigms to measure classification performance, then benchmark the dataset using two simple metrics as well as a state-of-the-art spatial pyramid matching algorithm. Finally we use the clutter category to train an interest detector which rejects uninformative background regions.}, publisher={CaltechDATA}, author={Griffin, Gregory and Holub, Alex and Perona, Pietro}, year={2022}, month={abr} }
+ @misc{caltech256, title={Caltech 256}, note ={doi: 10.22002/D1.20087}, abstractNote={We introduce a challenging set of 256 object categories containing a total of 30607 images. The original Caltech-101 was collected by choosing a set of object categories, downloading examples from Google Images and then manually screening out all images that did not fit the category. Caltech-256 is collected in a similar manner with several improvements: a) the number of categories is more than doubled, b) the minimum number of images in any category is increased from 31 to 80, c) artifacts due to image rotation are avoided and d) a new and larger clutter category is introduced for testing background rejection. We suggest several testing paradigms to measure classification performance, then benchmark the dataset using two simple metrics as well as a state-of-the-art spatial pyramid matching algorithm. Finally we use the clutter category to train an interest detector which rejects uninformative background regions.}, publisher={CaltechDATA}, author={Griffin, Gregory and Holub, Alex and Perona, Pietro}, year={2022}}
  
- @article{cifar100,
- 	title= {CIFAR-100 (Canadian Institute for Advanced Research)},
- 	journal= {},
- 	author= {Alex Krizhevsky and Vinod Nair and Geoffrey Hinton},
- 	year= {},
- 	url= {http://www.cs.toronto.edu/~kriz/cifar.html},
- 	keywords= {Dataset},
- 	terms= {}
- }
+@misc{cifar100,
+	author       = {Alex Krizhevsky},
+	title        = {The CIFAR-100 Dataset},
+	year         = {2009},
+	howpublished = {\url{https://www.cs.toronto.edu/~kriz/cifar.html}},
+	note         = {Accessed: 2025-10-02},
+}
+
  
  @article{CL,
  	author = {Wang, Liyuan and Zhang, Xingxing and Su, Hang and Zhu, Jun},
@@ -234,7 +233,7 @@
  	title = {A Comprehensive Survey of Continual Learning: Theory, Method and Application},
  	volume = {PP},
  	journal = {IEEE transactions on pattern analysis and machine intelligence},
- 	doi = {10.1109/TPAMI.2024.3367329}
+ 	note = {doi: 10.1109/TPAMI.2024.3367329}
  }
  
  @INPROCEEDINGS{generative_features,
@@ -246,5 +245,40 @@
  	number={},
  	pages={915-924},
  	keywords={Task analysis;Feature extraction;Gallium nitride;Image generation;Correlation;Training;Generators},
- 	doi={10.1109/CVPRW50498.2020.00121}}
+ 	note={doi: 10.1109/CVPRW50498.2020.00121}}
+ 
+ @ARTICLE{masana_class_il,
+ 	author={Masana, Marc and Liu, Xialei and Twardowski, Bartłomiej and Menta, Mikel and Bagdanov, Andrew D. and van de Weijer, Joost},
+ 	journal={IEEE Transactions on Pattern Analysis and Machine Intelligence}, 
+ 	title={Class-Incremental Learning: Survey and Performance Evaluation on Image Classification}, 
+ 	year={2023},
+ 	volume={45},
+ 	number={5},
+ 	pages={5513-5533},
+ 	keywords={Task analysis;Training;Network architecture;Learning systems;Image classification;Training data;Privacy;Class-incremental learning;continual learning;incremental learning;lifelong learning;catastrophic forgetting},
+ 	note={doi: 10.1109/TPAMI.2022.3213473}}
+ 	
+ 
+@INPROCEEDINGS{task_il,
+	author={Sazzad Hossain, Md and Saha, Pritom and Faisal Chowdhury, Townim and Rahman, Shafin and Rahman, Fuad and Mohammed, Nabeel},
+	booktitle={2022 26th International Conference on Pattern Recognition (ICPR)}, 
+	title={Rethinking Task-Incremental Learning Baselines}, 
+	year={2022},
+	volume={},
+	number={},
+	pages={2771-2777},
+	keywords={Point cloud compression;Knowledge engineering;Solid modeling;Three-dimensional displays;Image recognition;Memory management;Pattern recognition},
+	doi={10.1109/ICPR56361.2022.9956715}}
+
+
+ @INPROCEEDINGS{domain_il,
+ 	author={Kalb, Tobias and Roschani, Masoud and Ruf, Miriam and Beyerer, Jürgen},
+ 	booktitle={2021 IEEE Intelligent Vehicles Symposium (IV)}, 
+ 	title={Continual Learning for Class- and Domain-Incremental Semantic Segmentation}, 
+ 	year={2021},
+ 	volume={},
+ 	number={},
+ 	pages={1345-1351},
+ 	keywords={Deep learning;Image segmentation;Protocols;Intelligent vehicles;Semantics;Training data;Tools},
+ 	doi={10.1109/IV48863.2021.9575493}}
  

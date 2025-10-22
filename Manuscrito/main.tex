@@ -36,36 +36,13 @@
 
 \begin{document}
 
+
+
 \frontmatter
 \maketitle
 
-\begin{adjustwidth}{2cm}{}
-	\MakeUppercase{Resumen de la tesis para optar al grado de magíster}\\
-	\MakeUppercase{en ciencias de la ingeniería, mención eléctrica}\\
-	\MakeUppercase{Resumen de la memoria para optar al título de}\\
-	\MakeUppercase{ingeniero civil eléctrico}\\
-	\MakeUppercase{Por: Ignacio Romero Aravena}\\
-	\MakeUppercase{Fecha: 2026}\\
-	\MakeUppercase{Profesor Guía: Javier Ruiz del Solar San Martín}\\
-\end{adjustwidth}
 
-\vspace{-1cm}
-
-\begin{center}
-	\textbf{\MakeUppercase{Continual Learning for Object Classification using Gaussian Modeling (Preliminary title)
-	}}
-\end{center}
-
-
-This research addresses the challenge of continual learning for real-time object classification and detection. It focuses on integrating an unsupervised pretrained feature extractor with independent Gaussian models to characterize object classes. The main objective of this work is to develop and validate a system capable of incrementally incorporating new classes without retraining the entire model, mitigating catastrophic forgetting of previously learned categories, and enabling the automatic detection of unknown classes in real application scenarios. To achieve this, the study evaluates the effectiveness of separable and non-separable Gaussian representations, analyzes their compactness and sample efficiency, and explores their extension to object detection pipelines by replacing traditional classification heads with Gaussian models. Additionally, the research investigates the use of autoencoders as feature extractors adapted for continual learning, and examines the feasibility of employing RBF networks with Gaussian hidden units as an alternative to Gaussian models. The proposed approach seeks to combine the independence of Gaussian models with the generalization capacity of unsupervised feature learning, providing a scalable and efficient solution for dynamic environments where new object classes continuously emerge.
-
-
-% opcional: incluir para tesis en inglés;
-%  en este caso hay que tener el resumen y abstract
-%   en ambos idiomas
-\begin{abstract}
-Conventional deep learning (DL) models are often monolithic and struggle to adapt when exposed to new classes, typically requiring retraining on the entire dataset. This limits their applicability in real-world systems that must evolve and incorporate novel information over time. To address these challenges, this work introduces a continual learning (CL) approach that decouples feature extraction from classification, pairing an unsupervised pretrained feature extractor with independent Gaussian models that capture each class representation. The study demonstrates that Gaussian representations can provide stable and efficient CL. We further extend the method to real-time object detection by replacing standard classification heads with our Gaussian-based models and explore autoencoders as an alternative feature extractor optimized for CL. Additionally, we tackle the critical problem of automatically identifying when a new class should be introduced and investigate the use of Radial Basis Function (RBF) networks with Gaussian kernels as potential substitutes for the class models. Experiments on the large-scale ImageNet benchmark and other datasets like Caltech-256 and CIFAR-100 reveal that our method reaches performance on par with state-of-the-art (SOTA) prompt-based CL approaches, while incurring less than a 0.5\% accuracy drop even as new classes are sequentially added. These results demonstrate that the proposed approach is not only effective and scalable, but also simpler to implement compared to SOTA methods. This simplicity facilitates seamless class-by-class learning while enabling continuous adaptation to dynamic and evolving real-world environments.
-\end{abstract}
+\input{0_preliminar.tex}
 
 %\begin{dedicatoria}
 %A los completos con Coca Cola Zero.
@@ -91,6 +68,7 @@ Conventional deep learning (DL) models are often monolithic and struggle to adap
 
 \nocite{*}
 \bibliographystyle{IEEEtran}
+
 \bibliography{bibliografia}
 
 

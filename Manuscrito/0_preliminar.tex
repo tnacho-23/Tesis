@@ -1,0 +1,51 @@
+
+\begin{adjustwidth}{2cm}{}
+	\MakeUppercase{Resumen de la tesis para optar al grado de magíster}\\
+	\MakeUppercase{en ciencias de la ingeniería, mención eléctrica}\\
+	\MakeUppercase{Resumen de la memoria para optar al título de}\\
+	\MakeUppercase{ingeniero civil eléctrico}\\
+	\MakeUppercase{Por: Ignacio Romero Aravena}\\
+	\MakeUppercase{Fecha: 2026}\\
+	\MakeUppercase{Profesor Guía: Javier Ruiz del Solar San Martín}\\
+\end{adjustwidth}
+
+\vspace{-1cm}
+
+\begin{center}
+	\textbf{\MakeUppercase{Continual Learning for Object Classification using Gaussian Modeling (Preliminary title)
+	}}
+\end{center}
+
+Esta investigación aborda el desafío del aprendizaje continuo para la clasificación y detección de objetos en tiempo real. Se centra en la integración de un extractor de características preentrenado de manera no supervisada con modelos Gaussianos independientes para caracterizar las clases de objetos.
+El principal objetivo de este trabajo es desarrollar y validar un sistema capaz de incorporar nuevas clases de forma incremental sin necesidad de reentrenar el modelo completo, mitigando el olvido catastrófico de las categorías previamente aprendidas y permitiendo la detección automática de clases desconocidas en escenarios de aplicación reales.
+
+Para lograrlo, el estudio evalúa la efectividad de representaciones Gaussianas separables y no separables, analiza su compacidad y eficiencia muestral, y explora su extensión hacia arquitecturas de detección de objetos reemplazando las cabezas de clasificación tradicionales por modelos Gaussianos. Además, la investigación examina el uso de autoencoders como extractores de características adaptados al aprendizaje continuo, y analiza la viabilidad de emplear redes RBF con unidades ocultas Gaussianas como alternativa a los modelos Gaussianos.
+
+El enfoque propuesto busca combinar la independencia de los modelos Gaussianos con la capacidad de generalización del aprendizaje no supervisado de características, proporcionando una solución escalable y eficiente para entornos dinámicos donde continuamente emergen nuevas clases de objetos.
+
+\newpage
+
+\begin{center}
+	\textbf{\MakeUppercase{Continual Learning for Object Classification using Gaussian Modeling (Preliminary title)
+	}}
+\end{center}
+
+This research addresses the challenge of continual learning for real-time object classification and detection. It focuses on integrating an unsupervised pretrained feature extractor with independent Gaussian models to characterize object classes. The main objective of this work is to develop and validate a system capable of incrementally incorporating new classes without retraining the entire model, mitigating catastrophic forgetting of previously learned categories, and enabling the automatic detection of unknown classes in real application scenarios. To achieve this, the study evaluates the effectiveness of separable and non-separable Gaussian representations, analyzes their compactness and sample efficiency, and explores their extension to object detection pipelines by replacing traditional classification heads with Gaussian models. Additionally, the research investigates the use of autoencoders as feature extractors adapted for continual learning, and examines the feasibility of employing RBF networks with Gaussian hidden units as an alternative to Gaussian models. The proposed approach seeks to combine the independence of Gaussian models with the generalization capacity of unsupervised feature learning, providing a scalable and efficient solution for dynamic environments where new object classes continuously emerge.
+
+% opcional: incluir para tesis en inglés;
+%  en este caso hay que tener el resumen y abstract
+%   en ambos idiomas
+
+\begin{abstract}
+	Los modelos convencionales de aprendizaje profundo (DL) suelen ser monolíticos y presentan dificultades para adaptarse cuando se enfrentan a nuevas clases, requiriendo típicamente un reentrenamiento completo con todo el conjunto de datos. Esto limita su aplicabilidad en sistemas del mundo real que deben evolucionar e incorporar información nueva con el tiempo.
+	
+	Para abordar estos desafíos, este trabajo introduce un enfoque de aprendizaje continuo (CL) que desacopla la extracción de características de la clasificación, combinando un extractor de características preentrenado de manera no supervisada con modelos Gaussianos independientes que capturan la representación de cada clase. Con este enfoque, las representaciones Gaussianas pueden ofrecer un aprendizaje continuo estable y eficiente.
+	
+	Además, se extiende el método a la detección de objetos en tiempo real reemplazando las cabezas de clasificación estándar por nuestros modelos basados en Gaussianas, y se explora el uso de autoencoders como extractores de características alternativos optimizados para CL. También se aborda el problema crítico de identificar automáticamente cuándo debe introducirse una nueva clase, y se investiga el uso de redes de Funciones de Base Radial (RBF) con núcleos Gaussianos como posibles sustitutos de los modelos de clase.
+	
+	Los experimentos realizados en el benchmark a gran escala ImageNet y en otros conjuntos de datos como Caltech-256 y CIFAR-100 muestran que nuestro método alcanza un rendimiento comparable al de los enfoques de vanguardia basados en repetición, regularización y prompts, con una caída de precisión inferior al 0.5\% incluso cuando se agregan nuevas clases de manera secuencial. Estos resultados demuestran que el enfoque propuesto no solo es efectivo y escalable, sino también más simple de implementar que los métodos existentes. Esta simplicidad facilita un aprendizaje clase a clase fluido, permitiendo una adaptación continua a entornos reales dinámicos y en constante evolución.
+\end{abstract}
+
+\begin{abstract}
+	Conventional deep learning (DL) models are often monolithic and struggle to adapt when exposed to new classes, typically requiring retraining on the entire dataset. This limits their applicability in real-world systems that must evolve and incorporate novel information over time. To address these challenges, this work introduces a continual learning (CL) approach that decouples feature extraction from classification, pairing an unsupervised pretrained feature extractor with independent Gaussian models that capture each class representation. With this approach  Gaussian representations can provide stable and efficient CL. We further extend the method to real-time object detection by replacing standard classification heads with our Gaussian-based models and explore autoencoders as an alternative feature extractor optimized for CL. Additionally, we tackle the critical problem of automatically identifying when a new class should be introduced and investigate the use of Radial Basis Function (RBF) networks with Gaussian kernels as potential substitutes for the class models. Experiments on the large-scale ImageNet benchmark and other datasets like Caltech-256 and CIFAR-100 reveal that our method reaches performance on par with rehearsal, regularization and prompt-based state-of-the-art approaches , while incurring less than a 0.5\% accuracy drop even as new classes are sequentially added. These results demonstrate that the proposed approach is not only effective and scalable, but also simpler to implement compared to the existing approaches. This simplicity facilitates seamless class-by-class learning while enabling continuous adaptation to dynamic and evolving real-world environments.
+\end{abstract}
