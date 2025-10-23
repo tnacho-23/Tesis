@@ -6,22 +6,24 @@
 \contentsline {section}{\numberline {1.4}Specific Objectives}{3}{section.1.4}%
 \contentsline {chapter}{\numberline {2}Theoretical framework}{4}{chapter.2}%
 \contentsline {section}{\numberline {2.1}Artificial Intelligence}{4}{section.2.1}%
-\contentsline {subsection}{\numberline {2.1.1}Computer Vision}{4}{subsection.2.1.1}%
-\contentsline {subsection}{\numberline {2.1.2}Machine Learning}{4}{subsection.2.1.2}%
-\contentsline {subsection}{\numberline {2.1.3}Vision Transformers}{4}{subsection.2.1.3}%
-\contentsline {subsection}{\numberline {2.1.4}Object Classification}{4}{subsection.2.1.4}%
-\contentsline {subsection}{\numberline {2.1.5}Object Detection}{4}{subsection.2.1.5}%
-\contentsline {section}{\numberline {2.2}Image Datasets}{4}{section.2.2}%
-\contentsline {subsection}{\numberline {2.2.1}ImageNet}{5}{subsection.2.2.1}%
-\contentsline {subsubsection}{ImageNetR}{5}{section*.4}%
-\contentsline {subsubsection}{ImageNet21k}{5}{section*.5}%
-\contentsline {subsection}{\numberline {2.2.2}CIFAR100}{5}{subsection.2.2.2}%
-\contentsline {subsection}{\numberline {2.2.3}Caltech256}{6}{subsection.2.2.3}%
-\contentsline {section}{\numberline {2.3}Continual Learning}{6}{section.2.3}%
-\contentsline {subsection}{\numberline {2.3.1}Elasticity and Plasticity}{6}{subsection.2.3.1}%
-\contentsline {subsection}{\numberline {2.3.2}Main Paradigms}{6}{subsection.2.3.2}%
-\contentsline {subsection}{\numberline {2.3.3}Mitigation Strategies}{7}{subsection.2.3.3}%
-\contentsline {subsection}{\numberline {2.3.4}Rehearsal Methods}{7}{subsection.2.3.4}%
-\contentsline {subsection}{\numberline {2.3.5}Regularization Methods}{8}{subsection.2.3.5}%
-\contentsline {subsection}{\numberline {2.3.6}Representation Methods}{9}{subsection.2.3.6}%
-\contentsline {chapter}{\numberline {}Bibliography}{12}{chapter*.8}%
+\contentsline {subsection}{\numberline {2.1.1}Machine Learning}{4}{subsection.2.1.1}%
+\contentsline {subsection}{\numberline {2.1.2}Computer Vision}{4}{subsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.1.3}Image Processing}{5}{subsection.2.1.3}%
+\contentsline {subsection}{\numberline {2.1.4}Object Classification}{5}{subsection.2.1.4}%
+\contentsline {subsection}{\numberline {2.1.5}Object Detection}{5}{subsection.2.1.5}%
+\contentsline {section}{\numberline {2.2}Vision Transformers}{5}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Vision Transformers (ViT)}{5}{subsection.2.2.1}%
+\contentsline {section}{\numberline {2.3}Image Datasets}{5}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}ImageNet}{6}{subsection.2.3.1}%
+\contentsline {subsubsection}{ImageNetR}{6}{section*.4}%
+\contentsline {subsubsection}{ImageNet21k}{6}{section*.5}%
+\contentsline {subsection}{\numberline {2.3.2}CIFAR100}{6}{subsection.2.3.2}%
+\contentsline {subsection}{\numberline {2.3.3}Caltech256}{7}{subsection.2.3.3}%
+\contentsline {section}{\numberline {2.4}Continual Learning}{7}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Elasticity and Plasticity}{7}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Main Paradigms}{7}{subsection.2.4.2}%
+\contentsline {subsection}{\numberline {2.4.3}Mitigation Strategies}{8}{subsection.2.4.3}%
+\contentsline {subsection}{\numberline {2.4.4}Rehearsal Methods}{8}{subsection.2.4.4}%
+\contentsline {subsection}{\numberline {2.4.5}Regularization Methods}{9}{subsection.2.4.5}%
+\contentsline {subsection}{\numberline {2.4.6}Representation Methods}{10}{subsection.2.4.6}%
+\contentsline {chapter}{\numberline {}Bibliography}{16}{chapter*.8}%

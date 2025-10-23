@@ -50,6 +50,69 @@ R.~V. Sluyters, J.~Atkinson, M.~Banks, R.~Held, K.-P. Hoffmann, and C.~Shatz,
   0.5em minus 0.4em\relax San Diego, CA: Academic Press, 1990, ch. The
   Development of Vision and Visual Perception.
 
+\bibitem{RussellNorvig}
+S.~J. Russell and P.~Norvig, \emph{Artificial Intelligence: A Modern Approach},
+  4th~ed.\hskip 1em plus 0.5em minus 0.4em\relax Upper Saddle River, NJ:
+  Pearson, 2020, global Edition.
+
+\bibitem{Bishop2006}
+C.~M. Bishop, \emph{Pattern Recognition and Machine Learning}, ser. Information
+  Science and Statistics.\hskip 1em plus 0.5em minus 0.4em\relax New York, NY:
+  Springer, 2006.
+
+\bibitem{Szeliski2010}
+R.~Szeliski, \emph{Computer Vision: Algorithms and Applications}.\hskip 1em
+  plus 0.5em minus 0.4em\relax Springer, 2010.
+
+\bibitem{Gonzalez2018}
+R.~C. Gonzalez and R.~E. Woods, \emph{Digital Image Processing}, fourth, global
+  edition~ed.\hskip 1em plus 0.5em minus 0.4em\relax Harlow, Essex: Pearson
+  Education Limited, 2018.
+
+\bibitem{Krizhevsky2012}
+\BIBentryALTinterwordspacing
+A.~Krizhevsky, I.~Sutskever, and G.~E. Hinton, ``Imagenet classification with
+  deep convolutional neural networks,'' in \emph{Advances in Neural Information
+  Processing Systems}, F.~Pereira, C.~Burges, L.~Bottou, and K.~Weinberger,
+  Eds., vol.~25.\hskip 1em plus 0.5em minus 0.4em\relax Curran Associates,
+  Inc., 2012. [Online]. Available:
+  \url{https://proceedings.neurips.cc/paper_files/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf}
+\BIBentrySTDinterwordspacing
+
+\bibitem{Redmon2016}
+J.~Redmon, S.~Divvala, R.~Girshick, and A.~Farhadi, ``You only look once:
+  Unified, real-time object detection,'' 06 2016, pp. 779--788.
+
+\bibitem{Ren2015}
+\BIBentryALTinterwordspacing
+S.~Ren, K.~He, R.~Girshick, and J.~Sun, ``Faster r-cnn: Towards real-time
+  object detection with region proposal networks,'' in \emph{Advances in Neural
+  Information Processing Systems}, C.~Cortes, N.~Lawrence, D.~Lee, M.~Sugiyama,
+  and R.~Garnett, Eds., vol.~28.\hskip 1em plus 0.5em minus 0.4em\relax Curran
+  Associates, Inc., 2015. [Online]. Available:
+  \url{https://proceedings.neurips.cc/paper_files/paper/2015/file/14bfa6bb14875e45bba028a21ed38046-Paper.pdf}
+\BIBentrySTDinterwordspacing
+
+\bibitem{AttentionIsAllYouNeed}
+\BIBentryALTinterwordspacing
+A.~Vaswani, N.~Shazeer, N.~Parmar, J.~Uszkoreit, L.~Jones, A.~N. Gomez, L.~u.
+  Kaiser, and I.~Polosukhin, ``Attention is all you need,'' in \emph{Advances
+  in Neural Information Processing Systems}, I.~Guyon, U.~V. Luxburg,
+  S.~Bengio, H.~Wallach, R.~Fergus, S.~Vishwanathan, and R.~Garnett, Eds.,
+  vol.~30.\hskip 1em plus 0.5em minus 0.4em\relax Curran Associates, Inc.,
+  2017. [Online]. Available:
+  \url{https://proceedings.neurips.cc/paper_files/paper/2017/file/3f5ee243547dee91fbd053c1c4a845aa-Paper.pdf}
+\BIBentrySTDinterwordspacing
+
+\bibitem{AnImageIsWorth}
+\BIBentryALTinterwordspacing
+A.~Dosovitskiy, L.~Beyer, A.~Kolesnikov, D.~Weissenborn, X.~Zhai,
+  T.~Unterthiner, M.~Dehghani, M.~Minderer, G.~Heigold, S.~Gelly, J.~Uszkoreit,
+  and N.~Houlsby, ``An image is worth 16x16 words: Transformers for image
+  recognition at scale,'' 2021. [Online]. Available:
+  \url{https://arxiv.org/abs/2010.11929}
+\BIBentrySTDinterwordspacing
+
 \bibitem{imagenet}
 J.~Deng, W.~Dong, R.~Socher, L.-J. Li, K.~Li, and L.~Fei-Fei, ``Imagenet: A
   large-scale hierarchical image database,'' in \emph{2009 IEEE Conference on
@@ -96,11 +159,6 @@ M.~Masana, X.~Liu, B.~Twardowski, M.~Menta, A.~D. Bagdanov, and J.~van~de
   image classification,'' \emph{IEEE Transactions on Pattern Analysis and
   Machine Intelligence}, vol.~45, no.~5, pp. 5513--5533, 2023, doi:
   10.1109/TPAMI.2022.3213473.
-
-\bibitem{domain_il}
-T.~Kalb, M.~Roschani, M.~Ruf, and J.~Beyerer, ``Continual learning for class-
-  and domain-incremental semantic segmentation,'' in \emph{2021 IEEE
-  Intelligent Vehicles Symposium (IV)}, 2021, pp. 1345--1351.
 
 \bibitem{Chaudhry2019ContinualLW}
 \BIBentryALTinterwordspacing
@@ -154,10 +212,12 @@ Z.~Li and D.~Hoiem, ``Learning without forgetting,'' \emph{CoRR}, vol.
   \url{http://arxiv.org/abs/1606.09282}
 \BIBentrySTDinterwordspacing
 
-\bibitem{liang2024inflora}
-Y.-S. Liang and W.-J. Li, ``Inflora: Interference-free low-rank adaptation for
-  continual learning,'' in \emph{Proceedings of the IEEE/CVF Conference on
-  Computer Vision and Pattern Recognition}, 2024, pp. 23\,638--23\,647.
+\bibitem{dolfin}
+\BIBentryALTinterwordspacing
+O.~Moussadek, R.~Salami, and S.~Calderara, ``Dolfin: Balancing stability and
+  plasticity in federated continual learning,'' 2025. [Online]. Available:
+  \url{https://arxiv.org/abs/2510.13567}
+\BIBentrySTDinterwordspacing
 
 \bibitem{wang2022learning}
 Z.~Wang, Z.~Zhang, C.-Y. Lee, H.~Zhang, R.~Sun, X.~Ren, G.~Su, V.~Perot, J.~Dy,
@@ -178,11 +238,21 @@ J.~S. Smith, L.~Karlinsky, V.~Gutta, P.~Cascante-Bonilla, D.~Kim, A.~Arbelle,
   \emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
   Recognition (CVPR)}, June 2023, pp. 11\,909--11\,919.
 
+\bibitem{liang2024inflora}
+Y.-S. Liang and W.-J. Li, ``Inflora: Interference-free low-rank adaptation for
+  continual learning,'' in \emph{Proceedings of the IEEE/CVF Conference on
+  Computer Vision and Pattern Recognition}, 2024, pp. 23\,638--23\,647.
+
 \bibitem{salami2025federatedclassincrementallearninghierarchical}
 \BIBentryALTinterwordspacing
 R.~Salami, P.~Buzzega, M.~Mosconi, M.~Verasani, and S.~Calderara, ``Federated
   class-incremental learning with hierarchical generative prototypes,'' 2025.
   [Online]. Available: \url{https://arxiv.org/abs/2406.02447}
 \BIBentrySTDinterwordspacing
+
+\bibitem{domain_il}
+T.~Kalb, M.~Roschani, M.~Ruf, and J.~Beyerer, ``Continual learning for class-
+  and domain-incremental semantic segmentation,'' in \emph{2021 IEEE
+  Intelligent Vehicles Symposium (IV)}, 2021, pp. 1345--1351.
 
 \end{thebibliography}

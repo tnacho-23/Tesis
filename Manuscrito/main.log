@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.3) (preloaded format=pdflatex 2025.4.2)  22 OCT 2025 12:57
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (MiKTeX 25.3) (preloaded format=pdflatex 2025.4.2)  23 OCT 2025 17:20
 entering extended mode
  \write18 enabled.
  %&-line parsing enabled.
@@ -607,7 +607,7 @@ Package hyperref Info: Link coloring OFF on input line 37.
 \openout3 = `main.out'.
 
 \c@lstlisting=\count332
-<imagenes/escudoU2014.pdf, id=99, 320.19624pt x 689.57625pt>
+<imagenes/escudoU2014.pdf, id=107, 320.19624pt x 689.57625pt>
 File: imagenes/escudoU2014.pdf Graphic file (type pdf)
 <use imagenes/escudoU2014.pdf>
 Package pdftex.def Info: imagenes/escudoU2014.pdf  used on input line 42.
@@ -686,35 +686,35 @@ Chapter 2.
 [5]
 
 [6]
-<imagenes/marco/CI_learning_survey_fig1.png, id=218, 830.35219pt x 649.67719pt>
+
+[7]
+<imagenes/marco/CI_learning_survey_fig1.png, id=250, 830.35219pt x 649.67719pt>
 
 File: imagenes/marco/CI_learning_survey_fig1.png Graphic file (type png)
 <use imagenes/marco/CI_learning_survey_fig1.png>
 Package pdftex.def Info: imagenes/marco/CI_learning_survey_fig1.png  used on in
-put line 56.
+put line 67.
 (pdftex.def)             Requested size: 236.01561pt x 184.65434pt.
 
 
-[7 <./imagenes/marco/CI_learning_survey_fig1.png>]
-Overfull \hbox (12.18066pt too wide) in paragraph at lines 87--88
-[]\OT1/cmr/m/n/12 Distributed On-line LoRA for Fed-er-ated IN-cre-men-tal learn
--ing method (DOLFIN) xxxADD
- []
+[8 <./imagenes/marco/CI_learning_survey_fig1.png>]
 
+[9]
 
-
-[8]
-<imagenes/marco/Survey_of_Continual_Learning_fig1.png, id=262, 333.86703pt x 23
+[10]
+<imagenes/marco/Survey_of_Continual_Learning_fig1.png, id=299, 333.86703pt x 23
 5.13197pt>
 File: imagenes/marco/Survey_of_Continual_Learning_fig1.png Graphic file (type p
 ng)
 <use imagenes/marco/Survey_of_Continual_Learning_fig1.png>
 Package pdftex.def Info: imagenes/marco/Survey_of_Continual_Learning_fig1.png  
-used on input line 102.
+used on input line 115.
 (pdftex.def)             Requested size: 236.01561pt x 166.22012pt.
 ) (main.bbl
 
-[9 <./imagenes/marco/Survey_of_Continual_Learning_fig1.png>]
+[11]
+
+[12 <./imagenes/marco/Survey_of_Continual_Learning_fig1.png>]
 Underfull \hbox (badness 4001) in paragraph at lines 30--34
 []\OT1/cmr/m/n/12 G. M. van de Ven, Z. Li, and A. S. To-lias, ``Class-increment
 al learn-ing
@@ -734,41 +734,45 @@ Underfull \hbox (badness 1442) in paragraph at lines 30--34
 
 
 
-[10
+[13
 
 ]
 
-[11])
+[14]
 
-[12] (main.aux)
+[15])
+
+[16] (main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 63D3E836DCF4B759B2738B5829A3F3B5;3386.
+(rerunfilecheck)             Checksum: 9C0BB8684D7C9ECB95D57F33F6CD177C;3723.
  ) 
 Here is how much of TeX's memory you used:
- 20126 strings out of 473523
- 351387 string characters out of 5714631
- 813506 words of memory out of 5000000
- 43003 multiletter control sequences out of 15000+600000
+ 20155 strings out of 473523
+ 351799 string characters out of 5714631
+ 815856 words of memory out of 5000000
+ 43016 multiletter control sequences out of 15000+600000
  566290 words of font info for 63 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  90i,7n,93p,1766b,594s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\ignac\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\tcrm
 1200.pk><C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfon
 ts/cm/cmbx12.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts/type1/publ
-ic/amsfonts/cm/cmmi12.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts/t
-ype1/public/amsfonts/cm/cmmi8.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX
-/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/ignac/AppData/Local/Program
-s/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/ignac/AppData/Local/
-Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/ignac/AppDa
-ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/Users/ign
-ac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmti12.pfb>
-Output written on main.pdf (19 pages, 376572 bytes).
+ic/amsfonts/cm/cmex10.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTeX/fonts/t
+ype1/public/amsfonts/cm/cmmi12.pfb><C:/Users/ignac/AppData/Local/Programs/MiKTe
+X/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/ignac/AppData/Local/Progra
+ms/MiKTeX/fonts/type1/public/amsfonts/cm/cmr12.pfb><C:/Users/ignac/AppData/Loca
+l/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/ignac/AppDa
+ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/ig
+nac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb><C:/
+Users/ignac/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmti12
+.pfb>
+Output written on main.pdf (23 pages, 406836 bytes).
 PDF statistics:
- 357 PDF objects out of 1000 (max. 8388607)
- 76 named destinations out of 1000 (max. 500000)
- 208 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 418 PDF objects out of 1000 (max. 8388607)
+ 92 named destinations out of 1000 (max. 500000)
+ 224 words of extra memory for PDF output out of 10000 (max. 10000000)
 
