@@ -1,0 +1,121 @@
+\chapter{Results} \label{results}
+
+Following the 
+
+\begin{table}[h]
+	\centering
+	\caption{Comparison of Method Performance on Split CIFAR 100 and Split Imagenet R}
+	\label{tab:method_comparison}
+	\begin{tabular}{lcccc}
+		\toprule
+		\multirow{2}{*}{\textbf{Method}} & \multicolumn{2}{c}{\textbf{Split CIFAR 100}} & \multicolumn{2}{c}{\textbf{Split Imagenet R}} \\
+		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+		& \textbf{Avg. Acc} & \textbf{Forgetting} & \textbf{Avg. Acc} & \textbf{Forgetting} \\
+		\midrule
+		L2P & 83.86 & 7.35 & 61.57 & 9.73 \\
+		DualPrompt & 86.51 & 5.16 & 68.13 & 4.68 \\
+		CODAPrompt & 86.25 & 0.74 & 75.45 & 1.64 \\
+		\midrule
+		Separable ViTb & 78.63 & 17.52 & 52.56 & 4.89 \\
+		Separable-B ViTb & -- & -- & 52.79 & 5.33 \\
+		Non-Separable ViTb & 82.36 & 20.73 & 41.72 & 15.41 \\
+		Non-Separable-B ViTb & -- & -- & 46.46 & 12.19 \\
+		GMM-2-NS ViTb & 75.34 & 20.73 & 42.56 & 17.71 \\
+		GMM-2-S ViTb & 53.53 & 17.85 & 53.53 & 1.18 \\
+		GMM-up-to-4-NS ViTb & 82.34 & 14.07 & 44.43 & 17.85 \\
+		GMM-up-to-4-S ViTb & 80.40 & 15.55 & 50.51 & 3.48 \\
+		\midrule
+		Separable ViTm & 86.28 & 12.02 & 56.16 & 16.55 \\
+		Separable-B ViTm & -- & -- & 56.34 & 18.89 \\
+		Non-Separable ViTm & 88.12 & 10.20 & 56.66 & 18.89 \\
+		Non-Separable-B ViTm & -- & -- & 56.66 & 18.89 \\
+		GMM-2-NS ViTm & 83.37 & 5.25 & 59.21 & 8.48 \\
+		GMM-2-S ViTm & 83.51 & 3.97 & 70.37 & 3.14 \\
+		GMM-up-to-4 ViTm & 85.71 & 3.64 & 55.01 & 19.87 \\
+		GMM-up-to-4-S ViTm & 83.60 & 4.69 & 68.32 & 7.98 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[h]
+	\centering
+	\caption{Performance comparison of PCA-based ViT methods against baselines}
+	\label{tab:pca_results}
+	\begin{tabular}{lcccc}
+		\toprule
+		\multirow{2}{*}{\textbf{Method}} & \multicolumn{2}{c}{\textbf{Split CIFAR 100}} & \multicolumn{2}{c}{\textbf{Split Imagenet R}} \\
+		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+		& \textbf{Avg. Acc} & \textbf{Forgetting} & \textbf{Avg. Acc} & \textbf{Forgetting} \\
+		\midrule
+		L2P & 83.86 & 7.35 & 61.57 & 9.73 \\
+		DualPrompt & 86.51 & 5.16 & 68.13 & 4.68 \\
+		CODAPrompt & 86.25 & 0.74 & 75.45 & 1.64 \\
+		\midrule
+		Separable ViTb (768) & 78.63 & 17.52 & 52.56 & 4.89 \\
+		Non-Separable ViTb (768) & 82.36 & 20.73 & 41.72 & 15.41 \\
+		\midrule
+		Separable ViTb PCA64 & 66.04 & 24.96 & 25.99 & 17.22 \\
+		Separable ViTb PCA128 & 72.58 & 21.69 & 34.84 & 12.57 \\
+		Separable ViTb PCA256 & 76.76 & 18.49 & 46.25 & 9.05 \\
+		Separable ViTb PCA768 & 79.59 & 16.90 & 56.25 & 2.21 \\
+		\midrule
+		Separable ViTb PCA64-F & 66.07 & 25.15 & -- & -- \\
+		Separable ViTb PCA128-F & 72.68 & 21.80 & -- & -- \\
+		Separable ViTb PCA256-F & 76.62 & 19.09 & -- & -- \\
+		Separable ViTb PCA768-F & 79.52 & 16.87 & -- & -- \\
+		\midrule
+		Non-Separable ViTb PCA64 & 73.37 & 18.48 & 31.88 & 16.16 \\
+		Non-Separable ViTb PCA128 & 75.42 & 18.20 & 21.47 & 15.52 \\
+		Non-Separable ViTb PCA256 & 73.12 & 18.65 & 31.04 & 14.36 \\
+		Non-Separable ViTb PCA768 & 75.66 & 21.49 & 46.83 & 15.12 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[h]
+	\centering
+	\caption{Comparison of Top-1, Top-3, and Top-5 Accuracy on Split CIFAR 100}
+	\label{tab:top_n_accuracies}
+	\setlength{\tabcolsep}{4pt} % Adjusts column spacing to fit page width
+	\begin{tabular}{lcccccc}
+		\toprule
+		\multirow{3}{*}{\textbf{Method}} & \multicolumn{6}{c}{\textbf{Split CIFAR 100}} \\
+		\cmidrule(lr){2-7}
+		& \multicolumn{2}{c}{\textbf{Top 1}} & \multicolumn{2}{c}{\textbf{Top 3}} & \multicolumn{2}{c}{\textbf{Top 5}} \\
+		\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+		& \textbf{Acc} & \textbf{Forg} & \textbf{Acc} & \textbf{Forg} & \textbf{Acc} & \textbf{Forg} \\
+		\midrule
+		Separable ViT & 78.63 & 17.52 & 91.51 & 8.88 & 94.41 & 6.10 \\
+		Non-Separable ViT & 82.36 & 14.05 & 93.81 & 6.43 & 96.28 & 4.02 \\
+		\midrule
+		Separable ViT PCA768 & 79.59 & 16.90 & 91.70 & 8.66 & 94.38 & 6.02 \\
+		Separable ViT PCA256 & 76.76 & 18.49 & 90.61 & 9.76 & 93.73 & 6.95 \\
+		Separable ViT PCA128 & 72.58 & 21.69 & 88.59 & 11.46 & 92.56 & 7.72 \\
+		Separable ViT PCA64 & 66.04 & 24.96 & 84.83 & 15.18 & 90.38 & 10.25 \\
+		\midrule
+		Non-Separable ViT PCA768 & 75.66 & 21.49 & 93.82 & 6.42 & 96.24 & 3.95 \\
+		Non-Separable ViT PCA256 & 73.12 & 18.65 & 87.40 & 11.22 & 91.39 & 8.90 \\
+		Non-Separable ViT PCA128 & 75.42 & 18.20 & 89.32 & 9.65 & 92.79 & 7.45 \\
+		Non-Separable ViT PCA64 & 73.37 & 18.48 & 88.48 & 10.80 & 92.31 & 7.88 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[h]
+	\centering
+	\caption{Comparison of Top-1, Top-3, and Top-5 Accuracy on Split Imagenet-R}
+	\label{tab:top_n_accuracies_imagenet}
+	\setlength{\tabcolsep}{4pt} % Adjusts column spacing
+	\begin{tabular}{lcccccc}
+		\toprule
+		\multirow{3}{*}{\textbf{Method}} & \multicolumn{6}{c}{\textbf{Split Imagenet-R}} \\
+		\cmidrule(lr){2-7}
+		& \multicolumn{2}{c}{\textbf{Top 1}} & \multicolumn{2}{c}{\textbf{Top 3}} & \multicolumn{2}{c}{\textbf{Top 5}} \\
+		\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+		& \textbf{Acc} & \textbf{Forg} & \textbf{Acc} & \textbf{Forg} & \textbf{Acc} & \textbf{Forg} \\
+		\midrule
+		Separable & 52.56 & 4.89 & 65.92 & 9.80 & 71.20 & 12.95 \\
+		Non-Separable & 41.72 & 15.41 & 54.85 & 21.75 & 61.67 & 24.04 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
