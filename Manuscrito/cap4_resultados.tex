@@ -1,6 +1,10 @@
-\chapter{Results} \label{results}
+\chapter{Results}
 
-Following the 
+Our approach uses a pre-trained foundation model to extract features of images and generate Gaussian representations per class where, during the inference step, the classifier will predict the class that hast the highest likelihood among the existing Gaussians. Several Gaussian representations where developed: separable, non-separable and Gaussian-mixture models.
+
+\section{Baselines Comparison}
+
+We chose prompt-based methods as a baseline --- L2P \cite{wang2022learning}, Dual Prompt \cite{wang2022dualprompt} and CODA-Prompt \cite{Smith_2023_CVPR} ---. The baselines use a ViTb/16 \cite{AnImageIsWorth} as a backbone. We decided to test our model using two different backbones: the ViTb/16 used in the baselines and a ViTm/16. Both of them pre-trained on Imagenet-21k and finetuned on Imagenet-1k. The first one has an xxxxVITb IMAGENET ACCxxx and the second one a xxxxViTm Imagenet ACCxxx.
 
 \begin{table}[h]
 	\centering
@@ -37,6 +41,7 @@ Following the
 	\end{tabular}
 \end{table}
 
+\section{Dimensionality Reduction}
 \begin{table}[h]
 	\centering
 	\caption{Performance comparison of PCA-based ViT methods against baselines}
@@ -71,6 +76,8 @@ Following the
 		\bottomrule
 	\end{tabular}
 \end{table}
+
+\section{Top Accuracies Results}
 
 \begin{table}[h]
 	\centering
