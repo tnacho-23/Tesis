@@ -1,10 +1,26 @@
 \chapter{Results}
 
-Our approach uses a pre-trained foundation model to extract features of images and generate Gaussian representations per class where, during the inference step, the classifier will predict the class that hast the highest likelihood among the existing Gaussians. Several Gaussian representations where developed: separable, non-separable and Gaussian-mixture models.
+Our approach uses a pre-trained foundation model to extract features of images and generate Gaussian representations per class where, during the inference step, the classifier will predict the class that hast the highest likelihood among the existing Gaussians. Several Gaussian representations where developed: separable, non-separable, and Gaussian-mixture models using both separable and non-separable mixtures.
 
 \section{Baselines Comparison}
 
-We chose prompt-based methods as a baseline --- L2P \cite{wang2022learning}, Dual Prompt \cite{wang2022dualprompt} and CODA-Prompt \cite{Smith_2023_CVPR} ---. The baselines use a ViTb/16 \cite{AnImageIsWorth} as a backbone. We decided to test our model using two different backbones: the ViTb/16 used in the baselines and a ViTm/16. Both of them pre-trained on Imagenet-21k and finetuned on Imagenet-1k. The first one has an xxxxVITb IMAGENET ACCxxx and the second one a xxxxViTm Imagenet ACCxxx.
+We selected prompt-based methods, specifically L2P \cite{wang2022learning}, Dual Prompt \cite{wang2022dualprompt}, and CODA-Prompt \cite{Smith_2023_CVPR}, as our baselines. These methods utilize a ViT-B/16 \cite{AnImageIsWorth} as the backbone. For our experiments, we evaluated our model using two distinct backbones: the standard ViT-B/16 and a ViT-M/16 \cite{rw2019timm}. Both architectures were pre-trained on ImageNet-21k and subsequently fine-tuned on ImageNet-1k. The performance of these backbones on ImageNet-1k, using the original FFN classification head, is presented in Table \ref{tab:backbone_accuracy}.
+
+\begin{table}[h]
+	\centering
+	\caption{ImageNet Accuracy of ViT Backbones}
+	\label{tab:backbone_accuracy}
+	\begin{tabular}{lc}
+		\toprule
+		\textbf{Backbone} & \textbf{Imagenet Accuracy} \\
+		\midrule
+		ViT-B/16 & 81.07\% \\
+		ViT-m/16 & 87.44\% \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+Table \ref{tab:method_comparison} presents the experimental results on the CIFAR-100 and ImageNet-R datasets. While CIFAR-100 is class-balanced, ImageNet-R exhibits significant imbalance, with sample counts varying widely across classes. To address this, we applied a balancing strategy in select experiments, denoted by the suffix ``-B''. In these cases, synthetic samples were generated for under-represented classes by sampling from a Gaussian distribution defined by the class mean and covariance. Regarding the GMM-based methods, the suffix ``-S'' indicates the use of separable covariance, while ``-N'' denotes non-separable covariance. If no covariance suffix is present, non-separable covariance is implied.
 
 \begin{table}[h]
 	\centering
@@ -42,6 +58,10 @@ We chose prompt-based methods as a baseline --- L2P \cite{wang2022learning}, Dua
 \end{table}
 
 \section{Dimensionality Reduction}
+
+To reduce the dimensionality of the 768-dimensional ViT-B/16 embeddings, we trained a \textit{foundation PCA} --- defined here as a PCA trained with sufficient samples to generalize across diverse feature distributions. Table \ref{tab:pca_results} presents the results for both separable and non-separable methods across different PCA configurations. Methods annotated with the suffix ``-F'' utilize a PCA trained on the full ImageNet-21k dataset. In the absence of this suffix, the PCA was trained on the ImageNet-21k-P subset \cite{imagenetP}.
+
+
 \begin{table}[h]
 	\centering
 	\caption{Performance comparison of PCA-based ViT methods against baselines}
@@ -56,8 +76,8 @@ We chose prompt-based methods as a baseline --- L2P \cite{wang2022learning}, Dua
 		DualPrompt & 86.51 & 5.16 & 68.13 & 4.68 \\
 		CODAPrompt & 86.25 & 0.74 & 75.45 & 1.64 \\
 		\midrule
-		Separable ViTb (768) & 78.63 & 17.52 & 52.56 & 4.89 \\
-		Non-Separable ViTb (768) & 82.36 & 20.73 & 41.72 & 15.41 \\
+		Separable ViTb & 78.63 & 17.52 & 52.56 & 4.89 \\
+		Non-Separable ViTb & 82.36 & 20.73 & 41.72 & 15.41 \\
 		\midrule
 		Separable ViTb PCA64 & 66.04 & 24.96 & 25.99 & 17.22 \\
 		Separable ViTb PCA128 & 72.58 & 21.69 & 34.84 & 12.57 \\
@@ -78,6 +98,9 @@ We chose prompt-based methods as a baseline --- L2P \cite{wang2022learning}, Dua
 \end{table}
 
 \section{Top Accuracies Results}
+
+Finally, Tables \ref{tab:top_n_accuracies} and \ref{tab:top_n_accuracies_imagenet} present the results of various experiments using both our separable and non-separable methods over CIFAR100 and ImagenetR, specifically including top-3 and top-5 accuracy metrics. These additional metrics allow for a more in-depth analysis of our model's performance characteristics.
+
 
 \begin{table}[h]
 	\centering
