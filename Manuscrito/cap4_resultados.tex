@@ -1,5 +1,6 @@
 \chapter{Results}
 
+
 Our approach uses a pre-trained foundation model to extract features of images and generate Gaussian representations per class where, during the inference step, the classifier will predict the class that hast the highest likelihood among the existing Gaussians. Several Gaussian representations were developed: separable, non-separable, and Gaussian-mixture models using both separable and non-separable mixtures.
 
 \section{Baselines Comparison}
@@ -59,7 +60,7 @@ Table \ref{tab:method_comparison} presents the experimental results on the CIFAR
 
 \section{Dimensionality Reduction}
 
-To reduce the dimensionality of the 768-dimensional ViT-B/16 embeddings, we trained a \textit{foundation PCA} --- defined here as a PCA trained with sufficient samples to generalize across diverse feature distributions. Table \ref{tab:pca_results} presents the results for both separable and non-separable methods across different PCA configurations. Methods annotated with the suffix ``-F'' utilize a PCA trained on the full ImageNet-21k dataset. In the absence of this suffix, the PCA was trained on the ImageNet-21k-P subset \cite{imagenetP}.
+To reduce the dimensionality of the 768-dimensional ViT-B/16 embeddings, we trained a \textit{foundation PCA} --- defined here as a PCA trained with sufficient samples to generalize across diverse feature distributions. Table \ref{tab:pca_results} presents the results for both separable and non-separable methods across different PCA configurations. Methods annotated with the suffix ``-F'' utilize a PCA trained on the full ImageNet-21k dataset. In the absence of this suffix, the PCA was trained on the ImageNet-21k-P subset \cite{imagenet21k}.
 
 
 \begin{table}[h]
