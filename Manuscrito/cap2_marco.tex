@@ -1,13 +1,13 @@
 \chapter{Theoretical framework}
 
-In this chapter we will present the necessary concepts to fully understand the work done. First, we will review general concepts of artificial intelligence (AI), Machine Learning (ML) Image Processing, Object Classification and Object Detection. Second, we will describe the datasets used in this work and finally we will talk about Continual Learning and describe some of the state-of-the-art methods.
+In this chapter we will present the necessary concepts to fully understand the work done. First, we will review general concepts of artificial intelligence, Machine Learning, Image Processing, Object Classification and Object Detection. Second, we will describe the datasets used in this work and finally we will talk about Continual Learning and describe some of the state-of-the-art methods.
 
 \section{Artificial Intelligence}
-Artificial Intelligence (AI) is a broad field of computer science dedicated to creating systems that can perform tasks that typically require human intelligence, such as learning, reasoning, problem-solving, perception, and language understanding \cite{RussellNorvig}.
+Artificial Intelligence is a broad field of computer science dedicated to creating systems that can perform tasks that typically require human intelligence, such as learning, reasoning, problem-solving, perception, and language understanding \cite{RussellNorvig}.
 
 \subsection{Machine Learning}
 
-Machine Learning (ML) is a subfield of AI focused on the development of algorithms that allow computers to learn from data without being explicitly programmed. ML systems can be broadly categorized into three types: Supervised Learning (learning from labeled data), Unsupervised Learning (learning from unlabeled data), and Reinforcement Learning (learning through trial and error with rewards) \cite{Bishop2006}.
+Machine Learning is a subfield of AI focused on the development of algorithms that allow computers to learn from data without being explicitly programmed. ML systems can be broadly categorized into three types: Supervised Learning (learning from labeled data), Unsupervised Learning (learning from unlabeled data), and Reinforcement Learning (learning through trial and error with rewards) \cite{Bishop2006}.
 
 \subsection{Computer Vision}
 
@@ -23,7 +23,7 @@ Computer Vision is an interdisciplinary scientific field of AI that deals with h
 
 The Transformer architecture, originally developed for sequence-to-sequence tasks in Natural Language Processing (NLP), revolutionized deep learning with its reliance on the self-attention mechanism, which allows the model to weigh the importance of different parts of the input relative to others \cite{AttentionIsAllYouNeed}.
 
-\subsection{Vision Transformers (ViT)} Vision Transformers (ViT) adapt the Transformer architecture for image recognition tasks. ViT treats an image as a sequence of fixed-size patches, each of which is linearly embedded and then processed by a standard Transformer encoder. This approach demonstrated that a pure Transformer applied directly to image patches could perform comparably or superiorly to Convolutional Neural Networks (CNNs), particularly when trained on very large datasets \cite{AnImageIsWorth}.
+ Vision Transformers (ViT) adapt the Transformer architecture for image recognition tasks. ViT treats an image as a sequence of fixed-size patches, each of which is linearly embedded and then processed by a standard Transformer encoder. This approach demonstrated that a pure Transformer applied directly to image patches could perform comparably or superiorly to Convolutional Neural Networks (CNNs), particularly when trained on very large datasets \cite{AnImageIsWorth}.
 
 \section{Image Datasets}
 Several image datasets were utilized in the course of this work. A detailed description of each dataset is provided below.
@@ -114,7 +114,7 @@ These methods encode new knowledge by working with the model's existing feature 
 In summary, as illustrated in Figure \ref{fig:cl_summary}, the conceptual framework of continual learning can be understood through four interrelated components. First, continual learning involves adapting to incremental tasks under dynamic data distributions, reflecting the non-stationary characteristics of real-world environments. Second, an effective continual learning system must strike an appropriate balance between stability and plasticity: stability ensures the retention of previously acquired knowledge, whereas plasticity enables the integration of novel information. Moreover, the model should generalize effectively to both intra-task variations, which represent differences within a single task, and inter-task variations, which capture distributional shifts across tasks. Third, to achieve these objectives, a variety of methodological approaches have been proposed—each addressing different facets of the learning process. Unlike those presented in \cite{CL}, the state-of-the-art methods analysed in this work are categorized into rehearsal, regularization, and representation-based approaches. Finally, continual learning techniques must also be tailored to practical scenarios, where factors such as task specificity, scenario complexity, and computational limitations further influence the design and evaluation of effective solutions \cite{CL}.
 \begin{figure} % h=here, t=top, b=bottom, p=page of floats
 	\centering
-	\includegraphics[width=0.5\textwidth]{imagenes/marco/Survey_of_Continual_Learning_fig1.png} % change path and filename
-	\caption{Four key aspects of CL framework \cite{CL}.}
+	\includegraphics[width=0.5\textwidth]{imagenes/marco/theoretical_framework.pdf} % change path and filename
+	\caption{Key aspects of Continual Learning.}
 	\label{fig:cl_summary}
 \end{figure}
