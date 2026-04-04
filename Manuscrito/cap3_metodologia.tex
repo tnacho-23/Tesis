@@ -1,153 +1,21 @@
 \chapter{Methodology} \label{methodolohy}
 
-Our approach enables an image recognition system to continually learn new object classes over time without forgetting previously learned ones. This catastrophic forgetting occurs when models adapt to new information but demonstrate reduced or poor performance on earlier tasks they had once mastered. Addressing this loss of performance is essential for building adaptive and reliable autonomous systems and is achieved by pairing an unsupervised pretrained feature extractor with independent Gaussian models that capture each class’s representation. We begin by describing how the features are extracted using a foundation model in section \ref{backbone_description} In section \ref{gaussian_representation} the way the Gaussian representations are generated is described. Finally, in section \ref{experimental_methodology}, we explain the inference step and the incremental addition of new classes by presenting the experimental methodology.
+\section{Proposed Architecture}
+The proposed continual learning object recognition system is based on the following two components: (i) a feature extraction model built using a foundation model and (ii) a Gaussian classification model built using several Gaussians models, each characterizing a given object class independently of the other classes. For classification, the class whose Gaussian yields the highest likelihood of the Continual Object Learning using Gaussians input features is selected. Figure \ref{fig:architecture} presents a block diagram that illustrates the proposed approach.
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{imagenes/methodology/block_diagram_approach.pdf}
+	\caption{Block diagram of the proposed approach.}
+	\label{fig:architecture}
+\end{figure}
 
-\section{Backbone description} \label{backbone_description}
-The primary requirement for a feature extraction model to be used as a backbone is that it must be pretrained — before the recognition system is initialized or created — and the features obtained must be sufficiently general to characterize all possible classes of objects to be seen, not just the ones known at training time.
-\subsection{Training the backbone for image classification}
-To validate the proposed concept, we employed a ViT-based foundation model \cite{AnImageIsWorth} as the feature extractor, utilizing ImageNet \cite{imagenet} for training. Specifically, the model was pre-trained on ImageNet-21k and subsequently fine-tuned on ImageNet-1k for image classification. In this work, the classification head was discarded; the remaining feature extraction layers were preserved and frozen to serve as a static backbone.	
-\subsection{Using a modular backbone for continual learning}
-Implementing a modular backbone within a continual learning framework mitigates catastrophic forgetting. By relying exclusively on generalized feature extraction and preventing updates to the backbone weights, the system maintains a stable representation across incremental tasks.
-\section{Gaussian representations using extracted embeddings} \label{gaussian_representation}
-Assuming each object class is single-modal and can therefore be represented by a Gaussian distribution, a single Gaussian representation is used for each class. Two variants are implemented: a separable Gaussian model, which assumes diagonal covariance matrices (e.g., the naive Bayes assumption), and a non-separable Gaussian model, which uses full covariance matrices.
-\subsection{Separable Gaussian representation}
-In the separable Gaussian model, it is required to store the following values for each object class: the sum of each component of the feature vector, the sum of the squares of each component of the feature vector, and the number of samples per class. Using those stored statics, it is possible to to calculate --- and incrementally update as new data becomes available --- each class separable Gaussian representation as shown in algorithm \ref{alg:separable_gaussian_modeling}.
+\section{Covariance Estimation}
 
-\begin{algorithm}
-	\caption{Separable Gaussian Modeling}
-	\label{alg:separable_gaussian_modeling}
-	\begin{algorithmic}[1]
-		\If{class statistics exist}
-		\State Load \texttt{sums}, \texttt{sums2}, and \texttt{class\_counts}
-		\Else
-		\State Initialize \texttt{sums}, \texttt{sums2}, and \texttt{class\_counts} to zero for each class
-		\EndIf
-		
-		\For{each feature vector $\mathbf{x}$ with class label $k$}
-		\State Update \texttt{sums}$_k \leftarrow$ \texttt{sums}$_k + \mathbf{x}$
-		\State Update \texttt{sums2}$_k \leftarrow$ \texttt{sums2}$_k + \mathbf{x}^2$
-		\State Update \texttt{class\_counts}$_k$ $\leftarrow \texttt{class\_counts}_k + 1$
-		\EndFor
-		
-		\For{each class $k$}
-		\State Compute mean: $\mu_k = \frac{\texttt{sums}_k}{\texttt{class\_counts}_k}$
-		\State Compute variance: $\sigma_k^2 = \frac{\texttt{sums2}_k}{\texttt{class\_counts}_k} - \mu_k^2$
-		\State Add stability term: $\text{cov}_k = \sigma_k^2 + \epsilon$
-		\State Compute log-normalization constant: $\ln A_k = -\frac{d}{2} \log(\pi) - \frac{1}{2} \sum_{j=1}^d \log(\sigma_{k,j}^2)$
-		\EndFor
-		
-		\Function{Classify}{$\mathbf{x}$}
-		\For{each class $k$}
-		\State Compute Mahalanobis distance: $D_k = \sum_{j=1}^d \frac{(x_j - \mu_{k,j})^2}{\sigma_{k,j}^2}$
-		\State Compute log-likelihood: $\log p_k(\mathbf{x}) = \ln A_k - \frac{1}{2} D_k$
-		\EndFor
-		\State \Return class $k$ with maximum $\log p_k(\mathbf{x})$
-		\EndFunction
-	\end{algorithmic}
-\end{algorithm}
+\section{Mixture of Gaussians}
 
-\subsection{Non-Separable Gaussian representation}
-In the non-separable Gaussian model, instead of storing scalar values, the sum of the feature vectors $x_i$ and the sum of outer products of the feature vectors $x_ix_i^T$ are stored. In the same way as the separable case, the previous described statics allow the incremental update of each class representation as shown in algorithm \ref{alg:non_separable_gaussian_modeling}.
+\section{Hybrid Fusion and Score Normalization Strategies}
 
-\begin{algorithm}
-	\caption{Non-Separable Gaussian Modeling}
-	\label{alg:non_separable_gaussian_modeling}
-	\begin{algorithmic}[1]
-		\If{class statistics exist}
-		\State Load \texttt{sums}, \texttt{outer\_sums}, and \texttt{class\_counts}
-		\Else
-		\State Initialize \texttt{sums}, \texttt{outer\_sums}, and \texttt{class\_counts} to zero for each class
-		\EndIf
-		
-		\For{each feature vector $\mathbf{x}$ with class label $k$}
-		\State Update \texttt{sums}$_k \leftarrow$ \texttt{sums}$_k + \mathbf{x}$
-		\State Update \texttt{outer\_sums}$_k \leftarrow$ \texttt{outer\_sums}$_k + \mathbf{x} \mathbf{x}^\top$
-		\State Update $\texttt{class\_counts}_k$ $\leftarrow \texttt{class\_counts}_k + 1$
-		\EndFor
-		
-		\For{each class $k$}
-		\State Compute mean: $\mu_k = \frac{\texttt{sums}_k}{\texttt{class\_counts}_k}$
-		\State Compute covariance: $\Sigma_k = \frac{\texttt{outer\_sums}_k}{\texttt{class\_counts}_k} - \mu_k \mu_k^\top$
-		\State Add regularization: $\Sigma_k \leftarrow \Sigma_k + \epsilon I$
-		\If{$\Sigma_k$ is not positive semi-definite}
-		\State Perform eigendecomposition: $\Sigma_k = P \Lambda P^\top$
-		\State Replace $\Lambda \leftarrow \max(\Lambda, \epsilon)$
-		\State Reconstruct covariance: $\Sigma_k \leftarrow P \Lambda P^\top$
-		\EndIf
-		\State Compute log-normalization: $\log A_k = -\frac{1}{2} \left( d \log(2\pi) + \log |\Sigma_k| \right)$
-		\EndFor
-		
-		\Function{Classify}{$\mathbf{x}$}
-		\For{each class $k$}
-		\State Compute Mahalanobis distance: $D_k = (\mathbf{x} - \mu_k)^\top \Sigma_k^{-1} (\mathbf{x} - \mu_k)$
-		\State Compute log-likelihood: $\log p_k(\mathbf{x}) = \log A_k - \frac{1}{2} D_k$
-		\EndFor
-		\State \Return class $k$ with maximum $\log p_k(\mathbf{x})$
-		\EndFunction
-	\end{algorithmic}
-\end{algorithm}
-\subsection{Two-mode Gaussian representationg}
-Since object classes do not necessarily have single-modal distributions, a two-mode Gaussian Mixture Model (GMM) can be used to represent each class. In this can be done by using separable or non-separable covariance matrices.
+In many classification pipelines, combining multiple metrics—such as the generative log-likelihood (Mahalanobis-based) and the discriminative angular similarity (Cosine-based)—can lead to superior performance.
 
-\subsection{Up-to-four mode Gaussian representation with modality testing}
-Because the number of modes required to represent an object class is variable, the algorithm in Algorithm \ref{alg:GMM_training} is used to determine the necessary number of modes --- up to four modes in this case --- and, consequently, the number of Gaussians.
-
-\begin{algorithm}
-	\caption{GMM Training}
-	\label{alg:GMM_training}
-	\begin{algorithmic}[1]
-		\State \textbf{Input:} Features $\mathcal{X}_k$ per class $k$. 
-		\State \textbf{Output:} Number of gaussians $M_k$ per class $k$
-		
-		GMM means and covariances $\{(\boldsymbol{\mu}_{k,m}, \boldsymbol{\Sigma}_{k,m})\}$ per class $k$
-		
-		\Function{TrainGMM}{$\mathcal{X}_k$}
-		\For{$j = 2$ to $4$}
-		\State Generate $j$ clusters from $\mathcal{X}_k$ using $k$-means
-		\State Compute $\text{MCP}_j$ (max cluster percentage)
-		\State Compute $\text{CH}_j$ (Calinski-Harabasz Score)
-		\State Compute $S_j \gets \text{MCP}_j - \text{CH}_j / 2$ (general score)
-		\EndFor
-		\State $M_k \gets \arg\max_j S_j$ \textbf{if} $\max_j S_j > score_{th}$ \textbf{else} $1$
-		\State Compute Gaussian Mixture parameters $\{(\boldsymbol{\mu}_{k,m}, \boldsymbol{\Sigma}_{k,m})\}$ considering $M_k$ gaussians
-		\State \Return $M_k$, $\{(\boldsymbol{\mu}_{k,m}, \boldsymbol{\Sigma}_{k,m})\}$
-		\EndFunction
-	\end{algorithmic}
-\end{algorithm}
-\section{Experimental Methodology} \label{experimental_methodology}
-
-
-
-To evaluate the efficacy of our approach in a Class-Incremental Learning (CIL) setting, we conduct experiments on two standard benchmarks: Split CIFAR-100 and Split ImageNet-R.
-
-
-\subsection{Datasets and Experimental Protocol}
-We follow the standard Continual Learning protocol where the model learns a sequence of disjoint tasks. The specific configurations for the datasets are as follows:
-\begin{itemize}
-	\item Split CIFAR-100: This dataset is a widely utilized benchmark in the continual learning literature. It partitions the original CIFAR-100 \cite{cifar100} dataset into 10 disjoint tasks, with each task containing 10 distinct classes.
-\item Split ImageNet-R: This benchmark is constructed from ImageNet-R \cite{imagenetR}, a dataset containing renditions of ImageNet classes (e.g., art, cartoons, sketches). We randomly divide the 200 classes into 10 sequential tasks, with 20 classes per task.
-\end{itemize} 
-\subsection{Evaluation Metrics}
-To quantify performance, and inspired by the Learn to Prompt work \cite{wang2022learning} we utilize two standard metrics derived from the test accuracy scores: the average accuracy and the average forgetting.
-
-Average Accuracy ($A_t$), presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point.
-The final $A_{10}$ (after all 10 tasks) is the number reported in benchmark tables of the L2P \cite{wang2022learning} work.
-
-\begin{equation}
-	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}
-	\label{eq_AA}
-\end{equation}
-
-Forgetting ($F_{t}$), presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops.
-
-\begin{equation}
-	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right)
-	\label{eq_AF}
-\end{equation}
-
-
-
-
-
-
+\section{Curse of Dimensionality}
 

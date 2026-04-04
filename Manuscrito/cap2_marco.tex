@@ -1,120 +1,325 @@
 \chapter{Theoretical framework}
 
-In this chapter we will present the necessary concepts to fully understand the work done. First, we will review general concepts of artificial intelligence, Machine Learning, Image Processing, Object Classification and Object Detection. Second, we will describe the datasets used in this work and finally we will talk about Continual Learning and describe some of the state-of-the-art methods.
+This chapter establishes the conceptual and mathematical foundations required to contextualize the research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG), and Principal Component Analysis (PCA), alongside advanced covariance estimation methods such as OAS and Ledoit-Wolf. Finally, we address the challenge of "catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating state-of-the-art methods to provide a performance baseline for the proposed work.
 
-\section{Artificial Intelligence}
-Artificial Intelligence is a broad field of computer science dedicated to creating systems that can perform tasks that typically require human intelligence, such as learning, reasoning, problem-solving, perception, and language understanding \cite{RussellNorvig}.
+\section{Artificial Intelligence and Machine Learning}
 
-\subsection{Machine Learning}
+Artificial Intelligence (AI) is a broad field of computer science dedicated to creating systems capable of performing tasks that typically require human intelligence, such as learning, reasoning, perception, and language understanding \cite{RussellNorvig}. Within this domain, Machine Learning (ML) focuses on developing algorithms that allow computers to learn patterns from data without explicit programming. ML systems are generally categorized into three paradigms: Supervised Learning, Unsupervised Learning, and Reinforcement Learning \cite{Bishop2006}.
 
-Machine Learning is a subfield of AI focused on the development of algorithms that allow computers to learn from data without being explicitly programmed. ML systems can be broadly categorized into three types: Supervised Learning (learning from labeled data), Unsupervised Learning (learning from unlabeled data), and Reinforcement Learning (learning through trial and error with rewards) \cite{Bishop2006}.
+First, in \textbf{Supervised Learning}, the model learns a mapping from input variables $x$ to output variables $y$ based on a labeled dataset $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^N$. The objective is to minimize a loss function that penalizes the discrepancy between the predicted output and the ground truth. This paradigm is typically divided into Classification, where the output is a discrete category, and Regression, where the output is a continuous value.
 
-\subsection{Computer Vision}
-
-Computer Vision is an interdisciplinary scientific field of AI that deals with how computers can gain high-level understanding from digital images or videos. Its goal is to automate tasks that the human visual system can do \cite{Szeliski2010}.
-
-\subsection{Image Processing} Image Processing refers to the techniques used to perform operations on an image, to get an enhanced image or to extract some useful information from it. In the context of deep learning, this often includes resizing, normalization, and data augmentation \cite{Gonzalez2018}.
-
-\subsection{Object Classification} Object Classification, or image classification, is the task of assigning a single label to an entire input image from a predefined set of categories. This task serves as a fundamental benchmark in computer vision \cite{Krizhevsky2012}.
-
-\subsection{Object Detection} Object Detection is a more complex task that involves identifying and locating objects within an image. The output typically includes a bounding box for each object and a class label \cite{Redmon2016}\cite{Ren2015}.
-
-\section{Vision Transformers}
-
-The Transformer architecture, originally developed for sequence-to-sequence tasks in Natural Language Processing (NLP), revolutionized deep learning with its reliance on the self-attention mechanism, which allows the model to weigh the importance of different parts of the input relative to others \cite{AttentionIsAllYouNeed}.
-
- Vision Transformers (ViT) adapt the Transformer architecture for image recognition tasks. ViT treats an image as a sequence of fixed-size patches, each of which is linearly embedded and then processed by a standard Transformer encoder. This approach demonstrated that a pure Transformer applied directly to image patches could perform comparably or superiorly to Convolutional Neural Networks (CNNs), particularly when trained on very large datasets \cite{AnImageIsWorth}.
-
-\section{Image Datasets}
-Several image datasets were utilized in the course of this work. A detailed description of each dataset is provided below.
-
-\subsection{ImageNet}
-
-ImageNet \cite{imagenet} is a large-scale visual database widely used in computer vision research. It is organized according to the WordNet hierarchy and provides annotated, high-resolution images across 1,000 object classes, making it a standard benchmark for large-scale image classification. The dataset contains over 1.2 million training images, 50,000 validation images, and 100,000 test images, covering a broad diversity of real-world objects. Its scale, diversity, and hierarchical structure have established ImageNet as a cornerstone resource for evaluating and advancing machine learning models in image recognition and related tasks.
-
-\subsubsection{ImageNetR}
-ImageNet-R (ImageNet-Renditions) \cite{imagenetR} is a dataset derived from ImageNet, consisting of images that depict objects through non-photographic styles such as art, cartoons, graffiti, embroidery, origami, paintings, patterns, sculptures, sketches, tattoos, toys, and video game graphics. It covers 200 ImageNet classes and contains approximately 30,000 images. The dataset was constructed by collecting diverse renditions of ImageNet classes and retaining only those samples that standard models, such as ResNet-50, failed to classify correctly. As a result, ImageNet-R provides a challenging benchmark for evaluating the robustness and generalization of visual recognition models beyond natural images.
-
-\subsubsection{ImageNet21k}
-
-While ImageNet-1K serves as the primary dataset for pretraining deep learning models for computer vision, ImageNet-21K \cite{imagenet21k} offers a much broader and more diverse coverage of visual concepts. It is an extended version of the ImageNet dataset and contains over 14 million annotated images spanning approximately 21,000 semantic classes derived from the WordNet hierarchy. Although historically less utilized due to its size, complexity, and accessibility challenges, recent advances in preprocessing, hierarchical structuring, and training schemes have demonstrated its significant value for pretraining. Models pretrained on ImageNet-21K have shown improved performance and generalization across a wide range of computer vision tasks, including when transferred to more compact architectures such as mobile-oriented networks.
-
-ImageNet-21k-P \cite{imagenet21k} is a cleaned, processed, and optimized subset of the massive ImageNet-21k dataset. The primary goal was to fix the accessibility issues of the original ImageNet-21k (which is huge, unbalanced, and difficult to use) so that more researchers could use it to pretrain powerful models like Vision Transformers (ViT).
-
-\subsection{CIFAR100}
-
-CIFAR-100 \cite{cifar100} is an image classification dataset that extends the structure of CIFAR-10 to a more fine-grained setting. It consists of 60,000 color images of size 32×32 pixels, divided into 100 classes with 600 images per class. Each class contains 500 training samples and 100 test samples. The classes are grouped into 20 superclasses, providing both a fine label (the specific class) and a coarse label (the superclass). This hierarchical organization allows for evaluating both fine-grained recognition and broader categorization. The dataset includes a wide variety of semantic groups, such as animals (e.g., aquatic mammals, insects, reptiles), objects (e.g., household furniture, vehicles), and natural scenes (e.g., forests, mountains, sea), making it a challenging benchmark for image classification and hierarchical learning tasks.
+Second, \textbf{Unsupervised Learning} deals with unlabeled data $\mathcal{D} = \{x_i\}_{i=1}^N$. Instead of predicting a target, the goal is to discover the underlying structure or distribution of the data. Common tasks include Clustering, which groups similar data points (e.g., K-Means or Gaussian Mixture Models), and Dimensionality Reduction, which projects high-dimensional data into a lower-dimensional space while preserving essential information (e.g., PCA or t-SNE).
 
 
-\subsection{Caltech256}
-Caltech-256 \cite{caltech256} is a widely used dataset for object recognition research. It contains 30,607 images distributed across 256 object categories plus an additional ``clutter'' category for background rejection. Each category includes a minimum of 80 images, providing greater balance compared to earlier datasets such as Caltech-101. The images were collected from the web and manually screened to ensure quality, with improvements introduced to avoid artifacts and increase category diversity. Due to its scale and variability, Caltech-256 serves as a challenging benchmark for evaluating classification performance and the generalization ability of visual recognition models.
+Finally, \textbf{Reinforcement Learning} is based on an agent interacting with an environment to maximize a cumulative reward. Unlike supervised learning, the agent is not told which actions to take but must discover them through trial and error. This process is often modeled as a Markov Decision Process (MDP)XXXCITEXXX, where the agent transitions between states based on actions, receiving feedback in the form of numerical rewards. The focus is on finding an optimal policy that balances exploration (trying new actions) and exploitation (using known high-reward actions).
+
+\subsection{Deep Learning}
+
+In traditional Machine Learning, the feature extraction step is a manual process where a human expert must identify and define the most relevant characteristics (such as the shape or edges of the car) before passing them to a classification algorithm. In contrast, as shown in figure \ref{fig:deep_learning}, Deep Learning utilizes neural networks to automate this process; the model performs both feature extraction and classification simultaneously, learning to identify complex patterns directly from the input data without human intervention.
+
+Structurally, this shift allows Deep Learning to handle much more complex, high-dimensional data, though it typically requires significantly larger datasets and more computational power to be effective. While traditional Machine Learning depends on the quality of hand-crafted features, Deep Learning architectures–like the multi-layered neural network shown in the diagram–are designed to build hierarchical representations of data, progressively moving from low-level pixels to high-level object concepts.
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{imagenes/marco/deep.png}
+	\caption{Machine Learning and Deep Learning Strategies. Image taken from \cite{deep}.}
+	\label{fig:deep_learning}
+\end{figure}
+
+\subsection{Computer Vision and Vision Transformers}
+
+Computer Vision is the interdisciplinary subfield of AI that enables computers to gain high-level understanding from digital images or videos, effectively automating tasks performed by the human visual system \cite{Szeliski2010}. While Convolutional Neural Networks (CNNs) \cite{CNN} historically dominated this field, the Transformer architecture---originally developed for Natural Language Processing---has revolutionized visual recognition through the self-attention mechanism \cite{AttentionIsAllYouNeed}.
+
+Vision Transformers (ViT) adapt this architecture by treating an image as a sequence of discrete tokens. As illustrated in Figure \ref{fig:ViTArchitecture}, the process follows a specific pipeline: 
+\begin{itemize}
+	\item \textbf{Patch Partitioning:} The input image is decomposed into fixed-size patches.
+	\item \textbf{Linear Projection:} These patches are flattened and mapped to an embedding space.
+	\item \textbf{Positional Encoding:} Since Transformers lack inherent knowledge of spatial structure, learnable position embeddings are added to the patch embeddings.
+	\item \textbf{Transformer Encoder:} The resulting sequence is processed through multiple layers of multi-head self-attention and MLP blocks to capture global dependencies.
+\end{itemize}
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{imagenes/marco/ViT.png}
+	\caption{Vision Transformer (ViT) architecture overview. The model processes an image as a sequence of patches through a standard Transformer encoder. Image taken from \cite{AnImageIsWorth}.}
+	\label{fig:ViTArchitecture}
+\end{figure}
+
+\subsubsection{Object Classification and Representative Power}
+The primary objective of the original ViT was \textit{Object Classification}: the fundamental task of assigning a single categorical label to an entire input image. This task serves as the primary benchmark for evaluating the representative power of visual models \cite{Krizhevsky2012}. By processing the global sequence of patches, ViTs have demonstrated an ability to meet or exceed CNN performance, particularly when pre-trained on the large-scale datasets described below.
+
+\subsection{Image Datasets and Benchmarks} 
+To rigorously test the robustness and generalization of architectures like ViT, this work utilizes several standardized datasets that vary in scale, stylistic diversity, and granularity.
+
+\subsubsection{The ImageNet Family}
+\textbf{ImageNet} \cite{imagenet} is a cornerstone of computer vision, providing over 1.2 million images across 1,000 classes. Its hierarchical structure, based on WordNet, makes it the standard for large-scale classification. To further push the boundaries of model performance, two variants are often employed:
+\begin{itemize}
+	\item \textbf{ImageNet-21K (and ImageNet-21k-P):} An expansive version containing 14 million images across 21,000 classes \cite{imagenet21k}. The ``P'' version is a cleaned subset designed to make pre-training for models like ViT more accessible.
+	\item \textbf{ImageNet-R (Renditions):} A dataset of 30,000 images covering 200 classes in non-photographic styles (e.g., art, sketches). It tests a model's robustness to out-of-distribution data \cite{imagenetR}.
+\end{itemize}
+
+\subsubsection{Fine-Grained and Diverse Benchmarks}
+Beyond large-scale pre-training, fine-grained classification is evaluated using:
+\begin{itemize}
+	\item \textbf{CIFAR-100:} Consists of 60,000 low-resolution ($32\times32$) images \cite{cifar100}. It is unique for its two-level hierarchy, where 100 ``fine'' classes are nested within 20 ``coarse'' superclasses, allowing for the evaluation of both specific and broad categorization.
+	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalization.
+\end{itemize}
+
+\subsubsection{Self-Supervised Advancements: DINOv2}
+While the aforementioned datasets provide explicit labels for supervision, recent advancements have led to foundation models such as \textbf{DINOv2} \cite{oquab2024dinov}. Unlike earlier iterations, DINOv2 utilizes a discriminative self-supervised approach that combines contrastive learning with image-level and patch-level objectives. By training on massive, curated datasets without human labels, DINOv2 produces multipurpose visual features that exhibit strong ``out-of-the-box'' properties, often surpassing models trained with explicit supervision on tasks like semantic segmentation \cite{oquab2024dinov}.	
+	
+\section{Foundations of Probabilistic Modeling}
+
+The convergence of statistical learning theory and high-dimensional data analysis has necessitated the development of robust mathematical frameworks to handle the dual challenges of uncertainty quantification and dimensionality reduction. As modern neural architectures, such as the DINOv2 Vision Transformer, extract increasingly complex representations from datasets like ImageNet-R, the subsequent classification and density estimation layers must be grounded in rigorous probabilistic foundations. 
+
+\subsection{Likelihood-Based Classification}
+
+Likelihood inference provides a coherent framework for updating the probability of a hypothesis as more evidence or information becomes available. In contrast to frequentist approaches that treat parameters as fixed but unknown constants, the Bayesian paradigm treats parameters as random variables characterized by probability distributions.
+
+A generative modeling framework can be adopted and  class-conditional Gaussian feature distributions can be assumed:
+
+\begin{equation}
+	p(\mathbf{z} \mid y=c)
+	=
+	\mathcal{N}(\mathbf{z} \mid \boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c),
+\end{equation}
+where $\boldsymbol{\mu}_c \in \mathbb{R}^d$ and $\boldsymbol{\Sigma}_c \succ 0$.
+
+Classification can be performed via maximum a posteriori (MAP) inference:
+\begin{equation}
+	\hat{y}
+	=
+	\arg\max_{c \in \mathcal{Y}}
+	\left[
+	\log p(\mathbf{z} \mid y=c) + \log \pi_c
+	\right],
+\end{equation}
+where $\pi_c = p(y=c)$ denotes the class prior.
+
+Using the Gaussian density, the decision rule is equivalent to
+\begin{equation}
+	\hat{y}
+	=
+	\arg\min_{c}
+	\left[
+	(\mathbf{z}-\boldsymbol{\mu}_c)^T
+	\boldsymbol{\Sigma}_c^{-1}
+	(\mathbf{z}-\boldsymbol{\mu}_c)
+	+
+	\log |\boldsymbol{\Sigma}_c|
+	-
+	2\log \pi_c
+	\right].
+\end{equation}
+This yields a quadratic decision function in the feature space.
+
+\subsubsection{Mixture of Gaussians (MoG)} 
+
+A Mixture of Gaussians models a complex probability density as a convex combination of $K$ distinct Gaussian components. This approach is fundamental for clustering and density estimation in multi-modal distributions. Therefore, to capture multimodal feature distributions, the class-conditional model can be extended to a mixture:
+
+\begin{equation}
+	p(\mathbf{z} \mid y=c)
+	=
+	\sum_{k=1}^{K_c}
+	\alpha_{c,k}
+	\mathcal{N}(\mathbf{z} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}),
+\end{equation}
+where $\alpha_{c,k} \ge 0$ and $\sum_k \alpha_{c,k} = 1$.
+
+The MAP decision rule becomes
+\begin{equation}
+	\hat{y}
+	=
+	\arg\max_c
+	\left[
+	\log
+	\left(
+	\sum_{k=1}^{K_c}
+	\alpha_{c,k}
+	\mathcal{N}(\mathbf{z} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})
+	\right)
+	+
+	\log \pi_c
+	\right].
+\end{equation}
+
+\subsection{Advanced Covariance Estimation in High Dimensions}
+In many modern applications, such as image feature analysis using DINOv2, the dimensionality $p$ often exceeds the sample size $n$. In this ``large $p$, small $n$" regime, the empirical sample covariance matrix (SCM) $S$ is a poor estimator: its eigenvalues are biased, and the matrix is singular if $n < p$. 
 
 
+\subsubsection{Regularization and Numerical Stability}
+
+To stabilize the inversion of the covariance matrix $\Sigma_i$ for each class $i$, regularization techniques are employed. A primary method is diagonal loading XXXCITEXXX, which adds a small constant $\epsilon$ (e.g., $10^{-6}$) to the diagonal elements:
+\begin{equation}
+	\Sigma_{reg} = \Sigma_i + \epsilon I
+\end{equation}
+
+This adjustment ensures that the matrix remains strictly positive definite. However, for higher numerical precision in calculating the inverse (precision matrix) and the log-determinant, we utilize Spectral Filtering via eigendecomposition.
+
+\subsubsection{Spectral Filtering and Precision Matrix Inversion}
+
+For each class, the code computes the eigenvectors $P$ and eigenvalues $\lambda$ such that $\Sigma_{reg} = P \Lambda P^T$. To ensure stability against near-zero eigenvalues that survive initial regularization, we apply a floor: $\hat{\lambda} = \max(\lambda, \epsilon)$.The precision matrix (inverse covariance) is then reconstructed as:
+
+\begin{equation}\Sigma_i^{-1} = P \text{diag}\left(\frac{1}{\hat{\lambda}_1}, \dots, \frac{1}{\hat{\lambda}_d}\right) P^T
+\end{equation}
+
+The log-determinant, required for the Gaussian log-likelihood, is computed directly from these filtered eigenvalues to avoid underflow:
+
+\begin{equation}
+\ln |\Sigma_i| = \sum_{j=1}^{d} \ln(\hat{\lambda}_j)
+\end{equation}
+
+Finally, the normalization constant $\ln A_i$ (representing the constant term of the multivariate Gaussian log-density) is stored:
+
+\begin{equation}
+	\ln A_i = -\frac{1}{2} \left( d \ln(2\pi) + \ln |\Sigma_i| \right)
+\end{equation}
+
+This approach eliminates ``noise floor" issues that would otherwise cause the matrix to become singular or produce infinite values during log-likelihood estimation
+
+\subsubsection{Linear Shrinkage Estimators}
+
+Linear shrinkage methods propose a compromise between the SCM and a highly structured target matrix $F$, such as the identity matrix or a diagonal matrix of sample variances.
+
+\paragraph{Ledoit-Wolf Estimator}
+
+The Ledoit-Wolf estimator xxxCITExxx determines an optimal shrinkage intensity $\rho$ to minimize the expected Frobenius norm between the estimate and the true covariance matrix $\Sigma$. It is defined as:
+\begin{equation}
+\hat{\Sigma}_{LW} = (1 - \rho)S + \rho F	
+\end{equation}
+Ledoit-Wolf is computationally efficient and provides an asymptotically optimal estimate without assuming a specific data distribution.
+
+\paragraph{Oracle Approximating Shrinkage (OAS)}
+
+The OAS estimator xxxCITExxx refines the Ledoit-Wolf approach by assuming the data follows a Gaussian distribution. This assumption allows for a more precise estimation of the shrinkage intensity, particularly for small sample sizes. The OAS shrinkage parameter $\rho_{OAS}$ is given by:
+
+\begin{equation}
+	\rho_{OAS} = \min \left( 1, \frac{(1 - \frac{2}{p})\text{tr}(S^2) + \text{tr}^2(S)}{(n + 1 - \frac{2}{p})(\text{tr}(S^2) - \frac{\text{tr}^2(S)}{p})} \right)
+\end{equation}
+
+OAS is specifically designed to minimize MSE under Gaussianity and often outperforms standard shrinkage when the data distribution is approximately normal.
+
+\subsection{Mahalanobis Distance and Temperature Scaling}
+The Mahalanobis distance is a scale-invariant metric that measures the distance between a point $x$ and a distribution with mean $\mu$ and covariance $\Sigma$.
+
+\subsubsection{Distance and Likelihood Relation}
+
+The squared Mahalanobis distance $D^2$ is:$$D^2 = (x - \mu)^T \Sigma^{-1} (x - \mu)$$For a multivariate Gaussian distribution, the log-likelihood is:
+\begin{equation}
+\ln L(x) = -\frac{1}{2} \ln |\Sigma| - \frac{1}{2} D^2 - \frac{k}{2} \ln(2\pi)	
+\end{equation}
+
+This reveals that maximizing the log-likelihood is equivalent to minimizing the Mahalanobis distance (after accounting for the determinant of the covariance). This relationship is the basis for Mahalanobis-based classifiers, which are effective in high-dimensional embedding spaces where Euclidean distance fails to account for feature correlations.
+
+\subsubsection{Calibration via Temperature Scaling}
+
+Classifiers based on deep features often produce scores that are not well-calibrated probabilities. Temperature scaling is a post-processing technique that adjusts the log-likelihood scores before they are passed through a softmax function.The score for class $i$ is modified by a scalar $T > 0$:
+
+\begin{equation}
+\text{Score}_i = \frac{1}{T} \left( \ln A_i - \frac{1}{2} D_i^2 \right)
+\end{equation}
+
+where $\ln A_i$ is the log-normalization constant. An optimal $T$ is typically learned using a validation set to minimize negative log-likelihood (NLL). $T > 1$ "softens" the distribution (reducing overconfidence), while $T < 1$ "sharpens" it. This calibration is critical for tasks requiring reliable uncertainty estimation, such as out-of-distribution detection or safety-critical classification.
+
+
+\subsection{Principal Component Analysis (PCA)}
+
+PCA is a linear transformation technique that identifies the directions (principal components) along which the data exhibits the highest variance. It serves as an essential tool for noise reduction and visualization in high-dimensional feature spaces.
+
+\subsubsection{Variance Maximization and Lagrange Multipliers}
+Given a centered data matrix $X \in \mathbb{R}^{n \times p}$, the goal is to find a unit vector $w$ that maximizes the variance of the projected data $Xw$. The variance is:
+
+\begin{equation}
+	\text{Var}(Xw) = \frac{1}{n} (Xw)^T(Xw) = w^T \left( \frac{X^T X}{n} \right) w = w^T S w
+\end{equation}
+
+
+where $S$ is the sample covariance matrix. To prevent $w$ from growing indefinitely, we impose the constraint $w^T w = 1$. Using the method of Lagrange multipliers:
+
+\begin{equation}
+	\mathcal{L}(w, \lambda) = w^T S w - \lambda(w^T w - 1)$$Differentiating with respect to $w$ and setting to zero:$$\frac{\partial \mathcal{L}}{\partial w} = 2Sw - 2\lambda w = 0 \implies Sw = \lambda w 
+\end{equation}
+
+This demonstrates that $w$ must be an eigenvector of the covariance matrix $S$, and $\lambda$ is its corresponding eigenvalue. Since $w^T S w = w^T \lambda w = \lambda$, maximizing the variance is equivalent to selecting the eigenvector associated with the largest eigenvalue.
+
+\subsubsection{Sequential Orthogonality} Subsequent principal components are found by maximizing variance subject to the constraint that they are orthogonal to all previous components. Inductively, the $k$-th principal component corresponds to the $k$-th largest eigenvalue. This process decomposes the total variance into uncorrelated linear combinations of the original variables.
 
 
 \section{Continual Learning}
-Continual Learning (CL), also known as lifelong learning, constitutes the core focus of this work. It represents a machine learning paradigm designed to handle the progressive acquisition of knowledge from sequences of tasks or data streams over time. In contrast to conventional training approaches, which rely on a fixed dataset and a single training phase, CL emphasizes the ongoing integration of new information while preserving previously learned knowledge. This property is crucial for real-world scenarios where data distributions are non-stationary and environments evolve continuously. The principal challenge lies in mitigating catastrophic forgetting, a phenomenon in which the assimilation of new knowledge leads to the degradation or loss of prior learning \cite{CL}.
 
+Continual Learning (CL), also known as lifelong learning, constitutes the core focus of this work. It represents a machine learning paradigm designed to handle the progressive acquisition of knowledge from sequences of tasks or data streams over time. In contrast to conventional training approaches, which rely on a fixed dataset and a single training phase, CL emphasizes the ongoing integration of new information while preserving previously learned knowledge. This property is crucial for real-world scenarios where data distributions are non-stationary and environments evolve continuously. 
 
-\subsection{Elasticity and Plasticity}
+The principal challenge lies in mitigating \textbf{catastrophic forgetting}, a phenomenon in which the assimilation of new knowledge leads to the degradation or loss of prior learning. As illustrated in Figure \ref{fig:catastrophic_forgetting}, when a \textit{New Object Class} is introduced to an existing classifier, two traditional but flawed strategies typically emerge:
 
-A central concept in continual learning is the balance between elasticity and plasticity. Plasticity refers to the ability of a model to adapt rapidly to new information, ensuring that it can effectively learn novel tasks. Elasticity, in contrast, emphasizes stability by preserving the parameters and representations that are crucial for retaining old knowledge \cite{API}. Achieving an appropriate equilibrium between these two properties is known as the stability–plasticity dilemma: models that are overly plastic may forget past tasks, whereas models that are overly elastic may struggle to integrate new knowledge. Successful continual learning methods are therefore designed to optimize this trade-off.
+\begin{itemize}
+	\item \textbf{Fine-Tuning:} Updating the model using only the new data is efficient but leads to \textbf{catastrophic forgetting} \cite{CL}. Because the optimization process focuses solely on the new objective, the internal representations associated with previously learned classes are overwritten, causing the model to lose its original predictive capabilities.
+	
+	\item \textbf{Retraining from Scratch:} While joint training on the full historical dataset ($\mathcal{D}_{old} \cup \mathcal{D}_{new}$) technically prevents forgetting, it faces two major hurdles: (i) Data Privacy and Availability: In many real-world scenarios (like healthcare or edge computing), the original data $\mathcal{D}_{old}$ is often deleted or inaccessible due to privacy regulations or storage constraints. (ii) Computational Bottleneck: As the system's lifespan increases, the cumulative dataset grows linearly or exponentially. In environments that evolve continuously, the energy and time required to retrain every time a new class appears make this approach unsustainable for classic models.
+\end{itemize}
 
-\subsection{Main Paradigms}
-
-As shown in figure \ref{fig:task_vs_class}, two principal paradigms define how continual learning problems are formulated. Task-incremental learning (Task-IL) assumes that the task identity is available during inference \cite{task_il}. In this setting, models can rely on task labels to select the appropriate output head, thereby simplifying the classification problem. Class-incremental learning (Class-IL), on the other hand, does not provide the task identity at test time \cite{masana_class_il}. The model must classify examples among all the classes encountered so far, which makes the problem significantly more challenging. Class-IL is closer to real-world conditions, as systems are rarely informed of which ``task” a new input belongs to during deployment.
-
-\begin{figure} % h=here, t=top, b=bottom, p=page of floats
+\begin{figure}
 	\centering
-	\includegraphics[width=0.5\textwidth]{imagenes/marco/CI_learning_survey_fig1.png} % change path and filename
-	\caption{Class and Task Incremental Learning \cite{masana_class_il}.}
-	\label{fig:task_vs_class}
+	\includegraphics[width=0.7\textwidth]{imagenes/marco/Catastrophic_forgetting.pdf}
+	\caption{Standard Object Classifier comparison. The upper path shows standard inference, while the lower path illustrates the dilemma when a new class is introduced: the choice between catastrophic forgetting via fine-tuning or the impossibility of retraining from scratch.}
+	\label{fig:catastrophic_forgetting}
 \end{figure}
 
 
-\subsection{Mitigation Strategies}
+\subsection{Elasticity and Plasticity} 
+A central concept in continual learning is the balance between elasticity and plasticity. \textbf{Plasticity} refers to the ability of a model to adapt rapidly to new information, ensuring that it can effectively learn novel tasks. \textbf{Elasticity} (or stability), in contrast, emphasizes preserving the parameters and representations that are crucial for retaining old knowledge \cite{API}. Achieving an appropriate equilibrium between these two properties is known as the \textbf{stability–plasticity dilemma} \cite{CL}.
 
-In this work, the discussion of continual learning strategies is organized into three main categories. The first category comprises rehearsal-based methods, which mitigate forgetting by storing or generating representative samples from previous tasks and replaying them during training. The second category encompasses regularization-based methods, which constrain parameter updates to preserve knowledge deemed important for earlier tasks, thereby promoting stability without relying on explicit memory storage. Finally, we include representation-based methods, which explore novel ways of encoding and maintaining information to facilitate continual learning. By focusing on these three categories, the analysis encompasses both classical continual learning approaches and recent innovations, such as prompting mechanisms as an alternative to architectural expansion.
+\subsection{Main Paradigms} 
+As shown in Figure \ref{fig:task_vs_class}, two principal paradigms define how continual learning problems are formulated. \textbf{Task-incremental learning (Task-IL)} assumes that the task identity is available during inference, allowing for task-specific components to be isolated \cite{task_il}. \textbf{Class-incremental learning (Class-IL)}, on the other hand, does not provide the task identity at test time, requiring the model to distinguish between all classes seen across all tasks simultaneously \cite{masana_class_il}.
 
-\subsection{Rehearsal Methods}
-Rehearsal strategies actively address forgetting by storing and reintroducing past data examples or their generated representations.
-\begin{itemize}
-	\item \textbf{Experience Replay (ER)} \cite{Chaudhry2019ContinualLW} is a rehearsal technique where a small episodic memory buffer is maintained containing a sample of old, representative examples (images and labels). When training on a new task, mini-batches are constructed by mixing data from the new task with a selection of examples from this buffer. This concurrent training helps the model retain a base level of performance on previously learned classes. While it serves as a strong baseline, its main drawbacks are the memory consumption for storing data and potential privacy concerns.
-	\item \textbf{Average Gradient Episodic Memory (A-GEM)} \cite{agem} improves efficiency by using the buffer to constrain the direction of parameter updates rather than for full data replay. When learning a new task, a reference gradient ($g_{ref}$) is computed using examples from the small memory buffer. If the new task's current gradient ($g$) would increase the loss for previous tasks (i.e., $g_{ref} \cdot g < 0$), A-GEM projects the current gradient onto a subspace to ensure the update does not harm the performance on old tasks. This technique effectively balances a minimal memory cost with good stability against catastrophic forgetting.
-	\item \textbf{Dark Experience Replay (DER)} \cite{buzzega2020darkexperiencegeneralcontinual} enhances ER by incorporating knowledge distillation on the replayed examples. In addition to storing images and labels, DER saves the original model's outputs, or logits (the "dark experience"), for the buffer examples. When training on a new task, the overall loss includes a Distillation Loss that forces the current model's output for the replayed buffer examples to remain close to the saved old logits, thereby maintaining consistency and stability. Dark Experience Replay ++ (DER++) is an evolution of DER that adds a standard Cross-Entropy (CE) Loss using the true labels of the replayed examples alongside the distillation loss.
-	
-	%	xxxxADD DER LOSS EQUATIONSxxx
-	
-	\item \textbf{Generative Feature Replay} \cite{generative_features} is a non-data-storing method that tackles both forgetting and class imbalance in CIL. For each task, the model is split into a feature extractor ($F_t$) and a classifier ($H_t$). Instead of replaying raw images, a generator ($G_{t-1}$) is trained to produce synthetic features of previously learned classes. When a new task arrives, the new classifier is trained using real features from the new classes and the generated synthetic features from the old classes, creating a balanced training set. The feature extractor's stability is maintained using a feature distillation loss applied against the old extractor ($F_{t-1}$). This method leverages the fact that generating features is significantly easier and more privacy-preserving than generating complex images.
-	
-	%xxxADD Figure 1 from Generative feature paperxxx
-\end{itemize}
-
-\subsection{Regularization Methods}
-Regularization methods preserve previously learned information by penalizing modifications to the most important model parameters, which is a technique for ensuring stability.
-\begin{itemize}
-	\item \textbf{Elastic Weight Consolidation (EWC)} \cite{Kirkpatrick_2017} works by identifying parameters critical to prior tasks and restricting their movement during subsequent training. It calculates the Fisher Information Matrix, which estimates the local curvature of the loss function, to determine the ``importance'' of each parameter for the previous task. A regularization term is then added to the loss function for the new task, acting like a spring that pulls important weights back toward their optimal values ($\theta_{A}^{*}$) from the old task, effectively allowing less important weights to be modified for new learning. EWC ensures that the model can learn Task B without incurring a significant loss on Task.
-	\item\textbf{ Synaptic Intelligence (SI)} \cite{zenke2017continuallearningsynapticintelligence} Synaptic Intelligence (SI) provides an alternative, computationally cheaper regularization method compared to EWC. It works by calculating the online importance of each weight by accumulating how much that weight contributed to reducing the loss during the training of the previous task. This importance score ($\Omega_{k}^{\mu}$) is then used in a penalty term in the loss function for the new task, restricting large updates to weights deemed highly important to the old tasks.
-	\item \textbf{Learning Without Forgetting (LwF)}  \cite{li2017learningforgetting} is a distillation-based method that regularizes the model's output rather than its weights. When learning a new task, the model trained on the previous task is kept as a teacher model. The new model (student) is trained not only with the CE Loss for the new task but also with a Distillation Loss that forces the student's output for the new data to match the teacher's soft targets (logits) for the old classes.
-	\item \textbf{Adaptive Plasticity Improvement (API)} \cite{API} employs Dual Gradient Projection Memory (Dual-GPM) to enforce an update direction that is orthogonal to the important subspaces of previous tasks, preventing the new gradient from harming old knowledge. API also introduces a metric called the Average Gradient Retention Ratio (AGRR) to measure the model's plasticity. If the AGRR indicates insufficient learning capacity (because most of the new task's gradient is being projected out), API will adaptively expand the network by adding new dimensions/units to the layers, creating necessary space for the new knowledge.
-	
-	\item \textbf{Inference Free Low-Rank Adaptation (InFLoRA)} applies a parameter-efficient technique, adding new, low-rank adaptors (${A}_{t}$, ${B}_{t}$) to the attention layers of a frozen backbone for each new task. It uses Dual-GPM to design the dimensionality reduction matrix ${B}_{t}$ such that the update space is interference-free, meaning it is orthogonal to the gradients of old tasks, ensuring the model learns the new task without forgetting the old. The backbone and old adaptors remain frozen, and only the new adaptor ${A}_{t}$ is fine-tuned. The final weight for task $t$ is an accumulation of the frozen backbone and all trained adaptors (${W}_{t}={W}+\sum_{j=1}^{t}{A}_{j}{B}_{j}$).\textbf{ Distributed Online LoRA for Federated INcremental learning method (DOLFIN)} \cite{dolfin} extends InFLORA to Federated Learning, distributing the Dual-GPM process across multiple clients. Each client locally calculates its orthogonal basis and contributes to the global adaptor, which is highly communication-efficient and preserves data privacy
-	
-\end{itemize}
-
-
-\subsection{Representation Methods}
-These methods encode new knowledge by working with the model's existing feature space or input embedding, often by keeping the model backbone frozen and inserting small, trainable vectors to give more context or choosing an specific representations for the image classes and information.
-\begin{itemize}
-	\item \textbf{Learning to Prompt (L2P)} \cite{wang2022learning} works by keeping the pre-trained model frozen and training a small prompt pool which acts as a memory of instructions. For a new input, a query function is used to select the most relevant prompts from the pool. These selected prompt vectors are then prepended to the input embedding (or tokens), guiding the frozen backbone to the correct output without changing its original weights.Learning to Prompt (L2P) works by keeping the pre-trained model frozen and training a small prompt pool which acts as a memory of instructions. For a new input, a query function is used to select the most relevant prompts from the pool. These selected prompt vectors are then prepended to the input embedding (or tokens), guiding the frozen backbone to the correct output without changing its original weights.
-	\item \textbf{Dual Prompt} \cite{wang2022dualprompt} refines L2P by separating the learned representation into two distinct prompt sets. It uses fixed G-prompts (General) which are always attached and continuously updated to capture general knowledge (stability). Simultaneously, it uses task-specific E-prompts (Expert) which are selected via a query and updated only when matched, capturing new specific knowledge (plasticity). Both sets of prompts are attached to multiple Multi-head Self-Attention layers.
-	\item \textbf{CODA-Prompt }\cite{Smith_2023_CVPR} introduces a fully differentiable method for creating the instruction representation. Instead of discretely selecting a prompt, the final prompt is constructed as a weighted sum ($\Sigma$) of multiple learned prompt components. The weights ($\alpha$) are dynamically calculated via an attention mechanism based on the input query-key similarity. This allows the entire prompt-generation process to be optimized end-to-end, improving plasticity and allowing the set of prompt components to expand over.
-\end{itemize}
-
-In summary, as illustrated in Figure \ref{fig:cl_summary}, the conceptual framework of continual learning can be understood through four interrelated components. First, continual learning involves adapting to incremental tasks under dynamic data distributions, reflecting the non-stationary characteristics of real-world environments. Second, an effective continual learning system must strike an appropriate balance between stability and plasticity: stability ensures the retention of previously acquired knowledge, whereas plasticity enables the integration of novel information. Moreover, the model should generalize effectively to both intra-task variations, which represent differences within a single task, and inter-task variations, which capture distributional shifts across tasks. Third, to achieve these objectives, a variety of methodological approaches have been proposed—each addressing different facets of the learning process. Unlike those presented in \cite{CL}, the state-of-the-art methods analysed in this work are categorized into rehearsal, regularization, and representation-based approaches. Finally, continual learning techniques must also be tailored to practical scenarios, where factors such as task specificity, scenario complexity, and computational limitations further influence the design and evaluation of effective solutions \cite{CL}.
-\begin{figure} % h=here, t=top, b=bottom, p=page of floats
+\begin{figure}
 	\centering
-	\includegraphics[width=0.5\textwidth]{imagenes/marco/theoretical_framework.pdf} % change path and filename
-	\caption{Key aspects of Continual Learning.}
+	\includegraphics[width=0.7\textwidth]{imagenes/marco/CI_learning_survey_fig1.png}
+	\caption{Class and Task Incremental Learning. Image taken from \cite{masana_class_il}.}
+	\label{fig:task_vs_class}
+\end{figure}
+
+\subsection{Mitigation Strategies}
+To address the stability-plasticity dilemma, CL strategies are generally categorized into four main families: rehearsal-based, regularization-based, architecture-based, and representation-based (specifically prompt-based) methods.
+
+\subsubsection{Rehearsal Methods}
+To preserve past performance, these methods reuse samples from previously learned tasks while training on the current task.
+\begin{itemize}
+	\item \textbf{Experience Replay (ER)} \cite{Chaudhry2019ContinualLW}: Maintains a small episodic memory buffer containing a sample of old, representative examples to be interleaved with new data.
+	\item \textbf{Average Gradient Episodic Memory (A-GEM)} \cite{agem}: Improves efficiency by using the buffer to constrain the direction of parameter updates, ensuring they do not interfere with past tasks.
+	\item \textbf{Dark Experience Replay (DER)} \cite{buzzega2020darkexperiencegeneralcontinual}: Enhances ER by incorporating knowledge distillation on the logits of replayed examples to preserve the "dark knowledge" of the model.
+	\item \textbf{Generative Replay} \cite{generative_features}: A non-data-storing method where a generator ($G_{t-1}$) is trained to produce synthetic features or samples of previously learned classes, avoiding the privacy concerns of raw data storage.
+\end{itemize}
+
+\subsubsection{Regularization Methods}
+These methods limit updates to parameters identified as important for prior learning by introducing penalty terms in the loss function.
+\begin{itemize}
+	\item \textbf{Elastic Weight Consolidation (EWC)} \cite{Kirkpatrick_2017}: Identifies critical parameters using the Fisher Information Matrix and restricts their movement during new task training.
+	\item \textbf{Synaptic Intelligence (SI)} \cite{zenke2017continuallearningsynapticintelligence}: Calculates importance weights online by accumulating their contribution to the reduction of the loss.
+	\item \textbf{Learning Without Forgetting (LwF)} \cite{li2017learningforgetting}: A functional regularization method that uses knowledge distillation to ensure the model's outputs for new data remain consistent with the previous model's predictions.
+	\item \textbf{Adaptive Plasticity Improvement (API)} \cite{API}: Enforces an update direction orthogonal to the important subspaces of previous tasks using Dual Gradient Projection Memory (Dual-GPM).
+\end{itemize}
+
+\subsubsection{Architecture-based Methods}
+These methods mitigate forgetting by modifying the network architecture to increase or reorganize its capacity.
+\begin{itemize}
+	\item \textbf{Parameter Isolation}: Identifies and freezes parameters important for previous tasks—often through pruning or gradient masking—so only a subset of weights is updated for the current task \cite{10.5555/3454287.3455512}.
+	\item \textbf{Dynamic Expansion}: The architecture grows as new tasks arrive. For instance, \cite{Yan2021DERDE} uses an expandable super-feature extractor followed by pruning, while \cite{Yoon2017LifelongLW} expands the network only when the current capacity is insufficient.
+\end{itemize}
+
+\subsubsection{Representation and Prompt-based Methods}
+The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient fine-tuning (PEFT) where the backbone remains frozen and learning is contained within small "prompts".
+\begin{itemize}
+	\item \textbf{Learning to Prompt (L2P)} \cite{wang2022learning}: Uses a prompt pool where prompts are selected based on the similarity between input embeddings and learned keys.
+	\item \textbf{Dual Prompt} \cite{wang2022dualprompt}: Refines L2P by separating representations into fixed G-prompts (General) and task-specific E-prompts (Expert).
+	\item \textbf{CODA-Prompt} \cite{Smith_2023_CVPR}: Introduces a fully differentiable method where the prompt is a weighted sum of components dynamically calculated via attention mechanisms.
+	\item \textbf{Advanced Prompting}: Recent methods like \textbf{InFLoRA} \cite{liang2024inflora} and \textbf{DOLFIN} \cite{dolfin} apply low-rank adaptation and distributed learning, while \textbf{APT} \cite{Chen_2025_ICCV} injects key-value tokens directly into transformer layers to reduce inference overhead.
+\end{itemize}
+
+As illustrated in Figure \ref{fig:cl_summary}, the current state-of-the-art landscape, particularly in Class-IL, is increasingly dominated by these prompt-based approaches due to their ability to leverage large-scale pre-training while maintaining high stability. XXXIMPROVE THIS SUMMARYXXX
+
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\textwidth]{imagenes/marco/theoretical_framework.pdf}
+	\caption{Key aspects of Continual Learning. XXXIMPROVE THIS PICTURE. DELETE D XXXX}
 	\label{fig:cl_summary}
 \end{figure}
