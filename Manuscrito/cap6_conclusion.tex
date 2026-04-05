@@ -2,4 +2,6 @@
 
 
 \section{Future Work}
+At this stage, the integration of Open World Discovery appears to be a straightforward extension of the existing framework. Since our approach provides a certainty score, implementing an Out-of-Distribution (OOD) threshold allows the system to flag unknown classes with minimal architectural changes. This addresses the objective of moving beyond a closed-set classifier toward an adaptive, ``discovery-ready" system.
 
+In contrast, the transition to Real-Time Object Detection requires a more strategic approach. While previous experiments utilizing a Region Proposal Network (RPN) XXXAnnexXXX yielded high localization accuracy, the computational overhead of a dual-model pipeline (RPN + Feature Extractor) compromises the inference speed. By leveraging the spatial tokens already present in the DINOv2 backbone, we can identify regions of interest using simple mathematical decomposition. This ensures that the system remains lightweight and consistent with the unsupervised nature of the feature extractor. 

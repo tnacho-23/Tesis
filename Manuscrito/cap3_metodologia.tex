@@ -1,15 +1,30 @@
 \chapter{Methodology} \label{methodolohy}
 
 \section{Proposed Architecture}
-The proposed continual learning object recognition system is based on the following two components: (i) a feature extraction model built using a foundation model and (ii) a Gaussian classification model built using several Gaussians models, each characterizing a given object class independently of the other classes. For classification, the class whose Gaussian yields the highest likelihood of the Continual Object Learning using Gaussians input features is selected. Figure \ref{fig:architecture} presents a block diagram that illustrates the proposed approach.
-\begin{figure}
+
+As shown in \ref{fig:architecture}, our CIL framework is built upon a simple yet structurally motivated decomposition: (i) a frozen feature extractor based on a visual foundation model, and (ii) a probabilistic classification layer that models each object category through an independent Gaussian distribution in the embedding space. Given an input image, the feature extractor maps it to a fixed high-dimensional representation. For each class, we maintain a class-conditional multivariate Gaussian characterized by its mean vector and covariance matrix, estimated incrementally from observed samples. Classification is performed according to the maximum likelihood principle, assigning the input to the class whose Gaussian model yields the highest likelihood under the stationary embedding representation. This modular separation between representation learning and statistical modeling enables incremental updates without backpropagation or parameter adaptation: adding a new class requires only estimating its distribution in the fixed feature space, while previously learned classes remain unaffected at the representation level.
+
+\begin{figure}[htb]
 	\centering
 	\includegraphics[width=0.7\textwidth]{imagenes/methodology/block_diagram_approach.pdf}
 	\caption{Block diagram of the proposed approach.}
 	\label{fig:architecture}
 \end{figure}
 
+\subsection{Datasets and Experimental Protocol}
+We follow the standard Continual Learning protocol where the model learns a sequence of disjoint tasks. The specific configurations for the datasets are as follows:
+\begin{itemize}
+	\item Split CIFAR-100: This dataset is a widely utilized benchmark in the continual learning literature. It partitions the original CIFAR-100 \cite{cifar100} dataset into 10 disjoint tasks, with each task containing 10 distinct classes.
+	\item Split ImageNet-R: This benchmark is constructed from ImageNet-R \cite{imagenetR}, a dataset containing renditions of ImageNet classes (e.g., art, cartoons, sketches). We randomly divide the 200 classes into 10 sequential tasks, with 20 classes per task.
+	\item Split Caltech256:
+	
+	\item Split Joint Dataset:
+\end{itemize} 
+
+
 \section{Covariance Estimation}
+
+\subsection{Curse of Dimensionality}
 
 \section{Mixture of Gaussians}
 
@@ -17,5 +32,30 @@ The proposed continual learning object recognition system is based on the follow
 
 In many classification pipelines, combining multiple metrics—such as the generative log-likelihood (Mahalanobis-based) and the discriminative angular similarity (Cosine-based)—can lead to superior performance.
 
-\section{Curse of Dimensionality}
+\subsection{Mahalanobis Distance and Temperature Scaling}
+The Mahalanobis distance is a scale-invariant metric that measures the distance between a point $x$ and a distribution with mean $\mu$ and covariance $\Sigma$.
+
+\subsubsection{Distance and Likelihood Relation}
+
+The squared Mahalanobis distance $D^2$ is:$$D^2 = (x - \mu)^T \Sigma^{-1} (x - \mu)$$For a multivariate Gaussian distribution, the log-likelihood is:
+\begin{equation}
+	\ln L(x) = -\frac{1}{2} \ln |\Sigma| - \frac{1}{2} D^2 - \frac{k}{2} \ln(2\pi)	
+\end{equation}
+
+This reveals that maximizing the log-likelihood is equivalent to minimizing the Mahalanobis distance (after accounting for the determinant of the covariance). This relationship is the basis for Mahalanobis-based classifiers, which are effective in high-dimensional embedding spaces where Euclidean distance fails to account for feature correlations.
+
+\subsubsection{Calibration via Temperature Scaling}
+
+Classifiers based on deep features often produce scores that are not well-calibrated probabilities. Temperature scaling is a post-processing technique that adjusts the log-likelihood scores before they are passed through a softmax function.The score for class $i$ is modified by a scalar $T > 0$:
+
+\begin{equation}
+	\text{Score}_i = \frac{1}{T} \left( \ln A_i - \frac{1}{2} D_i^2 \right)
+\end{equation}
+
+where $\ln A_i$ is the log-normalization constant. An optimal $T$ is typically learned using a validation set to minimize negative log-likelihood (NLL). $T > 1$ "softens" the distribution (reducing overconfidence), while $T < 1$ ``sharpens" it. This calibration is critical for tasks requiring reliable uncertainty estimation, such as out-of-distribution detection or safety-critical classification.
+
+
+\section{Backbones comparison}
+
+
 

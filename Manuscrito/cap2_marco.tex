@@ -1,25 +1,24 @@
-\chapter{Theoretical framework}
+\chapter{Theoretical Framework}
 
-This chapter establishes the conceptual and mathematical foundations required to contextualize the research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG), and Principal Component Analysis (PCA), alongside advanced covariance estimation methods such as OAS and Ledoit-Wolf. Finally, we address the challenge of "catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating state-of-the-art methods to provide a performance baseline for the proposed work.
+This chapter establishes the conceptual and mathematical foundations required to contextualize this research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG), and Principal Component Analysis (PCA). Furthermore, we detail advanced covariance estimation methods such as OAS and Ledoit-Wolf, which are critical for stability in high-dimensional feature spaces. Finally, we address the challenge of ``catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating the state-of-the-art mitigation strategies that provide a performance baseline for the proposed work.
 
 \section{Artificial Intelligence and Machine Learning}
 
 Artificial Intelligence (AI) is a broad field of computer science dedicated to creating systems capable of performing tasks that typically require human intelligence, such as learning, reasoning, perception, and language understanding \cite{RussellNorvig}. Within this domain, Machine Learning (ML) focuses on developing algorithms that allow computers to learn patterns from data without explicit programming. ML systems are generally categorized into three paradigms: Supervised Learning, Unsupervised Learning, and Reinforcement Learning \cite{Bishop2006}.
 
-First, in \textbf{Supervised Learning}, the model learns a mapping from input variables $x$ to output variables $y$ based on a labeled dataset $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^N$. The objective is to minimize a loss function that penalizes the discrepancy between the predicted output and the ground truth. This paradigm is typically divided into Classification, where the output is a discrete category, and Regression, where the output is a continuous value.
+First, in \textbf{Supervised Learning}, the model learns a mapping from input variables $\mathbf{x}$ to output variables $y$ based on a labeled dataset $\mathcal{D} = \{(\mathbf{x}_i, y_i)\}_{i=1}^N$. The objective is to minimize a loss function that penalizes the discrepancy between the predicted output and the ground truth. This paradigm is typically divided into Classification, where the output is a discrete category, and Regression, where the output is a continuous value.
 
-Second, \textbf{Unsupervised Learning} deals with unlabeled data $\mathcal{D} = \{x_i\}_{i=1}^N$. Instead of predicting a target, the goal is to discover the underlying structure or distribution of the data. Common tasks include Clustering, which groups similar data points (e.g., K-Means or Gaussian Mixture Models), and Dimensionality Reduction, which projects high-dimensional data into a lower-dimensional space while preserving essential information (e.g., PCA or t-SNE).
+Second, \textbf{Unsupervised Learning} deals with unlabeled data $\mathcal{D} = \{\mathbf{x}_i\}_{i=1}^N$. Instead of predicting a target, the goal is to discover the underlying structure or distribution of the data. Common tasks include Clustering, which groups similar data points (e.g., K-Means or Gaussian Mixture Models), and Dimensionality Reduction, which projects high-dimensional data into a lower-dimensional space while preserving essential information (e.g., PCA or t-SNE).
 
-
-Finally, \textbf{Reinforcement Learning} is based on an agent interacting with an environment to maximize a cumulative reward. Unlike supervised learning, the agent is not told which actions to take but must discover them through trial and error. This process is often modeled as a Markov Decision Process (MDP)XXXCITEXXX, where the agent transitions between states based on actions, receiving feedback in the form of numerical rewards. The focus is on finding an optimal policy that balances exploration (trying new actions) and exploitation (using known high-reward actions).
+Finally, \textbf{Reinforcement Learning} is based on an agent interacting with an environment to maximize a cumulative reward. Unlike supervised learning, the agent is not told which actions to take but must discover them through trial and error. This process is often modeled as a Markov Decision Process (MDP) \cite{Sutton2018}, where the agent transitions between states based on actions, receiving feedback in the form of numerical rewards. The focus is on finding an optimal policy that balances exploration (trying new actions) and exploitation (using known high-reward actions).
 
 \subsection{Deep Learning}
 
 In traditional Machine Learning, the feature extraction step is a manual process where a human expert must identify and define the most relevant characteristics (such as the shape or edges of the car) before passing them to a classification algorithm. In contrast, as shown in figure \ref{fig:deep_learning}, Deep Learning utilizes neural networks to automate this process; the model performs both feature extraction and classification simultaneously, learning to identify complex patterns directly from the input data without human intervention.
 
-Structurally, this shift allows Deep Learning to handle much more complex, high-dimensional data, though it typically requires significantly larger datasets and more computational power to be effective. While traditional Machine Learning depends on the quality of hand-crafted features, Deep Learning architectures–like the multi-layered neural network shown in the diagram–are designed to build hierarchical representations of data, progressively moving from low-level pixels to high-level object concepts.
+Structurally, this shift allows Deep Learning to handle much more complex, high-dimensional data, though it typically requires significantly larger datasets and more computational power to be effective. While traditional Machine Learning depends on the quality of hand-crafted features, Deep Learning architectures—like multi-layered neural networks—are designed to build hierarchical representations of data, progressively moving from low-level pixels to high-level object concepts.
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
 	\includegraphics[width=0.7\textwidth]{imagenes/marco/deep.png}
 	\caption{Machine Learning and Deep Learning Strategies. Image taken from \cite{deep}.}
@@ -30,7 +29,8 @@ Structurally, this shift allows Deep Learning to handle much more complex, high-
 
 Computer Vision is the interdisciplinary subfield of AI that enables computers to gain high-level understanding from digital images or videos, effectively automating tasks performed by the human visual system \cite{Szeliski2010}. While Convolutional Neural Networks (CNNs) \cite{CNN} historically dominated this field, the Transformer architecture---originally developed for Natural Language Processing---has revolutionized visual recognition through the self-attention mechanism \cite{AttentionIsAllYouNeed}.
 
-Vision Transformers (ViT) adapt this architecture by treating an image as a sequence of discrete tokens. As illustrated in Figure \ref{fig:ViTArchitecture}, the process follows a specific pipeline: 
+Vision Transformers (ViT) adapt this architecture by treating an image as a sequence of discrete tokens. As illustrated in Figure \ref{fig:ViTArchitecture}, the process follows a specific pipeline: 
+
 \begin{itemize}
 	\item \textbf{Patch Partitioning:} The input image is decomposed into fixed-size patches.
 	\item \textbf{Linear Projection:} These patches are flattened and mapped to an embedding space.
@@ -38,7 +38,7 @@ Vision Transformers (ViT) adapt this architecture by treating an image as a sequ
 	\item \textbf{Transformer Encoder:} The resulting sequence is processed through multiple layers of multi-head self-attention and MLP blocks to capture global dependencies.
 \end{itemize}
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
 	\includegraphics[width=0.7\textwidth]{imagenes/marco/ViT.png}
 	\caption{Vision Transformer (ViT) architecture overview. The model processes an image as a sequence of patches through a standard Transformer encoder. Image taken from \cite{AnImageIsWorth}.}
@@ -48,7 +48,7 @@ Vision Transformers (ViT) adapt this architecture by treating an image as a sequ
 \subsubsection{Object Classification and Representative Power}
 The primary objective of the original ViT was \textit{Object Classification}: the fundamental task of assigning a single categorical label to an entire input image. This task serves as the primary benchmark for evaluating the representative power of visual models \cite{Krizhevsky2012}. By processing the global sequence of patches, ViTs have demonstrated an ability to meet or exceed CNN performance, particularly when pre-trained on the large-scale datasets described below.
 
-\subsection{Image Datasets and Benchmarks} 
+\subsection{Image Datasets and Benchmarks} 
 To rigorously test the robustness and generalization of architectures like ViT, this work utilizes several standardized datasets that vary in scale, stylistic diversity, and granularity.
 
 \subsubsection{The ImageNet Family}
@@ -60,6 +60,7 @@ To rigorously test the robustness and generalization of architectures like ViT, 
 
 \subsubsection{Fine-Grained and Diverse Benchmarks}
 Beyond large-scale pre-training, fine-grained classification is evaluated using:
+
 \begin{itemize}
 	\item \textbf{CIFAR-100:} Consists of 60,000 low-resolution ($32\times32$) images \cite{cifar100}. It is unique for its two-level hierarchy, where 100 ``fine'' classes are nested within 20 ``coarse'' superclasses, allowing for the evaluation of both specific and broad categorization.
 	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalization.
@@ -67,23 +68,23 @@ Beyond large-scale pre-training, fine-grained classification is evaluated using:
 
 \subsubsection{Self-Supervised Advancements: DINOv2}
 While the aforementioned datasets provide explicit labels for supervision, recent advancements have led to foundation models such as \textbf{DINOv2} \cite{oquab2024dinov}. Unlike earlier iterations, DINOv2 utilizes a discriminative self-supervised approach that combines contrastive learning with image-level and patch-level objectives. By training on massive, curated datasets without human labels, DINOv2 produces multipurpose visual features that exhibit strong ``out-of-the-box'' properties, often surpassing models trained with explicit supervision on tasks like semantic segmentation \cite{oquab2024dinov}.	
-	
+
 \section{Foundations of Probabilistic Modeling}
 
-The convergence of statistical learning theory and high-dimensional data analysis has necessitated the development of robust mathematical frameworks to handle the dual challenges of uncertainty quantification and dimensionality reduction. As modern neural architectures, such as the DINOv2 Vision Transformer, extract increasingly complex representations from datasets like ImageNet-R, the subsequent classification and density estimation layers must be grounded in rigorous probabilistic foundations. 
+The convergence of statistical learning theory and high-dimensional data analysis has necessitated the development of robust mathematical frameworks to handle the dual challenges of uncertainty quantification and dimensionality reduction. As modern neural architectures, such as the DINOv2 Vision Transformer, extract increasingly complex representations from datasets like ImageNet-R, the subsequent classification and density estimation layers must be grounded in rigorous probabilistic foundations. 
 
 \subsection{Likelihood-Based Classification}
 
 Likelihood inference provides a coherent framework for updating the probability of a hypothesis as more evidence or information becomes available. In contrast to frequentist approaches that treat parameters as fixed but unknown constants, the Bayesian paradigm treats parameters as random variables characterized by probability distributions.
 
-A generative modeling framework can be adopted and  class-conditional Gaussian feature distributions can be assumed:
+A generative modeling framework can be adopted and class-conditional Gaussian feature distributions can be assumed:
 
 \begin{equation}
 	p(\mathbf{z} \mid y=c)
 	=
 	\mathcal{N}(\mathbf{z} \mid \boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c),
 \end{equation}
-where $\boldsymbol{\mu}_c \in \mathbb{R}^d$ and $\boldsymbol{\Sigma}_c \succ 0$.
+where $\mathbf{z} \in \mathbb{R}^d$ represents the feature vector, $\boldsymbol{\mu}_c$ is the class mean vector, and $\boldsymbol{\Sigma}_c \succ 0$ is the covariance matrix.
 
 Classification can be performed via maximum a posteriori (MAP) inference:
 \begin{equation}
@@ -113,7 +114,7 @@ Using the Gaussian density, the decision rule is equivalent to
 \end{equation}
 This yields a quadratic decision function in the feature space.
 
-\subsubsection{Mixture of Gaussians (MoG)} 
+\subsubsection{Mixture of Gaussians (MoG)} 
 
 A Mixture of Gaussians models a complex probability density as a convex combination of $K$ distinct Gaussian components. This approach is fundamental for clustering and density estimation in multi-modal distributions. Therefore, to capture multimodal feature distributions, the class-conditional model can be extended to a mixture:
 
@@ -144,136 +145,125 @@ The MAP decision rule becomes
 \end{equation}
 
 \subsection{Advanced Covariance Estimation in High Dimensions}
-In many modern applications, such as image feature analysis using DINOv2, the dimensionality $p$ often exceeds the sample size $n$. In this ``large $p$, small $n$" regime, the empirical sample covariance matrix (SCM) $S$ is a poor estimator: its eigenvalues are biased, and the matrix is singular if $n < p$. 
-
+In many modern applications, such as image feature analysis using DINOv2, the dimensionality $d$ (often in the hundreds or thousands) often exceeds the sample size $n$. In this ``large $d$, small $n$" regime, the empirical sample covariance matrix (SCM) $S$ is a poor estimator: its eigenvalues are biased, and the matrix is singular if $n < d$. This singularity prevents the inversion of the matrix required for the quadratic form in classification and density estimation.
 
 \subsubsection{Regularization and Numerical Stability}
 
-To stabilize the inversion of the covariance matrix $\Sigma_i$ for each class $i$, regularization techniques are employed. A primary method is diagonal loading XXXCITEXXX, which adds a small constant $\epsilon$ (e.g., $10^{-6}$) to the diagonal elements:
+To stabilize the inversion of the covariance matrix $\boldsymbol{\Sigma}_c$ for each class, regularization techniques are employed. A primary method is diagonal loading, which adds a small constant $\epsilon$ (e.g., $10^{-6}$) to the diagonal elements:
 \begin{equation}
-	\Sigma_{reg} = \Sigma_i + \epsilon I
+	\boldsymbol{\Sigma}_{reg} = \boldsymbol{\Sigma}_c + \epsilon I
 \end{equation}
 
 This adjustment ensures that the matrix remains strictly positive definite. However, for higher numerical precision in calculating the inverse (precision matrix) and the log-determinant, we utilize Spectral Filtering via eigendecomposition.
 
 \subsubsection{Spectral Filtering and Precision Matrix Inversion}
 
-For each class, the code computes the eigenvectors $P$ and eigenvalues $\lambda$ such that $\Sigma_{reg} = P \Lambda P^T$. To ensure stability against near-zero eigenvalues that survive initial regularization, we apply a floor: $\hat{\lambda} = \max(\lambda, \epsilon)$.The precision matrix (inverse covariance) is then reconstructed as:
+For each class, the system computes the eigenvectors $P$ and eigenvalues $\lambda$ such that $\boldsymbol{\Sigma}_{reg} = P \Lambda P^T$. To ensure stability against near-zero eigenvalues that survive initial regularization, we apply a floor: $\hat{\lambda} = \max(\lambda, \epsilon)$. The precision matrix (inverse covariance) is then reconstructed as:
 
-\begin{equation}\Sigma_i^{-1} = P \text{diag}\left(\frac{1}{\hat{\lambda}_1}, \dots, \frac{1}{\hat{\lambda}_d}\right) P^T
+\begin{equation}
+	\boldsymbol{\Sigma}_c^{-1} = P \text{diag}\left(\frac{1}{\hat{\lambda}_1}, \dots, \frac{1}{\hat{\lambda}_d}\right) P^T
 \end{equation}
 
 The log-determinant, required for the Gaussian log-likelihood, is computed directly from these filtered eigenvalues to avoid underflow:
 
 \begin{equation}
-\ln |\Sigma_i| = \sum_{j=1}^{d} \ln(\hat{\lambda}_j)
+	\ln |\boldsymbol{\Sigma}_c| = \sum_{j=1}^{d} \ln(\hat{\lambda}_j)
 \end{equation}
 
-Finally, the normalization constant $\ln A_i$ (representing the constant term of the multivariate Gaussian log-density) is stored:
+Finally, the normalization constant $\ln A_c$ (representing the constant term of the multivariate Gaussian log-density) is stored:
 
 \begin{equation}
-	\ln A_i = -\frac{1}{2} \left( d \ln(2\pi) + \ln |\Sigma_i| \right)
+	\ln A_c = -\frac{1}{2} \left( d \ln(2\pi) + \ln |\boldsymbol{\Sigma}_c| \right)
 \end{equation}
 
-This approach eliminates ``noise floor" issues that would otherwise cause the matrix to become singular or produce infinite values during log-likelihood estimation
+This approach eliminates ``noise floor" issues that would otherwise cause the matrix to become singular or produce infinite values during log-likelihood estimation.
 
 \subsubsection{Linear Shrinkage Estimators}
 
-Linear shrinkage methods propose a compromise between the SCM and a highly structured target matrix $F$, such as the identity matrix or a diagonal matrix of sample variances.
+Linear shrinkage methods propose a compromise between the SCM $S$ and a highly structured target matrix $F$, such as the identity matrix or a diagonal matrix of sample variances.
 
 \paragraph{Ledoit-Wolf Estimator}
 
-The Ledoit-Wolf estimator xxxCITExxx determines an optimal shrinkage intensity $\rho$ to minimize the expected Frobenius norm between the estimate and the true covariance matrix $\Sigma$. It is defined as:
+The Ledoit-Wolf estimator \cite{Ledoit2004} determines an optimal shrinkage intensity $\rho$ to minimize the expected Frobenius norm between the estimate and the true covariance matrix $\boldsymbol{\Sigma}$. It is defined as:
 \begin{equation}
-\hat{\Sigma}_{LW} = (1 - \rho)S + \rho F	
+	\hat{\boldsymbol{\Sigma}}_{LW} = (1 - \rho)S + \rho F	
 \end{equation}
 Ledoit-Wolf is computationally efficient and provides an asymptotically optimal estimate without assuming a specific data distribution.
 
 \paragraph{Oracle Approximating Shrinkage (OAS)}
 
-The OAS estimator xxxCITExxx refines the Ledoit-Wolf approach by assuming the data follows a Gaussian distribution. This assumption allows for a more precise estimation of the shrinkage intensity, particularly for small sample sizes. The OAS shrinkage parameter $\rho_{OAS}$ is given by:
+The OAS estimator \cite{Chen2010} refines the Ledoit-Wolf approach by assuming the data follows a Gaussian distribution. This assumption allows for a more precise estimation of the shrinkage intensity, particularly for small sample sizes. The OAS shrinkage parameter $\rho_{OAS}$ is given by:
 
 \begin{equation}
-	\rho_{OAS} = \min \left( 1, \frac{(1 - \frac{2}{p})\text{tr}(S^2) + \text{tr}^2(S)}{(n + 1 - \frac{2}{p})(\text{tr}(S^2) - \frac{\text{tr}^2(S)}{p})} \right)
+	\rho_{OAS} = \min \left( 1, \frac{(1 - \frac{2}{d})\text{tr}(S^2) + \text{tr}^2(S)}{(n + 1 - \frac{2}{d})(\text{tr}(S^2) - \frac{\text{tr}^2(S)}{d})} \right)
 \end{equation}
 
-OAS is specifically designed to minimize MSE under Gaussianity and often outperforms standard shrinkage when the data distribution is approximately normal.
-
-\subsection{Mahalanobis Distance and Temperature Scaling}
-The Mahalanobis distance is a scale-invariant metric that measures the distance between a point $x$ and a distribution with mean $\mu$ and covariance $\Sigma$.
-
-\subsubsection{Distance and Likelihood Relation}
-
-The squared Mahalanobis distance $D^2$ is:$$D^2 = (x - \mu)^T \Sigma^{-1} (x - \mu)$$For a multivariate Gaussian distribution, the log-likelihood is:
-\begin{equation}
-\ln L(x) = -\frac{1}{2} \ln |\Sigma| - \frac{1}{2} D^2 - \frac{k}{2} \ln(2\pi)	
-\end{equation}
-
-This reveals that maximizing the log-likelihood is equivalent to minimizing the Mahalanobis distance (after accounting for the determinant of the covariance). This relationship is the basis for Mahalanobis-based classifiers, which are effective in high-dimensional embedding spaces where Euclidean distance fails to account for feature correlations.
-
-\subsubsection{Calibration via Temperature Scaling}
-
-Classifiers based on deep features often produce scores that are not well-calibrated probabilities. Temperature scaling is a post-processing technique that adjusts the log-likelihood scores before they are passed through a softmax function.The score for class $i$ is modified by a scalar $T > 0$:
-
-\begin{equation}
-\text{Score}_i = \frac{1}{T} \left( \ln A_i - \frac{1}{2} D_i^2 \right)
-\end{equation}
-
-where $\ln A_i$ is the log-normalization constant. An optimal $T$ is typically learned using a validation set to minimize negative log-likelihood (NLL). $T > 1$ "softens" the distribution (reducing overconfidence), while $T < 1$ "sharpens" it. This calibration is critical for tasks requiring reliable uncertainty estimation, such as out-of-distribution detection or safety-critical classification.
-
+OAS is specifically designed to minimize Mean Squared Error (MSE) under Gaussianity and often outperforms standard shrinkage when the data distribution is approximately normal.
 
 \subsection{Principal Component Analysis (PCA)}
 
 PCA is a linear transformation technique that identifies the directions (principal components) along which the data exhibits the highest variance. It serves as an essential tool for noise reduction and visualization in high-dimensional feature spaces.
 
 \subsubsection{Variance Maximization and Lagrange Multipliers}
-Given a centered data matrix $X \in \mathbb{R}^{n \times p}$, the goal is to find a unit vector $w$ that maximizes the variance of the projected data $Xw$. The variance is:
+Given a centered data matrix $X \in \mathbb{R}^{n \times d}$, the goal is to find a unit vector $\mathbf{w}$ that maximizes the variance of the projected data $X\mathbf{w}$. The variance is:
 
 \begin{equation}
-	\text{Var}(Xw) = \frac{1}{n} (Xw)^T(Xw) = w^T \left( \frac{X^T X}{n} \right) w = w^T S w
+	\text{Var}(X\mathbf{w}) = \frac{1}{n} (X\mathbf{w})^T(X\mathbf{w}) = \mathbf{w}^T \left( \frac{X^T X}{n} \right) \mathbf{w} = \mathbf{w}^T S \mathbf{w}
 \end{equation}
 
 
-where $S$ is the sample covariance matrix. To prevent $w$ from growing indefinitely, we impose the constraint $w^T w = 1$. Using the method of Lagrange multipliers:
+where $S$ is the sample covariance matrix. To prevent $\mathbf{w}$ from growing indefinitely, we impose the constraint $\mathbf{w}^T \mathbf{w} = 1$. Using the method of Lagrange multipliers:
 
 \begin{equation}
-	\mathcal{L}(w, \lambda) = w^T S w - \lambda(w^T w - 1)$$Differentiating with respect to $w$ and setting to zero:$$\frac{\partial \mathcal{L}}{\partial w} = 2Sw - 2\lambda w = 0 \implies Sw = \lambda w 
+	\mathcal{L}(\mathbf{w}, \lambda) = \mathbf{w}^T S \mathbf{w} - \lambda(\mathbf{w}^T \mathbf{w} - 1)
+\end{equation}
+Differentiating with respect to $\mathbf{w}$ and setting to zero:
+\begin{equation}
+	\frac{\partial \mathcal{L}}{\partial \mathbf{w}} = 2S\mathbf{w} - 2\lambda \mathbf{w} = 0 \implies S\mathbf{w} = \lambda \mathbf{w} 
 \end{equation}
 
-This demonstrates that $w$ must be an eigenvector of the covariance matrix $S$, and $\lambda$ is its corresponding eigenvalue. Since $w^T S w = w^T \lambda w = \lambda$, maximizing the variance is equivalent to selecting the eigenvector associated with the largest eigenvalue.
+This demonstrates that $\mathbf{w}$ must be an eigenvector of the covariance matrix $S$, and $\lambda$ is its corresponding eigenvalue. Since $\mathbf{w}^T S \mathbf{w} = \mathbf{w}^T \lambda \mathbf{w} = \lambda$, maximizing the variance is equivalent to selecting the eigenvector associated with the largest eigenvalue.
 
 \subsubsection{Sequential Orthogonality} Subsequent principal components are found by maximizing variance subject to the constraint that they are orthogonal to all previous components. Inductively, the $k$-th principal component corresponds to the $k$-th largest eigenvalue. This process decomposes the total variance into uncorrelated linear combinations of the original variables.
 
 
 \section{Continual Learning}
 
-Continual Learning (CL), also known as lifelong learning, constitutes the core focus of this work. It represents a machine learning paradigm designed to handle the progressive acquisition of knowledge from sequences of tasks or data streams over time. In contrast to conventional training approaches, which rely on a fixed dataset and a single training phase, CL emphasizes the ongoing integration of new information while preserving previously learned knowledge. This property is crucial for real-world scenarios where data distributions are non-stationary and environments evolve continuously. 
+Continual Learning (CL), also known as lifelong learning, constitutes the core focus of this work. It represents a machine learning paradigm designed to handle the progressive acquisition of knowledge from sequences of tasks or data streams over time. As illustrated in Figure \ref{fig:task_time}, a \textbf{task} in this context is defined as a specific learning experience or dataset –such as Task A, B, or C. Each task is potentially characterized by unique data distributions or objectives, as symbolized by the varying shapes (e.g., circles vs. hearts) above the task labels. 
 
-The principal challenge lies in mitigating \textbf{catastrophic forgetting}, a phenomenon in which the assimilation of new knowledge leads to the degradation or loss of prior learning. As illustrated in Figure \ref{fig:catastrophic_forgetting}, when a \textit{New Object Class} is introduced to an existing classifier, two traditional but flawed strategies typically emerge:
+Unlike conventional training approaches that rely on a fixed dataset and a stationary environment, CL emphasizes the arrival of these tasks at distinct intervals along the \textbf{time} axis. This sequential arrival requires the model to be inherently non-stationary, adapting its internal representations as environments evolve. The primary challenge in this paradigm lies in the ongoing integration of new information from a current task (e.g., Task B) while simultaneously preserving the knowledge previously acquired from Task A.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.75\textwidth]{imagenes/marco/Adaptation.pdf}
+	\caption{A sequential task arrival model for Continual Learning, depicting the transition from Task A to Task C over time, where each task represents a unique set of features or data distributions.}
+	\label{fig:task_time}
+\end{figure}
+
+Without specific architectural or algorithmic safeguards, this sequential learning process inevitably triggers \textbf{catastrophic forgetting} \cite{CL}. This phenomenon occurs when the assimilation of new knowledge leads to the degradation or total loss of prior learning. As illustrated in Figure \ref{fig:catastrophic_forgetting}, the dilemma of forgetting becomes apparent when a \textit{New Object Class} is introduced to an existing classifier, forcing a choice between two traditional but flawed strategies:
 
 \begin{itemize}
-	\item \textbf{Fine-Tuning:} Updating the model using only the new data is efficient but leads to \textbf{catastrophic forgetting} \cite{CL}. Because the optimization process focuses solely on the new objective, the internal representations associated with previously learned classes are overwritten, causing the model to lose its original predictive capabilities.
+	\item \textbf{Fine-Tuning:} Updating the model using only the current task data is computationally efficient but leads directly to catastrophic forgetting \cite{CL}. Because the optimization process focuses solely on the new objective, the internal representations associated with previously learned classes are overwritten, causing the model to lose its original predictive capabilities.
 	
-	\item \textbf{Retraining from Scratch:} While joint training on the full historical dataset ($\mathcal{D}_{old} \cup \mathcal{D}_{new}$) technically prevents forgetting, it faces two major hurdles: (i) Data Privacy and Availability: In many real-world scenarios (like healthcare or edge computing), the original data $\mathcal{D}_{old}$ is often deleted or inaccessible due to privacy regulations or storage constraints. (ii) Computational Bottleneck: As the system's lifespan increases, the cumulative dataset grows linearly or exponentially. In environments that evolve continuously, the energy and time required to retrain every time a new class appears make this approach unsustainable for classic models.
+	\item \textbf{Retraining from Scratch:} While joint training on the full historical dataset ($\mathcal{D}_{old} \cup \mathcal{D}_{new}$) technically prevents forgetting, it faces two significant hurdles. First is the issue of \textbf{Data Privacy and Availability}: in many real-world scenarios, the original data $\mathcal{D}_{old}$ is often deleted or inaccessible due to privacy regulations. Second is the \textbf{Computational Bottleneck}: as the system's lifespan increases, the cumulative dataset grows, making the energy and time required to retrain the model unsustainable in continuously evolving environments.
 \end{itemize}
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
-	\includegraphics[width=0.7\textwidth]{imagenes/marco/Catastrophic_forgetting.pdf}
-	\caption{Standard Object Classifier comparison. The upper path shows standard inference, while the lower path illustrates the dilemma when a new class is introduced: the choice between catastrophic forgetting via fine-tuning or the impossibility of retraining from scratch.}
+	\includegraphics[width=0.8\textwidth]{imagenes/marco/Catastrophic_forgetting.pdf}
+	\caption{Standard Object Classifier comparison. The upper path shows standard inference, while the lower path illustrates the dilemma when a new class is introduced: the trade-off between catastrophic forgetting via fine-tuning and the infeasibility of retraining from scratch.}
 	\label{fig:catastrophic_forgetting}
 \end{figure}
 
-
-\subsection{Elasticity and Plasticity} 
+\subsection{Elasticity and Plasticity} 
 A central concept in continual learning is the balance between elasticity and plasticity. \textbf{Plasticity} refers to the ability of a model to adapt rapidly to new information, ensuring that it can effectively learn novel tasks. \textbf{Elasticity} (or stability), in contrast, emphasizes preserving the parameters and representations that are crucial for retaining old knowledge \cite{API}. Achieving an appropriate equilibrium between these two properties is known as the \textbf{stability–plasticity dilemma} \cite{CL}.
 
-\subsection{Main Paradigms} 
+\subsection{Main Paradigms} 
 As shown in Figure \ref{fig:task_vs_class}, two principal paradigms define how continual learning problems are formulated. \textbf{Task-incremental learning (Task-IL)} assumes that the task identity is available during inference, allowing for task-specific components to be isolated \cite{task_il}. \textbf{Class-incremental learning (Class-IL)}, on the other hand, does not provide the task identity at test time, requiring the model to distinguish between all classes seen across all tasks simultaneously \cite{masana_class_il}.
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
-	\includegraphics[width=0.7\textwidth]{imagenes/marco/CI_learning_survey_fig1.png}
+	\includegraphics[width=0.5\textwidth]{imagenes/marco/CI_learning_survey_fig1.png}
 	\caption{Class and Task Incremental Learning. Image taken from \cite{masana_class_il}.}
 	\label{fig:task_vs_class}
 \end{figure}
@@ -286,8 +276,8 @@ To preserve past performance, these methods reuse samples from previously learne
 \begin{itemize}
 	\item \textbf{Experience Replay (ER)} \cite{Chaudhry2019ContinualLW}: Maintains a small episodic memory buffer containing a sample of old, representative examples to be interleaved with new data.
 	\item \textbf{Average Gradient Episodic Memory (A-GEM)} \cite{agem}: Improves efficiency by using the buffer to constrain the direction of parameter updates, ensuring they do not interfere with past tasks.
-	\item \textbf{Dark Experience Replay (DER)} \cite{buzzega2020darkexperiencegeneralcontinual}: Enhances ER by incorporating knowledge distillation on the logits of replayed examples to preserve the "dark knowledge" of the model.
-	\item \textbf{Generative Replay} \cite{generative_features}: A non-data-storing method where a generator ($G_{t-1}$) is trained to produce synthetic features or samples of previously learned classes, avoiding the privacy concerns of raw data storage.
+	\item \textbf{Dark Experience Replay (DER)} \cite{buzzega2020darkexperiencegeneralcontinual}: Enhances ER by incorporating knowledge distillation on the logits of replayed examples to preserve the ``dark knowledge" of the model.
+	\item \textbf{Generative Replay} \cite{generative_features}: A non-data-storing method where a generator is trained to produce synthetic features or samples of previously learned classes, avoiding the privacy concerns of raw data storage.
 \end{itemize}
 
 \subsubsection{Regularization Methods}
@@ -302,12 +292,12 @@ These methods limit updates to parameters identified as important for prior lear
 \subsubsection{Architecture-based Methods}
 These methods mitigate forgetting by modifying the network architecture to increase or reorganize its capacity.
 \begin{itemize}
-	\item \textbf{Parameter Isolation}: Identifies and freezes parameters important for previous tasks—often through pruning or gradient masking—so only a subset of weights is updated for the current task \cite{10.5555/3454287.3455512}.
+	\item \textbf{Parameter Isolation}: Identifies and freezes parameters important for previous tasks –often through pruning or gradient masking– so only a subset of weights is updated for the current task \cite{10.5555/3454287.3455512}.
 	\item \textbf{Dynamic Expansion}: The architecture grows as new tasks arrive. For instance, \cite{Yan2021DERDE} uses an expandable super-feature extractor followed by pruning, while \cite{Yoon2017LifelongLW} expands the network only when the current capacity is insufficient.
 \end{itemize}
 
 \subsubsection{Representation and Prompt-based Methods}
-The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient fine-tuning (PEFT) where the backbone remains frozen and learning is contained within small "prompts".
+The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient fine-tuning (PEFT) where the backbone remains frozen and learning is contained within small ``prompts".
 \begin{itemize}
 	\item \textbf{Learning to Prompt (L2P)} \cite{wang2022learning}: Uses a prompt pool where prompts are selected based on the similarity between input embeddings and learned keys.
 	\item \textbf{Dual Prompt} \cite{wang2022dualprompt}: Refines L2P by separating representations into fixed G-prompts (General) and task-specific E-prompts (Expert).
@@ -315,11 +305,19 @@ The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient 
 	\item \textbf{Advanced Prompting}: Recent methods like \textbf{InFLoRA} \cite{liang2024inflora} and \textbf{DOLFIN} \cite{dolfin} apply low-rank adaptation and distributed learning, while \textbf{APT} \cite{Chen_2025_ICCV} injects key-value tokens directly into transformer layers to reduce inference overhead.
 \end{itemize}
 
-As illustrated in Figure \ref{fig:cl_summary}, the current state-of-the-art landscape, particularly in Class-IL, is increasingly dominated by these prompt-based approaches due to their ability to leverage large-scale pre-training while maintaining high stability. XXXIMPROVE THIS SUMMARYXXX
+\subsection{Evaluation Metrics}
+To quantify performance, SOTA works \cite{wang2022learning} utilize two standard metrics derived from the test accuracy scores: the average accuracy and the average forgetting.
 
-\begin{figure}
-	\centering
-	\includegraphics[width=0.7\textwidth]{imagenes/marco/theoretical_framework.pdf}
-	\caption{Key aspects of Continual Learning. XXXIMPROVE THIS PICTURE. DELETE D XXXX}
-	\label{fig:cl_summary}
-\end{figure}
+On the one hand, \textbf{Average Accuracy ($A_t$)}, presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point.
+
+\begin{equation}
+	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}
+	\label{eq_AA}
+\end{equation}
+
+On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops.
+
+\begin{equation}
+	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right)
+	\label{eq_AF}
+\end{equation}
