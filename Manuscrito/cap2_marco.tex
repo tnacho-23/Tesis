@@ -1,6 +1,6 @@
 \chapter{Theoretical Framework}
 
-This chapter establishes the conceptual and mathematical foundations required to contextualize this research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG), and Principal Component Analysis (PCA). Furthermore, we detail advanced covariance estimation methods such as OAS and Ledoit-Wolf, which are critical for stability in high-dimensional feature spaces. Finally, we address the challenge of ``catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating the state-of-the-art mitigation strategies that provide a performance baseline for the proposed work.
+This chapter establishes the conceptual and mathematical foundations required to contextualize this research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG) and Gaussian Analysis. Furthermore, we detail advanced covariance estimation methods such as OAS and Ledoit-Wolf, which are critical for stability in high-dimensional feature spaces. Finally, we address the challenge of ``catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating the state-of-the-art mitigation strategies that provide a performance baseline for the proposed work.
 
 \section{Artificial Intelligence and Machine Learning}
 
@@ -73,12 +73,34 @@ While the aforementioned datasets provide explicit labels for supervision, recen
 
 The convergence of statistical learning theory and high-dimensional data analysis has necessitated the development of robust mathematical frameworks to handle the dual challenges of uncertainty quantification and dimensionality reduction. As modern neural architectures, such as the DINOv2 Vision Transformer, extract increasingly complex representations from datasets like ImageNet-R, the subsequent classification and density estimation layers must be grounded in rigorous probabilistic foundations. 
 
+\subsection{Bayes Classification}
+
+At its core, Bayes classification is rooted in \textbf{Bayes' Theorem}, which provides a mathematical framework for updating the probability of a hypothesis based on observed evidence. For a classification task, we seek the posterior probability $p(y=c \mid \mathbf{z})$—the probability that an observation belongs to class $c$ given its observed feature vector $\mathbf{z}$.
+
+Bayes' Theorem is defined as:
+\begin{equation}
+	p(y=c \mid \mathbf{z}) = \frac{p(\mathbf{z} \mid y=c) \, p(y=c)}{p(\mathbf{z})}
+\end{equation}
+where:
+\begin{itemize}
+	\item $p(y=c \mid \mathbf{z})$ is the \textbf{posterior} probability.
+	\item $p(\mathbf{z} \mid y=c)$ is the \textbf{likelihood} of the data given the class.
+	\item $p(y=c)$ is the \textbf{prior} probability of the class.
+	\item $p(\mathbf{z})$ is the \textbf{evidence} or marginal likelihood, acting as a normalization constant.
+\end{itemize}
+
+The objective of a Bayes classifier is to minimize the Bayes risk; in the simplest case, this corresponds to assigning the observation to the class that maximizes the posterior probability.
+
 \subsection{Likelihood-Based Classification}
 
 Likelihood inference provides a coherent framework for updating the probability of a hypothesis as more evidence or information becomes available. In contrast to frequentist approaches that treat parameters as fixed but unknown constants, the Bayesian paradigm treats parameters as random variables characterized by probability distributions.
 
-A generative modeling framework can be adopted and class-conditional Gaussian feature distributions can be assumed:
+The connection between Bayes' Theorem and likelihood-based classification lies in the \textbf{Maximum A Posteriori (MAP)} decision rule. Since the evidence $p(\mathbf{z})$ is constant across all classes for a given observation, the classification decision depends solely on the product of the likelihood and the prior:
+\begin{equation}
+	p(y=c \mid \mathbf{z}) \propto p(\mathbf{z} \mid y=c) \, p(y=c).
+\end{equation}
 
+A generative modeling framework can be adopted and class-conditional Gaussian feature distributions can be assumed:
 \begin{equation}
 	p(\mathbf{z} \mid y=c)
 	=
@@ -86,7 +108,7 @@ A generative modeling framework can be adopted and class-conditional Gaussian fe
 \end{equation}
 where $\mathbf{z} \in \mathbb{R}^d$ represents the feature vector, $\boldsymbol{\mu}_c$ is the class mean vector, and $\boldsymbol{\Sigma}_c \succ 0$ is the covariance matrix.
 
-Classification can be performed via maximum a posteriori (MAP) inference:
+Classification can be performed via MAP inference by maximizing the log-posterior:
 \begin{equation}
 	\hat{y}
 	=
@@ -97,7 +119,7 @@ Classification can be performed via maximum a posteriori (MAP) inference:
 \end{equation}
 where $\pi_c = p(y=c)$ denotes the class prior.
 
-Using the Gaussian density, the decision rule is equivalent to
+Substituting the multivariate Gaussian density into the MAP rule, the decision rule becomes equivalent to:
 \begin{equation}
 	\hat{y}
 	=
@@ -112,7 +134,6 @@ Using the Gaussian density, the decision rule is equivalent to
 	2\log \pi_c
 	\right].
 \end{equation}
-This yields a quadratic decision function in the feature space.
 
 \subsubsection{Mixture of Gaussians (MoG)} 
 
@@ -200,31 +221,58 @@ The OAS estimator \cite{Chen2010} refines the Ledoit-Wolf approach by assuming t
 
 OAS is specifically designed to minimize Mean Squared Error (MSE) under Gaussianity and often outperforms standard shrinkage when the data distribution is approximately normal.
 
-\subsection{Principal Component Analysis (PCA)}
 
-PCA is a linear transformation technique that identifies the directions (principal components) along which the data exhibits the highest variance. It serves as an essential tool for noise reduction and visualization in high-dimensional feature spaces.
+\subsection{Gaussianity Assumptions and Analysis}
+In the context of generative modeling for foundation feature spaces, the validity of the Bayes classifier depends on how well the class-conditional Gaussian distributions approximate the true data distribution. The following analytical framework establishes the statistical basis for these assumptions.
 
-\subsubsection{Variance Maximization and Lagrange Multipliers}
-Given a centered data matrix $X \in \mathbb{R}^{n \times d}$, the goal is to find a unit vector $\mathbf{w}$ that maximizes the variance of the projected data $X\mathbf{w}$. The variance is:
+\subsubsection{Univariate Analysis: Kurtosis and Skewness}
+
+The first layer of theoretical justification involves examining the univariate properties of individual feature components.
+
+\paragraph{Kurtosis} This statistic measures the ``tailedness'' of a probability distribution. For a perfectly Gaussian distribution, the excess kurtosis is zero.
+
+\paragraph{Kurtosis} This statistic measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution[cite: 891]. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails. Empirical evidence suggests that for many foundation model embeddings, kurtosis values typically fall within the range of $[-1, 1]$, justifying the Gaussian approximation.
+
+xxxRe-do or cite these images (stole them from google)xxx
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.37\textwidth]{imagenes/marco/kurtosis.png}
+	\caption{Visual representation of Kurtosis levels: leptokurtic ($>0$), mesokurtic ($=0$), and platykurtic ($<0$).}
+	\label{fig:kurtosis}
+\end{figure}
+
+\paragraph{Skewness} This measure quantifies the asymmetry of a distribution around its mean. As shown in Figure \ref{fig:skewness}, a symmetric distribution (center) is a fundamental assumption of the Gaussian model, implying that the mean $\boldsymbol{\mu}_c$, median, and mode coincide, providing an adequate representation of the class prototype within the embedding space. A positive skew (right) indicates a distribution with a long tail extending toward higher values, while a negative skew (left) indicates a long tail extending toward lower values. Significant skewness would suggest that the class-conditional mean is no longer a central representation of the feature distribution.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.7\textwidth]{imagenes/marco/skeweness.jpg}
+	\caption{Comparison of Negatively Skewed, Symmetric, and Positively Skewed distributions.}
+	\label{fig:skewness}
+\end{figure}
+
+
+\subsubsection{Multivariate Analysis: Mahalanobis Distance}
+
+While univariate normality is a prerequisite, the Bayes classifier operates in a high-dimensional joint distribution. To assess the multivariate Gaussianity of the feature space, we utilize the Squared Mahalanobis Distance:
 
 \begin{equation}
-	\text{Var}(X\mathbf{w}) = \frac{1}{n} (X\mathbf{w})^T(X\mathbf{w}) = \mathbf{w}^T \left( \frac{X^T X}{n} \right) \mathbf{w} = \mathbf{w}^T S \mathbf{w}
+	D^2(\mathbf{z}) = (\mathbf{z}-\boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{z}-\boldsymbol{\mu}_c)
 \end{equation}
 
+Theoretically, if a class-conditional distribution $p(\mathbf{z} \mid y=c)$ is a $d$-dimensional Gaussian, the squared Mahalanobis distance between the samples and the class mean follows a chi-square ($\chi^2$) distribution with $d$ degrees of freedom.
 
-where $S$ is the sample covariance matrix. To prevent $\mathbf{w}$ from growing indefinitely, we impose the constraint $\mathbf{w}^T \mathbf{w} = 1$. Using the method of Lagrange multipliers:
+\paragraph{Degrees of Freedom and Rank} The behavior of this distance is sensitive to the rank of $\boldsymbol{\Sigma}_c$. If the number of training samples $N$ is smaller than the dimensionality $d$, the covariance matrix becomes rank-deficient, necessitating regularization (such as diagonal loading) to maintain numerical stability during the inversion process required for the MAP decision rule.
 
-\begin{equation}
-	\mathcal{L}(\mathbf{w}, \lambda) = \mathbf{w}^T S \mathbf{w} - \lambda(\mathbf{w}^T \mathbf{w} - 1)
-\end{equation}
-Differentiating with respect to $\mathbf{w}$ and setting to zero:
-\begin{equation}
-	\frac{\partial \mathcal{L}}{\partial \mathbf{w}} = 2S\mathbf{w} - 2\lambda \mathbf{w} = 0 \implies S\mathbf{w} = \lambda \mathbf{w} 
-\end{equation}
+\paragraph{Correlation Modeling} The multivariate assumption also addresses inter-feature dependencies. While a diagonal covariance model ($\text{diag}(\sigma_{c,1}^2, \dots, \sigma_{c,d}^2)$) assumes independence between features, a full covariance model attempts to capture the joint geometric structure of the class in the embedding space.
 
-This demonstrates that $\mathbf{w}$ must be an eigenvector of the covariance matrix $S$, and $\lambda$ is its corresponding eigenvalue. Since $\mathbf{w}^T S \mathbf{w} = \mathbf{w}^T \lambda \mathbf{w} = \lambda$, maximizing the variance is equivalent to selecting the eigenvector associated with the largest eigenvalue.
+\subsubsection{Spectral Decay and Dimensionality}
 
-\subsubsection{Sequential Orthogonality} Subsequent principal components are found by maximizing variance subject to the constraint that they are orthogonal to all previous components. Inductively, the $k$-th principal component corresponds to the $k$-th largest eigenvalue. This process decomposes the total variance into uncorrelated linear combinations of the original variables.
+The effectiveness of Gaussian modeling is further supported by the spectral decay of the feature space. By performing Principal Component Analysis (PCA) on the embeddings, one can observe the distribution of eigenvalues.
+
+\paragraph{Information Concentration} A steep decay in the leading eigenvalues indicates that most of the discriminative variance is concentrated within a lower-dimensional subspace.
+
+\paragraph{Subspace Validity} This concentration suggests that even though the nominal dimensionality $d$ is high (e.g., $d=768$), the classes occupy structured manifolds where Gaussian density estimation provides a strong and stable inductive bias. 
 
 
 \section{Continual Learning}
@@ -305,19 +353,4 @@ The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient 
 	\item \textbf{Advanced Prompting}: Recent methods like \textbf{InFLoRA} \cite{liang2024inflora} and \textbf{DOLFIN} \cite{dolfin} apply low-rank adaptation and distributed learning, while \textbf{APT} \cite{Chen_2025_ICCV} injects key-value tokens directly into transformer layers to reduce inference overhead.
 \end{itemize}
 
-\subsection{Evaluation Metrics}
-To quantify performance, SOTA works \cite{wang2022learning} utilize two standard metrics derived from the test accuracy scores: the average accuracy and the average forgetting.
 
-On the one hand, \textbf{Average Accuracy ($A_t$)}, presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point.
-
-\begin{equation}
-	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}
-	\label{eq_AA}
-\end{equation}
-
-On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops.
-
-\begin{equation}
-	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right)
-	\label{eq_AF}
-\end{equation}
