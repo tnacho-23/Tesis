@@ -19,7 +19,7 @@ We follow the standard Continual Learning (CL) protocol where the model learns a
 	
 	\item \textbf{Split ImageNet-R:} This benchmark is constructed from ImageNet-R \cite{imagenetR}, a dataset containing renditions of ImageNet classes such as art, cartoons, and sketches. We randomly divide the 200 classes into 10 sequential tasks, with 20 classes per task, introducing a significant domain shift challenge.
 	
-	\item \textbf{Split Caltech-256:} Designed to evaluate the model on higher-resolution images with greater object variability, this benchmark utilizes the Caltech-256 \cite{caltech256} dataset. The 256 categories are sequentially divided into 10 tasks; the first nine tasks consist of 25 distinct classes each, while the final task contains the remaining 31 classes to complete the full set. This setup tests the model's scalability as it handles a larger number of classes per increment compared to standard baselines.
+	\item \textbf{Split Caltech-256:} Designed to evaluate the model on higher-resolution images with greater object variability, this benchmark utilises the Caltech-256 \cite{caltech256} dataset. The first 250 of the original 256 categories are used and sequentially divided into 10 disjoint tasks of 25 classes each; the remaining six categories are discarded so that the benchmark has a fixed, balanced number of classes per task. The resulting protocol contains approximately 28\,100 images with an average of $\overline{n_c}\!\approx\!112$ training samples per class, which makes the per-class budget the smallest of the three constituent datasets and stresses the high-dimensional covariance estimators introduced in Section~3.2.
 	
 	\item \textbf{Split Joint Dataset:} This benchmark serves as a comprehensive stress test by aggregating the 30 tasks from the three aforementioned datasets into a single, heterogeneous stream. The tasks are presented to the system in a randomized order, forcing the model to navigate extreme distribution shifts between natural, artistic, and high-resolution images. This long-horizon sequence is specifically designed to evaluate the model's resilience against catastrophic forgetting over an extended period of diverse learning objectives.
 \end{itemize}
@@ -38,16 +38,16 @@ In this configuration, we assume that the features within each class $c$ are ind
 \begin{equation}
 \mu_c = \frac{1}{n_c} \sum_{i=1}^{n_c} x_i, \quad \sigma_{c,j}^2 = \frac{1}{n_c} \sum_{i=1}^{n_c} (x_{i,j} - \mu_{c,j})^2 + \epsilon
 \end{equation}
-where $\epsilon = 10^{-6}$ is a small constant added to ensure numerical stability and strictly positive variances. The log-likelihood of a test sample $x$ belonging to class $c$ is determined by the discriminant function:
+where $\epsilon = 10^{-6}$ is a small constant added to ensure numerical stability and strictly positive variances. The log-likelihood of a test sample $\mathbf{x}$ belonging to class $c$ is determined by the discriminant function:
 
 \begin{equation}
-	g_c(x) = \ln P(x|c) + \ln P(c)
+	g_c(\mathbf{x}) = \ln P(\mathbf{x}|c) + \ln P(c)
 \end{equation}
 
 Under the assumption of a uniform prior $P(c)$ and Gaussian distribution, this simplifies to:
 
 \begin{equation}
-	g_c(x) = -\frac{1}{2} \sum_{j=1}^{d} \left( \ln(2\pi\sigma_{c,j}^2) + \frac{(x_j - \mu_{c,j})^2}{\sigma_{c,j}^2} \right)
+	g_c(\mathbf{x}) = -\frac{1}{2} \sum_{j=1}^{d} \left( \ln(2\pi\sigma_{c,j}^2) + \frac{(x_j - \mu_{c,j})^2}{\sigma_{c,j}^2} \right)
 \end{equation}
 
 In the implementation, this is computed using a pre-calculated constant $\ln A_c = -\frac{d}{2}\ln(2\pi) - \frac{1}{2}\sum \ln(\sigma_{c,j}^2)$ and the squared Mahalanobis distance weighted by the inverse of the diagonal variances.
@@ -63,12 +63,12 @@ To account for the dependencies between different dimensions of the feature vect
 
 To ensure the matrix is invertible and to improve numerical stability, a regularizatio is applied by adding a small identity term to the diagonal: $\hat{\Sigma}_c = \Sigma_c + \epsilon I$, with $\epsilon = 10^{-6}$.The implementation performs the inversion and determinant calculation using the eigendecomposition of the symmetric covariance matrix, $\hat{\Sigma}_c = P \Lambda P^T$, where $\Lambda$ contains the eigenvalues $\lambda_j$. To further ensure stability, eigenvalues are clipped to a minimum value of $10^{-6}$. The inverse and the log-determinant are then computed as:
 \begin{equation}
-	\hat{\Sigma}_c^{-1} = P \Lambda^{-1} P^T, \quad \ln |\hat{\Sigma}c| = \sum{j=1}^{d} \ln(\lambda_j)
+	\hat{\Sigma}_c^{-1} = P \Lambda^{-1} P^T, \quad \ln |\hat{\Sigma}_c| = \sum_{j=1}^{d} \ln(\lambda_j)
 	\end{equation}
 	
 	The discriminant function for classification is the full quadratic form:
 	\begin{equation}
-		g_c(x) = \ln A_c - \frac{1}{2} (x - \mu_c)^T \hat{\Sigma}_c^{-1} (x - \mu_c)
+		g_c(\mathbf{x}) = \ln A_c - \frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_c)^T \hat{\Sigma}_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c)
 	\end{equation}
 		
 		where $\ln A_c = -\frac{1}{2} (d \ln(2\pi) + \ln |\hat{\Sigma}_c|)$.
@@ -77,16 +77,16 @@ To ensure the matrix is invertible and to improve numerical stability, a regular
 The hybrid covariance estimator is designed to leverage the correlation information for distance metrics while mitigating the numerical instability inherent in calculating the determinant of high-dimensional, potentially rank-deficient matrices. In this approach, we decoupling the estimation of the Mahalanobis distance and the normalization constant.For each class $c$, the full covariance matrix $\hat{\Sigma}_c$ is estimated and regularized as described in the previous section:
 
 \begin{equation}
-	\hat{\Sigma}c = \Sigma_c + \epsilon I
+	\hat{\Sigma}_c = \Sigma_c + \epsilon I
 \end{equation}
 The quadratic form of the log-likelihood (the Mahalanobis distance) uses the full inverse $\hat{\Sigma}_c^{-1}$, calculated via eigendecomposition to capture the feature interactions. However, the log-determinant—which represents the "volume" of the distribution—is computed using only the diagonal elements of the covariance matrix (the variances):
 \begin{equation}
-	\ln |\Sigma_c|{\text{diag}} = \sum_{j=1}^{d} \ln(\sigma_{c,j}^2)
+	\ln |\Sigma_c|_{\text{diag}} = \sum_{j=1}^{d} \ln(\sigma_{c,j}^2)
 \end{equation}
 
 where $\sigma_{c,j}^2$ are the diagonal entries of $\hat{\Sigma}_c$. The resulting discriminant function is defined as:
 \begin{equation}
-	g_c(x) = -\frac{1}{2} \left( d \ln(2\pi) + \sum_{j=1}^{d} \ln(\sigma_{c,j}^2) + (x - \mu_c)^T \hat{\Sigma}_c^{-1} (x - \mu_c) \right)
+	g_c(\mathbf{x}) = -\frac{1}{2} \left( d \ln(2\pi) + \sum_{j=1}^{d} \ln(\sigma_{c,j}^2) + (\mathbf{x} - \boldsymbol{\mu}_c)^T \hat{\Sigma}_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) \right)
 \end{equation}
 
 This hybrid formulation prevents the ``vanishing determinant'' problem that often occurs in high dimensions, where very small eigenvalues (even after regularization) can disproportionately inflate the log-likelihood and lead to biased classification toward classes with lower variance.
@@ -97,12 +97,12 @@ This hybrid formulation prevents the ``vanishing determinant'' problem that ofte
 Oracle Approximating Shrinkage (OAS) is a shrinkage technique that computes an structurally optimized covariance matrix by finding an optimal compromise between the sample covariance matrix and a structured target (the identity matrix scaled by the average trace).The OAS estimator provides a more accurate estimation of the covariance $\Sigma_c$ by minimizing the Mean Squared Error (MSE) under the assumption of Gaussianity. The estimated covariance is defined as:
 
 \begin{equation}
-	\hat{\Sigma}{\text{OAS}, c} = (1 - \rho_c) \hat{\Sigma}{\text{SCM}, c} + \rho_c \hat{F}c
+	\hat{\Sigma}_{\text{OAS}, c} = (1 - \rho_c) \hat{\Sigma}_{\text{SCM}, c} + \rho_c \hat{F}_c
 \end{equation}
-where $\rho_c$ is the shrinkage coefficient calculated specifically for class $c$, $\hat{\Sigma}{\text{SCM}, c}$ is the sample covariance matrix, and $\hat{F}_c = \frac{\text{tr}(\hat{\Sigma}_{\text{SCM}, c})}{d} I$ is the shrinkage target.In our implementation, we utilize the scikit-learn \texttt{OAS} object to compute the precision matrix $\Psi_c = \hat{\Sigma}_{\text{OAS}, c}^{-1}$ directly. This precision matrix is then used to calculate the Mahalanobis distance in the log-likelihood discriminant function:
+where $\rho_c$ is the shrinkage coefficient calculated specifically for class $c$, $\hat{\Sigma}_{\text{SCM}, c}$ is the sample covariance matrix, and $\hat{F}_c = \frac{\text{tr}(\hat{\Sigma}_{\text{SCM}, c})}{d} I$ is the shrinkage target.In our implementation, we utilize the scikit-learn \texttt{OAS} object to compute the precision matrix $\Psi_c = \hat{\Sigma}_{\text{OAS}, c}^{-1}$ directly. This precision matrix is then used to calculate the Mahalanobis distance in the log-likelihood discriminant function:
 
 \begin{equation}
-	g_c(x) = \ln A_c - \frac{1}{2} (x - \mu_c)^T \Psi_c (x - \mu_c)
+	g_c(\mathbf{x}) = \ln A_c - \frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_c)^T \Psi_c (\mathbf{x} - \boldsymbol{\mu}_c)
 \end{equation}
 
 where $\ln A_c$ is the normalization constant derived from the log-determinant of the OAS-estimated covariance matrix, calculated via the \texttt{slogdet} function for numerical stability. This approach ensures that the model captures class-specific correlations while remaining robust to the ``curse of dimensionality.''
@@ -135,7 +135,7 @@ By enforcing a global diagonal covariance matrix $\Sigma = \text{diag}(\sigma_1^
 	\sigma_j^2 = \frac{1}{N} \sum_{c=1}^{C} \sum_{i=1}^{n_c} (x_{i,j} - \mu_{c,j})^2 + \epsilon
 \end{equation}
 
-where $N$ is the total number of training samples and $\mu_{c,j}$ is the mean of class $c$ for feature $j$. The classification of a test sample $x$ reduces to finding the class $c$ that minimizes the weighted Euclidean distance:
+where $N$ is the total number of training samples and $\mu_{c,j}$ is the mean of class $c$ for feature $j$. The classification of a test sample $\mathbf{x}$ reduces to finding the class $c$ that minimizes the weighted Euclidean distance:
 
 \begin{equation}
 	c^* = \arg\min_{c} \sum_{j=1}^{d} \frac{(x_j - \mu_{c,j})^2}{\sigma_j^2}
@@ -144,7 +144,7 @@ where $N$ is the total number of training samples and $\mu_{c,j}$ is the mean of
 \subsubsection{Shared Full Covariance}In the shared full covariance model (equivalent to the generative assumption of Linear Discriminant Analysis), we estimate a dense matrix $\Sigma \in \mathbb{R}^{d \times d}$ that captures the correlations between all feature dimensions. To ensure numerical stability in high-dimensional spaces, we utilize the Oracle Approximating Shrinkage (OAS) estimator to compute the pooled covariance. The classification rule utilizes the shared precision matrix $\Psi = \Sigma^{-1}$ to minimize the full squared Mahalanobis distance:
 
 \begin{equation}
-	c^* = \arg\min_{c} (x - \mu_c)^T \Psi (x - \mu_c)
+	c^* = \arg\min_{c} (\mathbf{x} - \boldsymbol{\mu}_c)^T \Psi (\mathbf{x} - \boldsymbol{\mu}_c)
 \end{equation}
 
 \subsubsection{Shared Hybrid Covariance}
@@ -160,19 +160,19 @@ In order to capture potential multi-modality within the feature space of a singl
  Forcing each class to be defined as a GMM with $K=2$ components, each class $c$ can be modeled by a probability density function:
 
 \begin{equation}
-	p(x|c) = \sum_{k=1}^{K} \pi_{c,k} \mathcal{N}(x | \mu_{c,k}, \Sigma_{c,k})
+	p(\mathbf{x}|c) = \sum_{k=1}^{K} \pi_{c,k} \mathcal{N}(x | \mu_{c,k}, \Sigma_{c,k})
 \end{equation}
 
-where $\pi_{c,k}$ represents the mixing weight of the $k$-th component for class $c$, subject to $\sum \pi_{c,k} = 1$. In this specific variant, the covariance matrices $\Sigma_{c,k}$ are restricted to be diagonal to maintain computational efficiency and prevent over-fitting in the high-dimensional DINOv2 space.The parameters $\{\pi_{c,k}, \mu_{c,k}, \Sigma_{c,k}\}$ are estimated using the Expectation-Maximization (EM) algorithm. To ensure numerical stability, a small constant $\epsilon = 10^{-5}$ is added to the diagonal of each covariance matrix. The log-likelihood for a test sample $x$ is calculated using the \textit{LogSumExp} operator to avoid underflow:
+where $\pi_{c,k}$ represents the mixing weight of the $k$-th component for class $c$, subject to $\sum \pi_{c,k} = 1$. In this specific variant, the covariance matrices $\Sigma_{c,k}$ are restricted to be diagonal to maintain computational efficiency and prevent over-fitting in the high-dimensional DINOv2 space.The parameters $\{\pi_{c,k}, \mu_{c,k}, \Sigma_{c,k}\}$ are estimated using the Expectation-Maximization (EM) algorithm. To ensure numerical stability, a small constant $\epsilon = 10^{-5}$ is added to the diagonal of each covariance matrix. The log-likelihood for a test sample $\mathbf{x}$ is calculated using the \textit{LogSumExp} operator to avoid underflow:
 
 \begin{equation}
-	\ln p(x|c) = \text{lnaddexp} \left( \ln(\pi_{c,1} \mathcal{N}(x | \mu_{c,1}, \Sigma_{c,1})), \ln(\pi_{c,2} \mathcal{N}(x | \mu_{c,2}, \Sigma_{c,2})) \right)
+	\ln p(\mathbf{x}|c) = \text{lnaddexp} \left( \ln(\pi_{c,1} \mathcal{N}(x | \mu_{c,1}, \Sigma_{c,1})), \ln(\pi_{c,2} \mathcal{N}(x | \mu_{c,2}, \Sigma_{c,2})) \right)
 \end{equation}
 
 In the implementation, this is expanded as:
 
 \begin{equation}
-	\ln p(x|c) = \ln \left( \exp( \ln \pi_{c,1} + \ln A_{c,1} - \frac{1}{2} d_{M,1} ) + \exp( \ln \pi_{c,2} + \ln A_{c,2} - \frac{1}{2} d_{M,2} ) \right)
+	\ln p(\mathbf{x}|c) = \ln \left( \exp( \ln \pi_{c,1} + \ln A_{c,1} - \frac{1}{2} d_{M,1} ) + \exp( \ln \pi_{c,2} + \ln A_{c,2} - \frac{1}{2} d_{M,2} ) \right)
 \end{equation}
 
 where $d_{M,k}$ is the diagonal Mahalanobis distance to the $k$-th component and $\ln A_{c,k}$ is the normalization constant. This approach allows the model to better represent classes that may contain significantly different visual sub-types or clusters within the latent embedding space.
@@ -186,26 +186,26 @@ To adapt to the varying complexity of different classes within the different dat
 	\text{BIC} = \ln(n)k - 2\ln(\hat{L})
 \end{equation}
 
-where $n$ is the number of samples in the class, $k$ is the number of free parameters to be estimated, and $\hat{L}$ is the maximized value of the likelihood function. By using diagonal covariance matrices, the number of parameters per component is kept low ($2d + 1$), allowing the selection process to favor multi-modal distributions only when the increase in likelihood justifies the additional parameters. For each component $k$ in class $c$, the diagonal covariance $\Sigma_{c,k} = \text{diag}(\sigma_{c,k,1}^2, \dots, \sigma_{c,k,d}^2)$ is regularized with $\epsilon = 10^{-6}$. The classification of a test sample $x$ involves calculating the weighted log-likelihood across all active classes:
+where $n$ is the number of samples in the class, $k$ is the number of free parameters to be estimated, and $\hat{L}$ is the maximized value of the likelihood function. By using diagonal covariance matrices, the number of parameters per component is kept low ($2d + 1$), allowing the selection process to favor multi-modal distributions only when the increase in likelihood justifies the additional parameters. For each component $k$ in class $c$, the diagonal covariance $\Sigma_{c,k} = \text{diag}(\sigma_{c,k,1}^2, \dots, \sigma_{c,k,d}^2)$ is regularized with $\epsilon = 10^{-6}$. The classification of a test sample $\mathbf{x}$ involves calculating the weighted log-likelihood across all active classes:
 
 \begin{equation}
-	\ln p(x|c) = \text{LSE}{k=1}^{K_c} \left( \ln \pi{c,k} - \frac{1}{2} \left( \sum_{j=1}^{d} \ln(2\pi\sigma_{c,k,j}^2) + \sum_{j=1}^{d} \frac{(x_j - \mu_{c,k,j})^2}{\sigma_{c,k,j}^2} \right) \right)
+	\ln p(\mathbf{x}|c) = \text{LSE}_{k=1}^{K_c} \left( \ln \pi_{c,k} - \frac{1}{2} \left( \sum_{j=1}^{d} \ln(2\pi\sigma_{c,k,j}^2) + \sum_{j=1}^{d} \frac{(x_j - \mu_{c,k,j})^2}{\sigma_{c,k,j}^2} \right) \right)
 \end{equation}
 
 where $\text{LSE}$ denotes the LogSumExp operator. This methodology allows for a more granular representation of class distributions—using a single Gaussian for simple, compact classes and up to four Gaussians for classes with high intra-class variance or distinct visual sub-clusters—while preserving the numerical efficiency of diagonal estimators.
 
 \section{Probabilistic Classification in High Dimension}
 
-In high-dimensional feature spaces, such as those generated by foundational vision models, probabilistic classification faces significant challenges regarding calibration. While the Maximum A Posteriori (MAP) decision rule identifies the most likely class, the resulting posterior probabilities $p(y=c \mid \mathbf{z})$ often exhibit extreme overconfidence. This phenomenon is characterized by the model assigning near-unit probability to predictions, even when they are incorrect, effectively masking the true uncertainty of the classification.
+In high-dimensional feature spaces, such as those generated by foundational vision models, probabilistic classification faces significant challenges regarding calibration. While the Maximum A Posteriori (MAP) decision rule identifies the most likely class, the resulting posterior probabilities $p(y=c \mid \mathbf{x})$ often exhibit extreme overconfidence. This phenomenon is characterized by the model assigning near-unit probability to predictions, even when they are incorrect, effectively masking the true uncertainty of the classification.
 
 \paragraph{The Log-Gap and Uncertainty Collapse}
-We model the distribution of features $\mathbf{z} \in \mathbb{R}^d$ using a Gaussian generative framework. Under the assumption of diagonal covariance matrices $\boldsymbol{\Sigma}_c = \text{diag}(\sigma_{c,1}^2, \dots, \sigma_{c,d}^2)$, the log-likelihood for a class $c$ is defined by:
+We model the distribution of features $\mathbf{x} \in \mathbb{R}^d$ using a Gaussian generative framework. Under the assumption of diagonal covariance matrices $\boldsymbol{\Sigma}_c = \text{diag}(\sigma_{c,1}^2, \dots, \sigma_{c,d}^2)$, the log-likelihood for a class $c$ is defined by:
 
 \begin{equation}
-	\log p(\mathbf{z} \mid y=c) = \ln \mathcal{A}c - \frac{1}{2} \sum{i=1}^{d} \frac{(z_i - \mu_{c,i})^2}{\sigma_{c,i}^2}
+	\log p(\mathbf{x} \mid y=c) = \ln \mathcal{A}_c - \frac{1}{2} \sum_{i=1}^{d} \frac{(x_i - \mu_{c,i})^2}{\sigma_{c,i}^2}
 \end{equation}where $\ln \mathcal{A}_c = -\frac{d}{2}\ln(2\pi) - \frac{1}{2}\sum \ln(\sigma_{c,i}^2)$ represents the normalization constant. In high dimensions ($d \gg 1$), the log-likelihood is dominated by the sum of squared standardized residuals.A critical metric for calibration is the Log-Gap ($G$), defined as the difference between the log-likelihood of the most probable class ($c_1$) and the runner-up ($c_2$):
 \begin{equation}
-	G = \log p(\mathbf{z} \mid y=c_1) - \log p(\mathbf{z} \mid y=c_2)
+	G = \log p(\mathbf{x} \mid y=c_1) - \log p(\mathbf{x} \mid y=c_2)
 \end{equation}
 
 As $d$ increases, $G$ tends to scale linearly, often reaching values where the ratio of likelihoods is orders of magnitude apart. When these likelihoods are converted to a posterior distribution, the model's entropy collapses, rendering the probability mass insensitive to the underlying class overlap.
@@ -213,13 +213,13 @@ As $d$ increases, $G$ tends to scale linearly, often reaching values where the r
 \paragraph{Bayesian Temperature Scaling}
 To recover reliable uncertainty estimates without altering the MAP decision boundary, we introduce a Temperature Scaling parameter $T$ directly into the Bayesian inference process. In this generative context, we treat $T$ as a smoothing factor applied to the log-likelihoods before marginalization.The calibrated posterior probability is computed by normalizing the scaled likelihoods over the set of active classes $\mathcal{Y}$:
 \begin{equation}
-	p(y=c \mid \mathbf{z}; T) = \exp \left( \frac{1}{T} \log p(\mathbf{z} \mid y=c) - \mathcal{L}_E \right)
+	p(y=c \mid \mathbf{x}; T) = \exp \left( \frac{1}{T} \log p(\mathbf{x} \mid y=c) - \mathcal{L}_E \right)
 \end{equation}
 
 where $\mathcal{L}_E$ is the log-evidence (or log-marginal likelihood) calculated using the logsumexp operator to ensure numerical stability:
 
 \begin{equation}
-	\mathcal{L}E = \text{logsumexp}{j \in \mathcal{Y}} \left( \frac{1}{T} \log p(\mathbf{z} \mid y=j) \right)
+	\mathcal{L}_E = \text{logsumexp}_{j \in \mathcal{Y}} \left( \frac{1}{T} \log p(\mathbf{x} \mid y=j) \right)
 \end{equation}
 
 By choosing $T > 1$, we contract the Log-Gap, effectively ``softening'' the distribution. This methodological adjustment ensures that the model's predictive confidence—and its resulting entropy $\mathcal{H}(p)$—better reflects the task's difficulty and the inherent density of the feature manifold, specifically aiming to minimize the Expected Calibration Error (ECE).
@@ -240,50 +240,50 @@ In high-dimensional classification tasks, relying on a single metric often fails
 Importantly, these strategies are agnostic to the specific structure of the class-conditional distributions; they can be applied whether the underlying generative model utilizes a \textbf{diagonal covariance} matrix for computational efficiency or a \textbf{full covariance} matrix to capture complex feature correlations.
 
 
-\subsection{Hierarchical Gating}
+\subsection{HardGate: Hierarchical Task Gating} \label{df:hardgate}
 
-This strategy implements a strict two-step decision process. First, a global gating mechanism identifies the most probable task $t^*$ for a given input $x$. Once the task is fixed, the final classification is restricted solely to the classes belonging to that task.The task-level distribution is modeled as a Gaussian $\mathcal{N}(\mu_t, \Sigma_t)$, where the parameters are estimated by pooling all samples from the classes belonging to task $t$. The inference logic is:
+This strategy implements a strict two-step decision process. First, a global gating mechanism identifies the most probable task $t^*$ for a given input $\mathbf{x}$. Once the task is fixed, the final classification is restricted solely to the classes belonging to that task.The task-level distribution is modeled as a Gaussian $\mathcal{N}(\mu_t, \Sigma_t)$, where the parameters are estimated by pooling all samples from the classes belonging to task $t$. The inference logic is:
 \begin{enumerate}
-	\item \textbf{Task Selection:} $t^* = \arg\max_{t} \left( \ln A_t - \frac{1}{2}(x - \mu_t)^T \Sigma_t^{-1} (x - \mu_t) \right)$
-	\item \textbf{Local Classification:} $c^* = \arg\max_{c \in \text{Task}_{t^*}} \left( \ln A_c - \frac{1}{2}(x - \mu_c)^T \Sigma_c^{-1} (x - \mu_c) \right)$
+	\item \textbf{Task Selection:} $t^* = \arg\max_{t} \left( \ln A_t - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_t)^T \Sigma_t^{-1} (\mathbf{x} - \boldsymbol{\mu}_t) \right)$
+	\item \textbf{Local Classification:} $c^* = \arg\max_{c \in \text{Task}_{t^*}} \left( \ln A_c - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_c)^T \Sigma_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) \right)$
 	\end{enumerate}
 	This approach significantly reduces the search space during inference but is highly sensitive to errors in the initial gating step (Task-IL vs. Class-IL interference).
 	
-	\subsection{Top-5 Class Refinement}
+	\subsection{Top5-TaskReRank: Top-5 Candidate Re-ranking via Task Likelihood} \label{df:top5taskrerank}
 	Unlike the strict gating, this strategy performs an initial global search across all active classes but uses task-level information to refine the final choice among the most likely candidates.The process follows these steps:
 	\begin{enumerate}
 		\item \textbf{Candidate Selection:} The model identifies the Top-5 classes with the highest log-likelihoods across the entire set of active classes.
-		\item \textbf{Task-Guided Verification:} For each candidate in the Top-5, the model retrieves the likelihood of the parent task $p(x|t)$.
+		\item \textbf{Task-Guided Verification:} For each candidate in the Top-5, the model retrieves the likelihood of the parent task $p(\mathbf{x}|t)$.
 		\item \textbf{Selection:} The final class $c^*$ is chosen as the one among the Top-5 candidates whose parent task yields the highest task-level likelihood.
 		\end{enumerate}
 		This strategy provides a ``safety net'' where the fine-grained class similarity is cross-referenced with the coarser task-level distribution to resolve ambiguities.
 		
-		\subsection{Top-N Task Candidate Filtering}
+		\subsection{TopK-TaskFilter: Top-$K$ Task Candidate Filtering} \label{df:topktaskfilter}
 		
 		This strategy is a hybrid between strict gating and global search. It expands the search space of Gating by considering the $N$ most probable tasks (where $N=3$ in the implementation) and evaluating all classes within those selected tasks.The decision rule is formulated as:
 		\begin{equation}
-			c^* = \arg\max_{c \in \bigcup \text{Top-}N(\text{Tasks})} \left( \ln A_c - \frac{1}{2}(x - \mu_c)^T \Sigma_c^{-1} (x - \mu_c) \right)
+			c^* = \arg\max_{c \in \bigcup \text{Top-}N(\text{Tasks})} \left( \ln A_c - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_c)^T \Sigma_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) \right)
 		\end{equation}
 		
 		By evaluating a ``neighborhood'' of likely tasks, this method mitigates the risk of a single incorrect gating decision while maintaining computational efficiency by ignoring tasks that are highly unlikely according to the pooled task-level Gaussian models.
 		
-		\subsection{Soft Task-Aware Fusion}
+		\subsection{SoftTaskFusion: Soft Class--Task Log-Probability Fusion} \label{df:softtaskfusion}
 		
-		The Soft Task-Aware Fusion strategy mitigates the rigidity of hierarchical gating by treating the task assignment as a latent variable in a joint probability framework. In this approach, the final decision score for a class $c$ is determined by combining its class-conditional log-likelihood with the log-likelihood of its parent task $t(c)$. Mathematically, given a feature vector $x$, the final score $S_c$ for each active class is defined as:
+		The Soft Task-Aware Fusion strategy mitigates the rigidity of hierarchical gating by treating the task assignment as a latent variable in a joint probability framework. In this approach, the final decision score for a class $c$ is determined by combining its class-conditional log-likelihood with the log-likelihood of its parent task $t(c)$. Mathematically, given a feature vector $\mathbf{x}$, the final score $S_c$ for each active class is defined as:
 		\begin{equation}
-			S_c(x) = \ln P(x|c) + \ln P(x|t(c))
+			S_c(\mathbf{x}) = \ln P(\mathbf{x}|c) + \ln P(\mathbf{x}|t(c))
 		\end{equation}
-		where $\ln P(x|c)$ and $\ln P(x|t(c))$ represent the Gaussian log-likelihoods at the class and task levels, respectively. These are computed as:
+		where $\ln P(\mathbf{x}|c)$ and $\ln P(\mathbf{x}|t(c))$ represent the Gaussian log-likelihoods at the class and task levels, respectively. These are computed as:
 		\begin{equation}
-			\ln P(x|i) = \ln A_i - \frac{1}{2}(x - \mu_i)^T \Sigma_i^{-1} (x - \mu_i), \quad i \in {c, t}
+			\ln P(\mathbf{x}|i) = \ln A_i - \frac{1}{2}(x - \mu_i)^T \Sigma_i^{-1} (x - \mu_i), \quad i \in {c, t}
 		\end{equation}
-		During inference, the task-level log-likelihoods $\ln P(x|t)$ are calculated for all tasks currently seen in the stream. These values are then ``expanded'' or broadcasted to all constituent classes within those tasks. The classification rule is given by:
+		During inference, the task-level log-likelihoods $\ln P(\mathbf{x}|t)$ are calculated for all tasks currently seen in the stream. These values are then ``expanded'' or broadcasted to all constituent classes within those tasks. The classification rule is given by:
 		\begin{equation}
-			c^* = \arg\max_{c \in \mathcal{C}_{active}} \left[ S_c(x) \right]
+			c^* = \arg\max_{c \in \mathcal{C}_{active}} \left[ S_c(\mathbf{x}) \right]
 		\end{equation}
 		By performing an additive fusion in the log-domain (equivalent to a product of probabilities), this method allows the model to ``boost'' the scores of classes whose parent task distribution highly matches the input, while still allowing a class to be selected even if its task-level likelihood is not the absolute maximum, provided the class-level evidence is sufficiently strong. This approach effectively balances global class competition with coarse task-level guidance.
 		
-		\subsection{Task-Level MAP Mean Shrinkage}
+		\subsection{TaskMeanShrink: Task-Level MAP Mean Shrinkage} \label{df:taskmeanshrink}
 		
 		To improve the robustness of the class-level generative models, we implement a Maximum A Posteriori (MAP) estimation for the mean vectors. This strategy, often referred to as Mean Shrinkage, addresses the high variance in class-specific estimates—especially when data is scarce—by anchoring them to a task-level prior.
 		
@@ -298,43 +298,43 @@ This strategy implements a strict two-step decision process. First, a global gat
 		
 		By shrinking the class means toward the task centroid, the model reduces over-fitting to class-specific noise while emphasizing features that characterize the broader task domain. Once the MAP means are calculated, they are used to compute the Mahalanobis distance in the log-likelihood score:
 		\begin{equation}
-			g_c(x) = \ln A_c - \frac{1}{2}(x - \mu_{c, \text{MAP}})^T \Sigma_c^{-1} (x - \mu_{c, \text{MAP}})
+			g_c(\mathbf{x}) = \ln A_c - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_{c, \text{MAP}})^T \Sigma_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_{c, \text{MAP}})
 		\end{equation}
 		This approach provides a ``Bayesian'' regularization effect, ensuring that classes with very few samples or high intra-class variance are pull towards a more stable task-level representation, thereby improving generalizability in the global classification space.
 
 		
-		\subsection{Generative-Angular Cosine Re-ranking}
+		\subsection{Top5-CosineReRank: Generative--Angular Cosine Re-ranking} \label{df:top5cosrerank}
 		
 		The Generative-Angular Re-ranking strategy leverages both the statistical modeling of Mahalanobis-based distances and the angular separability of Cosine similarity. In high-dimensional latent spaces, particularly those generated by models trained with contrastive or foundation objectives like DINOv2, the direction of the feature vector often carries significant discriminative information that the Euclidean-based Mahalanobis distance might under-prioritize.
 		
 		The inference procedure is structured as a two-stage pipeline:
 		\begin{enumerate}
-			\item \textbf{Generative Candidate Filtering:} For an input feature $x$, we first compute the log-likelihood scores across all active classes $\mathcal{C}_{active}$ using the Gaussian generative model (utilizing either diagonal or full covariance matrices):
+			\item \textbf{Generative Candidate Filtering:} For an input feature $\mathbf{x}$, we first compute the log-likelihood scores across all active classes $\mathcal{C}_{active}$ using the Gaussian generative model (utilizing either diagonal or full covariance matrices):
 			\begin{equation}
-				g_c(x) = \ln A_c - \frac{1}{2}(x - \mu_c)^T \Sigma_c^{-1} (x - \mu_c)
+				g_c(\mathbf{x}) = \ln A_c - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_c)^T \Sigma_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c)
 			\end{equation}
 			From these scores, a candidate set $\mathcal{K}$ containing the Top-5 classes with the highest likelihood is extracted.
-			\item \textbf{Angular Re-ranking:} Within the subset $\mathcal{K}$, the final prediction $c^*$ is determined by maximizing the Cosine similarity between the input feature $x$ and the class mean vectors $\mu_c$:
+			\item \textbf{Angular Re-ranking:} Within the subset $\mathcal{K}$, the final prediction $c^*$ is determined by maximizing the Cosine similarity between the input feature $\mathbf{x}$ and the class mean vectors $\mu_c$:
 			\begin{equation}
-				c^* = \arg\max_{c \in \mathcal{K}} \frac{x \cdot \mu_c}{\|x\| \|\mu_c\|}
+				c^* = \arg\max_{c \in \mathcal{K}} \frac{\mathbf{x}\cdot\boldsymbol{\mu}_c}{\|\mathbf{x}\|\,\|\boldsymbol{\mu}_c\|}
 			\end{equation}
 		\end{enumerate}
 		
 		By using the Gaussian model as a broad filter and Cosine similarity as a fine-grained refiner, this approach ensures that the chosen class is not only statistically probable given the distribution volume but also geometrically aligned with the class centroid on the unit hypersphere. This hybrid approach is particularly effective in mitigating the ``over-confidence'' of Gaussian models in regions where class distributions overlap significantly.
 	
 
-\subsection{Hierarchical LDA Subspace Inference}
+\subsection{HardGate-LDA: Hierarchical LDA Subspace Inference} \label{df:hardgatelda}
 
 This strategy combines global task gating with local expert models optimized via Linear Discriminant Analysis (LDA). By projecting high-dimensional DINOv2 features ($d=768$) into a task-specific 9-dimensional subspace, the model maximizes the separability of classes within that task while reducing noise.
 
 The process is defined as follows:
 \begin{enumerate}
 	\item \textbf{Subspace Projection:} For each task $t$, we compute the within-class scatter matrix $S_w$ and the between-class scatter matrix $S_b$ using the classes belonging to that task. We solve the generalized eigenvalue problem $S_b v = \lambda S_w v$ to obtain the projection matrix $W_t \in \mathbb{R}^{768 \times 9}$, which contains the top 9 eigenvectors.
-	\item \textbf{Stage 1 (Hard Gating):} A test sample $x$ is first assigned to a task $t^*$ by maximizing the log-likelihood of task-pooled Gaussian distributions in the original 768D space:
+	\item \textbf{Stage 1 (Hard Gating):} A test sample $\mathbf{x}$ is first assigned to a task $t^*$ by maximizing the log-likelihood of task-pooled Gaussian distributions in the original 768D space:
 	\begin{equation}
-		t^* = \arg\max_{t} \left( \ln A_t - \frac{1}{2}(x - \mu_t)^T \Sigma_t^{-1} (x - \mu_t) \right)
+		t^* = \arg\max_{t} \left( \ln A_t - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_t)^T \Sigma_t^{-1} (\mathbf{x} - \boldsymbol{\mu}_t) \right)
 	\end{equation}
-	\item \textbf{Stage 2 (Local Subspace Classification):} The feature is projected into the specific subspace of task $t^*$: $z' = W_{t^*}^T x$. The final class is predicted using non-separable (full) covariance Gaussians modeled within this 9D space:
+	\item \textbf{Stage 2 (Local Subspace Classification):} The feature is projected into the specific subspace of task $t^*$: $\mathbf{x}' = W_{t^*}^T \mathbf{x}$. The final class is predicted using non-separable (full) covariance Gaussians modeled within this 9D space:
 	\begin{equation}
 		c^* = \arg\max_{c \in \text{Task}_{t^*}} \left( \ln A_{c, \text{proj}} - \frac{1}{2}(z' - \mu_{c, \text{proj}})^T \Sigma_{c, \text{proj}}^{-1} (z' - \mu_{c, \text{proj}}) \right)
 	\end{equation}
@@ -342,31 +342,31 @@ The process is defined as follows:
 
 
 
-\subsection{Soft Hierarchical LDA Fusion}
+\subsection{SoftGate-LDA: Soft Hierarchical LDA Fusion} \label{df:softgatelda}
 
 This other strategy improves upon the previous one by replacing the hard gating decision with a joint probabilistic fusion. This prevents a single error in the task selection stage from irrecoverably leading to a misclassification.
 
-Instead of selecting $t^*$ and then calculating the class likelihood, G2 evaluates a total score for every class across all tasks. The decision rule combines the global gating evidence with the local subspace likelihood:
+Instead of selecting $t^*$ and then calculating the class likelihood, SoftGate-LDA evaluates a total score for every class across all tasks. The decision rule combines the global gating evidence with the local subspace likelihood:
 \begin{equation}
 	c^* = \arg\max_{c \in \mathcal{C}_{\text{active}}} \left( \text{Score}_{\text{gating}}(t(c)) + \text{Score}_{\text{LDA}}(c | W_{t(c)}) \right)
 \end{equation}
-where $t(c)$ is the task to which class $c$ belongs. For every class, the feature $x$ is projected into the subspace associated with its task. The scores are computed as:
+where $t(c)$ is the task to which class $c$ belongs. For every class, the feature $\mathbf{x}$ is projected into the subspace associated with its task. The scores are computed as:
 \begin{itemize}
 	\item \textbf{$\text{Score}_{\text{gating}}$:} The log-likelihood of the parent task in the original 768D space.
 	\item \textbf{$\text{Score}_{\text{LDA}}$:} The log-likelihood of the class in its task-specific 9D LDA subspace.
 \end{itemize}
 This additive fusion in the log-domain (equivalent to a product of probabilities) allows the local expert models to influence the task selection. If a class in Task A has an extremely high likelihood in its 9D subspace, it can override a slightly higher task-level likelihood for Task B, leading to more robust global classification.
 
-\subsection{Optimized Score Fusion via Min-Max Normalization}
+\subsection{OptFusion-MinMax: Optimised Min--Max Score Fusion} \label{df:optfusionminmax}
 
 The Optimized Score Fusion strategy seeks to integrate the probabilistic rigor of generative Gaussian modeling with the angular robustness of Cosine similarity. Because log-likelihoods from a high-dimensional Gaussian distribution and Cosine similarity scores operate on vastly different numerical scales and ranges, a direct combination is mathematically unsound. To address this, we implement a dynamic fusion pipeline utilizing Min-Max Normalization and automated hyperparameter optimization.
 
-For a given input $x$, we first compute two independent score vectors across all active classes:
+For a given input $\mathbf{x}$, we first compute two independent score vectors across all active classes:
 \begin{enumerate}
-	\item \textbf{Generative Score ($S_{gen}$):} The Mahalanobis-based log-likelihood $g_c(x)$.
+	\item \textbf{Generative Score ($S_{gen}$):} The Mahalanobis-based log-likelihood $g_c(\mathbf{x})$.
 	\item \textbf{Discriminative Score ($S_{dis}$):} The Cosine similarity between $x$ and the class mean $\mu_c$:
 	\begin{equation}
-		\text{cos}(\theta_c) = \frac{x \cdot \mu_c}{\|x\| \|\mu_c\|}
+		\text{cos}(\theta_c) = \frac{\mathbf{x}\cdot\boldsymbol{\mu}_c}{\|\mathbf{x}\|\,\|\boldsymbol{\mu}_c\|}
 	\end{equation}
 \end{enumerate}
 
@@ -383,13 +383,13 @@ The final decision score $S_{final}$ is then computed as a convex combination of
 
 The fusion weight $\alpha \in [0, 1]$ is determined using the Optuna framework, which performs a Bayesian optimization search over a validation subset (20\% of the training data). By maximizing the Average Accuracy on this validation set, the model identifies the optimal balance between the generative and discriminative evidence before performing the final evaluation on the held-out test set. This approach ensures that the re-ranking is not merely a heuristic but is tuned to the specific geometric properties of the DINOv2 feature space.
 
-\subsection{Generative Calibration via Temperature Scaling}
+\subsection{TempScale: Generative Calibration via Temperature Scaling} \label{df:tempscale}
 
 The Temperature-Scaled Calibration strategy aims to adjust the ``sharpness'' of the generative probability distributions. In high-dimensional latent spaces, log-likelihood values can reach extreme magnitudes, potentially leading to over-confident or miscalibrated predictions when competing against a growing number of classes in a continual learning stream. 
 
-This approach introduces a global scalar parameter $T > 0$, known as the temperature, which scales the log-likelihood scores before the final decision is made. For a given input feature $x$, the calibrated score $S_c$ for class $c$ is defined as:
+This approach introduces a global scalar parameter $T > 0$, known as the temperature, which scales the log-likelihood scores before the final decision is made. For a given input feature $\mathbf{x}$, the calibrated score $S_c$ for class $c$ is defined as:
 \begin{equation}
-	S_c(x; T) = \frac{1}{T} \left( \ln A_c - \frac{1}{2}(x - \mu_c)^T \Sigma_c^{-1} (x - \mu_c) \right)
+	S_c(\mathbf{x}; T) = \frac{1}{T} \left( \ln A_c - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_c)^T \Sigma_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) \right)
 \end{equation}
 The effect of the temperature parameter varies depending on its value:
 \begin{itemize}
@@ -401,9 +401,10 @@ The effect of the temperature parameter varies depending on its value:
 
 To avoid data leakage and over-fitting, the optimal temperature $T^*$ is determined through an automated search using the Optuna framework. The training dataset is split into a ``Statistics Set'' (80\%) used to estimate the Gaussian parameters ($\mu, \Sigma$) and a ``Validation Set'' (20\%) used to evaluate the temperature performance. The search is conducted across a logarithmic range ($0.01$ to $10.0$) to find the $T$ that maximizes the Average Accuracy on the validation set. Once optimized, the fixed $T^*$ is applied to the final evaluation on the held-out test set, ensuring a calibrated balance across all tasks in the sequence.
 
-\section{Backbones comparison}
+\section{Backbones Comparison}
+\label{sec:method:backbones}
 
-In these experiments, DINOv2 is used as the backbone feature extractor for the Gaussian-based classifiers. We further analyzes the impact of the backbone architecture by reporting the performance of the Diag-Cov and Full-Cov variants using different foundation models.
+Throughout this work, DINOv2 \cite{oquab2024dinov} is used as the default backbone feature extractor for the Gaussian-based classifiers because of its self-supervised training regime and the strong empirical evidence of approximately Gaussian, well-conditioned class-conditional distributions presented in Section~\ref{sec:method:gaussianity}. However, the proposed framework is agnostic to the specific feature extractor used: any frozen encoder that produces fixed-dimensional embeddings can plug in unchanged into the downstream Gaussian classifier. To quantify the dependence of the framework on the choice of backbone, we further analyse the impact of the backbone architecture by re-running the Diag-Cov and Full-Cov variants using two supervised Vision Transformers from the \texttt{timm} library \cite{rw2019timm}: \textbf{ViT-base/16} (ViT-b, $d=768$) and \textbf{ViT-medium/16} (ViT-m, $d=512$), both pre-trained on ImageNet-21k \cite{imagenet21k}. The covariance estimation, hyper-parameters and evaluation protocol are kept identical across backbones to isolate the effect of the upstream representation; the results are reported in Section~\ref{sec:backbone_results}.
 
 \section{Model Metrics}
 
@@ -440,7 +441,7 @@ where $N$ is the total number of samples, $B_m$ is the set of indices of samples
  To specifically analyze the model's behavior when it fails, we measure the average confidence assigned to the winning (but incorrect) class. High CoE indicates a model that is ``dangerously wrong'', which is a critical factor in safety-oriented applications. It is computed for a task $t$ as:
 
 \begin{equation}
-	CoE_t = \frac{1}{|\mathcal{E}t|} \sum{i \in \mathcal{E}_t} \max(\hat{p}_i)
+	CoE_t = \frac{1}{|\mathcal{E}_t|} \sum_{i \in \mathcal{E}_t} \max(\hat{p}_i)
 \end{equation}
 
 where $\mathcal{E}_t$ is the set of misclassified samples and $\hat{p}_i$ is the predicted probability distribution for sample $i$.
@@ -456,10 +457,18 @@ where $p_{i,c}$ is the probability assigned to class $c$ for sample $i$. Collect
 
 
 \section{Gaussianity Analysis}
-The datasets used for experimentation were analysed and compared to asses gaussianity in the extracted chacacteristics 
+\label{sec:method:gaussianity}
+
+Before committing to a class-conditional Gaussian classifier we must verify that the assumption is empirically defensible on the DINOv2 embedding space. Following the univariate moment tests introduced in Section~2.4 of the theoretical framework, we compute the sample skewness and excess kurtosis along every one of the $d=768$ coordinates and for every class~$c$ in each of the three benchmark datasets (Split CIFAR-100, Split ImageNet-R, Split Caltech-256). For a class with $n_c$ training samples and coordinate $j$, the moments are estimated as
+\begin{equation}
+\widehat{\mathrm{Skew}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i=1}^{n_c}(x_{i,j}-\mu_{c,j})^3}{\hat\sigma_{c,j}^{3}},\qquad
+\widehat{\mathrm{Kurt}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i=1}^{n_c}(x_{i,j}-\mu_{c,j})^4}{\hat\sigma_{c,j}^{4}} - 3,
+\label{eq:moments}
+\end{equation}
+so that both quantities vanish for a perfect Gaussian \cite{pearson1895skewness,joyce2011kurtosis}. We aggregate the $C\cdot d$ univariate measurements per dataset and report mean, median, dispersion, the absolute-value mean and the empirical fraction of dimensions that satisfy the informal normality cut-offs $|\mathrm{Skew}|<0.5$ and $|\mathrm{Kurt}|<1.0$. These cut-offs follow the diagnostics described by D'Agostino and Pearson \cite{dagostino1971omnibus,dagostino1973tests}. The empirical distributions of both moments are also visualised as histograms in Section~\ref{sec:gaussianity_results}, providing a per-dimension view of how strongly the Gaussian assumption holds across datasets. Because the DINOv2 backbone is shared across all benchmarks, the Gaussianity analysis is reported only for this feature extractor; backbones with markedly different statistical priors (e.g.\ ViT-base/ViT-medium) are evaluated in Section~\ref{sec:method:backbones} through the downstream classification metrics rather than the per-dimension moments, since the conclusions drawn from skewness and kurtosis carry over to any backbone whose embeddings are well-conditioned. 
 
 
-xxx \textbf{Todo:} improve this text, vale callampa. The backbones comparison methodology should be explained better too.  \textbf{Q}: will the gaussianity be only with DINO or with different backbones too?xxx
+
 
 
 

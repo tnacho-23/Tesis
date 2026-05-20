@@ -1,4 +1,5 @@
 \chapter{Theoretical Framework}
+\label{ch:framework}
 
 This chapter establishes the conceptual and mathematical foundations required to contextualize this research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG) and Gaussian Analysis. Furthermore, we detail advanced covariance estimation methods such as OAS and Ledoit-Wolf, which are critical for stability in high-dimensional feature spaces. Finally, we address the challenge of ``catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating the state-of-the-art mitigation strategies that provide a performance baseline for the proposed work.
 
@@ -63,7 +64,7 @@ Beyond large-scale pre-training, fine-grained classification is evaluated using:
 
 \begin{itemize}
 	\item \textbf{CIFAR-100:} Consists of 60,000 low-resolution ($32\times32$) images \cite{cifar100}. It is unique for its two-level hierarchy, where 100 ``fine'' classes are nested within 20 ``coarse'' superclasses, allowing for the evaluation of both specific and broad categorization.
-	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalization.
+	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalisation. In this thesis we use the first 250 categories (approximately 28,100 images) so that the resulting class-incremental protocol can be divided into 10 balanced tasks of 25 classes each (see Chapter~\ref{methodolohy}).
 \end{itemize}
 
 \subsubsection{Self-Supervised Advancements: DINOv2}
@@ -75,18 +76,18 @@ The convergence of statistical learning theory and high-dimensional data analysi
 
 \subsection{Bayes Classification}
 
-At its core, Bayes classification is rooted in \textbf{Bayes' Theorem}, which provides a mathematical framework for updating the probability of a hypothesis based on observed evidence. For a classification task, we seek the posterior probability $p(y=c \mid \mathbf{z})$—the probability that an observation belongs to class $c$ given its observed feature vector $\mathbf{z}$.
+At its core, Bayes classification is rooted in \textbf{Bayes' Theorem}, which provides a mathematical framework for updating the probability of a hypothesis based on observed evidence. For a classification task, we seek the posterior probability $p(y=c \mid \mathbf{x})$—the probability that an observation belongs to class $c$ given its observed feature vector $\mathbf{x}$.
 
 Bayes' Theorem is defined as:
 \begin{equation}
-	p(y=c \mid \mathbf{z}) = \frac{p(\mathbf{z} \mid y=c) \, p(y=c)}{p(\mathbf{z})}
+	p(y=c \mid \mathbf{x}) = \frac{p(\mathbf{x} \mid y=c) \, p(y=c)}{p(\mathbf{x})}
 \end{equation}
 where:
 \begin{itemize}
-	\item $p(y=c \mid \mathbf{z})$ is the \textbf{posterior} probability.
-	\item $p(\mathbf{z} \mid y=c)$ is the \textbf{likelihood} of the data given the class.
+	\item $p(y=c \mid \mathbf{x})$ is the \textbf{posterior} probability.
+	\item $p(\mathbf{x} \mid y=c)$ is the \textbf{likelihood} of the data given the class.
 	\item $p(y=c)$ is the \textbf{prior} probability of the class.
-	\item $p(\mathbf{z})$ is the \textbf{evidence} or marginal likelihood, acting as a normalization constant.
+	\item $p(\mathbf{x})$ is the \textbf{evidence} or marginal likelihood, acting as a normalization constant.
 \end{itemize}
 
 The objective of a Bayes classifier is to minimize the Bayes risk; in the simplest case, this corresponds to assigning the observation to the class that maximizes the posterior probability.
@@ -95,18 +96,18 @@ The objective of a Bayes classifier is to minimize the Bayes risk; in the simple
 
 Likelihood inference provides a coherent framework for updating the probability of a hypothesis as more evidence or information becomes available. In contrast to frequentist approaches that treat parameters as fixed but unknown constants, the Bayesian paradigm treats parameters as random variables characterized by probability distributions.
 
-The connection between Bayes' Theorem and likelihood-based classification lies in the \textbf{Maximum A Posteriori (MAP)} decision rule. Since the evidence $p(\mathbf{z})$ is constant across all classes for a given observation, the classification decision depends solely on the product of the likelihood and the prior:
+The connection between Bayes' Theorem and likelihood-based classification lies in the \textbf{Maximum A Posteriori (MAP)} decision rule. Since the evidence $p(\mathbf{x})$ is constant across all classes for a given observation, the classification decision depends solely on the product of the likelihood and the prior:
 \begin{equation}
-	p(y=c \mid \mathbf{z}) \propto p(\mathbf{z} \mid y=c) \, p(y=c).
+	p(y=c \mid \mathbf{x}) \propto p(\mathbf{x} \mid y=c) \, p(y=c).
 \end{equation}
 
 A generative modeling framework can be adopted and class-conditional Gaussian feature distributions can be assumed:
 \begin{equation}
-	p(\mathbf{z} \mid y=c)
+	p(\mathbf{x} \mid y=c)
 	=
-	\mathcal{N}(\mathbf{z} \mid \boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c),
+	\mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c),
 \end{equation}
-where $\mathbf{z} \in \mathbb{R}^d$ represents the feature vector, $\boldsymbol{\mu}_c$ is the class mean vector, and $\boldsymbol{\Sigma}_c \succ 0$ is the covariance matrix.
+where $\mathbf{x} \in \mathbb{R}^d$ represents the feature vector, $\boldsymbol{\mu}_c$ is the class mean vector, and $\boldsymbol{\Sigma}_c \succ 0$ is the covariance matrix.
 
 Classification can be performed via MAP inference by maximizing the log-posterior:
 \begin{equation}
@@ -114,7 +115,7 @@ Classification can be performed via MAP inference by maximizing the log-posterio
 	=
 	\arg\max_{c \in \mathcal{Y}}
 	\left[
-	\log p(\mathbf{z} \mid y=c) + \log \pi_c
+	\log p(\mathbf{x} \mid y=c) + \log \pi_c
 	\right],
 \end{equation}
 where $\pi_c = p(y=c)$ denotes the class prior.
@@ -125,9 +126,9 @@ Substituting the multivariate Gaussian density into the MAP rule, the decision r
 	=
 	\arg\min_{c}
 	\left[
-	(\mathbf{z}-\boldsymbol{\mu}_c)^T
+	(\mathbf{x}-\boldsymbol{\mu}_c)^T
 	\boldsymbol{\Sigma}_c^{-1}
-	(\mathbf{z}-\boldsymbol{\mu}_c)
+	(\mathbf{x}-\boldsymbol{\mu}_c)
 	+
 	\log |\boldsymbol{\Sigma}_c|
 	-
@@ -140,11 +141,11 @@ Substituting the multivariate Gaussian density into the MAP rule, the decision r
 A Mixture of Gaussians models a complex probability density as a convex combination of $K$ distinct Gaussian components. This approach is fundamental for clustering and density estimation in multi-modal distributions. Therefore, to capture multimodal feature distributions, the class-conditional model can be extended to a mixture:
 
 \begin{equation}
-	p(\mathbf{z} \mid y=c)
+	p(\mathbf{x} \mid y=c)
 	=
 	\sum_{k=1}^{K_c}
 	\alpha_{c,k}
-	\mathcal{N}(\mathbf{z} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}),
+	\mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}),
 \end{equation}
 where $\alpha_{c,k} \ge 0$ and $\sum_k \alpha_{c,k} = 1$.
 
@@ -158,7 +159,7 @@ The MAP decision rule becomes
 	\left(
 	\sum_{k=1}^{K_c}
 	\alpha_{c,k}
-	\mathcal{N}(\mathbf{z} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})
+	\mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})
 	\right)
 	+
 	\log \pi_c
@@ -229,16 +230,13 @@ In the context of generative modeling for foundation feature spaces, the validit
 
 The first layer of theoretical justification involves examining the univariate properties of individual feature components.
 
-\paragraph{Kurtosis} This statistic measures the ``tailedness'' of a probability distribution. For a perfectly Gaussian distribution, the excess kurtosis is zero.
+\paragraph{Kurtosis} This statistic measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution \cite{joyce2011kurtosis}. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails. Empirical evidence suggests that for many foundation model embeddings, kurtosis values typically fall within the range of $[-1, 1]$, justifying the Gaussian approximation.
 
-\paragraph{Kurtosis} This statistic measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution[cite: 891]. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails. Empirical evidence suggests that for many foundation model embeddings, kurtosis values typically fall within the range of $[-1, 1]$, justifying the Gaussian approximation.
-
-xxxRe-do or cite these images (stole them from google)xxx
 
 \begin{figure}[ht]
 	\centering
 	\includegraphics[width=0.37\textwidth]{imagenes/marco/kurtosis.png}
-	\caption{Visual representation of Kurtosis levels: leptokurtic ($>0$), mesokurtic ($=0$), and platykurtic ($<0$).}
+	\caption{Visual representation of kurtosis levels: leptokurtic ($>0$), mesokurtic ($=0$) and platykurtic ($<0$) distributions \cite{joyce2011kurtosis}.}
 	\label{fig:kurtosis}
 \end{figure}
 
@@ -247,7 +245,7 @@ xxxRe-do or cite these images (stole them from google)xxx
 \begin{figure}[ht]
 	\centering
 	\includegraphics[width=0.7\textwidth]{imagenes/marco/skeweness.jpg}
-	\caption{Comparison of Negatively Skewed, Symmetric, and Positively Skewed distributions.}
+	\caption{Comparison of negatively-skewed, symmetric and positively-skewed distributions \cite{pearson1895skewness}.}
 	\label{fig:skewness}
 \end{figure}
 
@@ -257,10 +255,10 @@ xxxRe-do or cite these images (stole them from google)xxx
 While univariate normality is a prerequisite, the Bayes classifier operates in a high-dimensional joint distribution. To assess the multivariate Gaussianity of the feature space, we utilize the Squared Mahalanobis Distance:
 
 \begin{equation}
-	D^2(\mathbf{z}) = (\mathbf{z}-\boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{z}-\boldsymbol{\mu}_c)
+	D^2(\mathbf{x}) = (\mathbf{x}-\boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{x}-\boldsymbol{\mu}_c)
 \end{equation}
 
-Theoretically, if a class-conditional distribution $p(\mathbf{z} \mid y=c)$ is a $d$-dimensional Gaussian, the squared Mahalanobis distance between the samples and the class mean follows a chi-square ($\chi^2$) distribution with $d$ degrees of freedom.
+Theoretically, if a class-conditional distribution $p(\mathbf{x} \mid y=c)$ is a $d$-dimensional Gaussian, the squared Mahalanobis distance between the samples and the class mean follows a chi-square ($\chi^2$) distribution with $d$ degrees of freedom.
 
 \paragraph{Degrees of Freedom and Rank} The behavior of this distance is sensitive to the rank of $\boldsymbol{\Sigma}_c$. If the number of training samples $N$ is smaller than the dimensionality $d$, the covariance matrix becomes rank-deficient, necessitating regularization (such as diagonal loading) to maintain numerical stability during the inversion process required for the MAP decision rule.
 

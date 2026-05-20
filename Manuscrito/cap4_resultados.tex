@@ -1,17 +1,16 @@
 \chapter{Results}
+\label{ch:results}
 
-This chapter reports the experimental evaluation of the proposed framework. The presentation is structured to follow a top-down validation of the modeling pipeline: \textbf{Section \ref{sec:gaussianity_results}} first inspects the per-dimension moments of the DINOv2 embeddings to verify that the Gaussian class-conditional assumption is a reasonable working hypothesis; \textbf{Section \ref{sec:covariance_results}} reports the core continual-learning metrics ($A_{10}$, $F_{10}$ and $A_{30}$, $F_{30}$) across our family of covariance estimators and mixture-of-Gaussian variants; \textbf{Section \ref{sec:df_results}} studies the generative-discriminative fusion and the score-normalization strategies that turn the Bayesian classifier into a competitive system; \textbf{Section \ref{sec:backbone_results}} ablates the impact of the feature extractor; and \textbf{Section \ref{sec:calibration_results}} closes the chapter with an analysis of the predictive confidence and the Expected Calibration Error.
+This chapter presents the quantitative results of every experiment carried out in this thesis. The presentation follows the same top-down order used to validate the modelling pipeline: \textbf{Section~\ref{sec:gaussianity_results}} reports the per-dimension Gaussianity moments of the DINOv2 embeddings; \textbf{Section~\ref{sec:feature_space_diagnostics}} reports complementary feature-space diagnostics (PCA spectral decay, squared Mahalanobis distance histograms against the theoretical $\chi^2$ reference, and pairwise KL divergence between class-conditional Gaussians); \textbf{Section~\ref{sec:covariance_results}} reports continual-learning metrics ($A_T$, $F_T$) for the family of covariance estimators and mixture-of-Gaussian variants on the three 10-task benchmarks and on the 30-task Joint stream; \textbf{Section~\ref{sec:df_results}} reports the four tables that summarise the generative--discriminative re-ranking strategies; \textbf{Section~\ref{sec:backbone_results}} ablates the choice of feature extractor; \textbf{Section~\ref{sec:calibration_results}} reports the Expected Calibration Error after temperature scaling; and \textbf{Section~\ref{sec:incremental_update}} reports the per-sample accuracy curves obtained when a new class is incorporated incrementally; and \textbf{Section~\ref{sec:calibration_metrics_results}} reports five additional probabilistic metrics (Accuracy, ECE, Confidence on Errors, Total Confidence, Log-Gap and Entropy) that complement the Expected Calibration Error analysis. All interpretation, comparison and discussion of these numbers is deferred to Chapter~\ref{ch:analysis}.
 
-For every benchmark we report the average accuracy after the last task, $A_{T}$, and the forgetting score $F_{T}$ as defined in Chapter \ref{methodolohy}. Whenever possible we report mean and variance over three independent runs (different task-order seeds); deterministic methods exhibit zero variance because the underlying Gaussian estimators are closed-form. State-of-the-art prompt-based competitors are reproduced from the published values reported in their respective papers. Methods proposed in this thesis are highlighted in grey.
+For every benchmark we report the average accuracy after the last task, $A_{T}$, and the forgetting score $F_{T}$ as defined in Chapter~\ref{methodolohy}. Whenever possible we report mean and variance over three independent runs (different task-order seeds); deterministic methods exhibit zero variance because the underlying Gaussian estimators are closed-form. State-of-the-art prompt-based competitors are reproduced from the published values reported in their respective papers. Methods proposed in this thesis are highlighted in grey. The best result per column is shown in bold.
 
-\section{Gaussianity Analysis}
+\section{Gaussianity Statistics}
 \label{sec:gaussianity_results}
-
-The architecture proposed in Chapter \ref{methodolohy} models each class as a multivariate Gaussian in the frozen DINOv2 embedding space. The validity of this assumption is a prerequisite for the discriminant functions derived in Sections 3.2.1--3.2.3. To probe how close the empirical class-conditional features are to a normal distribution, we compute the sample skewness and excess kurtosis along each of the $d=768$ coordinates and for every class in the three datasets considered in this work; the resulting pool aggregates $\sum_c d$ univariate measurements. Skewness quantifies the asymmetry of the marginal distribution and kurtosis its tailedness, with both moments vanishing for a perfectly Gaussian variable \cite{dagostino1971omnibus,dagostino1973tests}.
 
 \begin{table}[htb]
 	\centering
-	\caption{Per-dimension Gaussianity statistics computed over all (class, coordinate) pairs of the frozen DINOv2 embeddings. The columns $|\!\text{Skew}|_\mu$ and $|\!\text{Kurt}|_\mu$ are the mean absolute values; $\mathbb{P}[\cdot]$ denotes the empirical fraction of dimensions that satisfy each cut-off. Raw refers to the features extracted directly from the backbone; Norm to $\ell_2$-normalised features.}
+	\caption{Per-dimension Gaussianity statistics computed over all (class, coordinate) pairs of the frozen DINOv2 embeddings (raw, i.e.\ taken directly from the backbone). The columns $|\!\text{Skew}|_\mu$ and $|\!\text{Kurt}|_\mu$ are the mean absolute values; $\mathbb{P}[\cdot]$ denotes the empirical fraction of dimensions that satisfy each cut-off.}
 	\label{tab:gaussianity_stats}
 	\scriptsize
 	\setlength{\tabcolsep}{4pt}
@@ -19,17 +18,12 @@ The architecture proposed in Chapter \ref{methodolohy} models each class as a mu
 		\toprule
 		\textbf{Dataset} & \textbf{n} & \textbf{Skew}$_\mu$ & $|\!\text{Skew}|_\mu$ & \textbf{Skew}$_\sigma$ & $\mathbb{P}[|\text{Skew}|{<}0.5]$ & \textbf{Kurt}$_\mu$ & $|\!\text{Kurt}|_\mu$ & $\mathbb{P}[|\text{Kurt}|{<}1]$ \\
 		\midrule
-		CIFAR-100 (raw)   & 76\,800  & $-0.001$ & $0.181$ & $0.236$ & $0.961$ & $0.078$ & $0.264$ & $0.982$ \\
-		CIFAR-100 (norm)  & 76\,800  & $-0.002$ & $0.189$ & $0.247$ & $0.955$ & $0.098$ & $0.277$ & $0.977$ \\
+		CIFAR-100         & 76\,800  & $-0.001$ & $0.181$ & $0.236$ & $0.961$ & $0.078$ & $0.264$ & $0.982$ \\
 		ImageNet-R        & 153\,600 & $-0.002$ & $0.269$ & $0.348$ & $0.859$ & $0.115$ & $0.432$ & $0.924$ \\
-		Caltech-256       & 196\,608 & $-0.001$ & $0.360$ & $0.472$ & $0.747$ & $0.402$ & $0.659$ & $0.822$ \\
+		Caltech-256       & 192\,000 & $-0.001$ & $0.360$ & $0.472$ & $0.747$ & $0.402$ & $0.659$ & $0.822$ \\
 		\bottomrule
 	\end{tabular}
 \end{table}
-
-Table \ref{tab:gaussianity_stats} reports the aggregate statistics. For CIFAR-100 the marginal distributions are remarkably well-behaved: 96.1\,\% of the dimensions exhibit an absolute skewness below $0.5$ and 98.2\,\% of them lie within $|\text{Kurt}|<1$, which is the threshold commonly cited as evidence of approximate normality \cite{Bishop2006}. The behaviour mildly deteriorates on ImageNet-R---a corpus that intentionally mixes artistic, sketch and natural renditions \cite{imagenetR}---where the dispersion of both moments roughly doubles, but more than 85\,\% of the coordinates still pass the same cut-off. Caltech-256 \cite{caltech256} represents the most demanding scenario: only 74.7\,\% of the dimensions are nearly symmetric and the average excess kurtosis approaches $0.66$, which is consistent with its high intra-class visual variability and the heavy-tailed feature responses produced by the foundation model. Importantly, on all datasets the mean skewness is essentially zero, indicating that the asymmetries are equally distributed between left and right tails---a key property that justifies estimating the class prototype via the empirical mean. The contrast between the \textit{raw} and \textit{norm} rows on CIFAR-100 further shows that $\ell_2$ normalisation has a negligible effect on the marginal moments, which agrees with the geometric argument given in Chapter \ref{methodolohy} that the DINOv2 representations are already approximately isotropic.
-
-Figures \ref{fig:skewness_histograms} and \ref{fig:_histograms} display the full empirical distribution of both moments. The histograms are sharply peaked around zero on CIFAR-100, mildly broadened on ImageNet-R, and visibly heavier-tailed on Caltech-256, in agreement with the numerical summaries in Table \ref{tab:gaussianity_stats}. Taken together, these results support the use of a Gaussian class-conditional model as a faithful first-order approximation of the DINOv2 feature distributions, while also signalling that mixture-of-Gaussian or hybrid covariance variants are likely to pay off in the higher-variability datasets---a hypothesis we revisit in Section \ref{sec:covariance_results}.
 
 \begin{figure}[htb]
 	\centering
@@ -49,14 +43,55 @@ Figures \ref{fig:skewness_histograms} and \ref{fig:_histograms} display the full
 	\label{fig:_histograms}
 \end{figure}
 
+
+\section{Feature-Space and Gaussianity Diagnostics}
+\label{sec:feature_space_diagnostics}
+
+Figure~\ref{fig:pca_eigenvalues} reports the spectrum of the empirical covariance matrix of the $\ell_2$-normalised DINOv2 embeddings for the three benchmarks. The eigenvalues exhibit a steep decay in approximately the first 50 principal components followed by a much more gradual decline, indicating that a substantial portion of the variance is captured by the leading components, while the remaining ones encode progressively finer-grained information. The three datasets share remarkably similar spectra, despite their different image domains and class budgets.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.95\linewidth]{imagenes/results/pca_eigenvalues.png}
+	\caption{PCA eigenvalue decomposition of the $\ell_2$-normalised DINOv2 features for the three benchmarks (\textbf{a}: linear scale; \textbf{b}: logarithmic scale). Approximately 36--40\,\% of the total variance is concentrated in the first 50 components on every dataset.}
+	\label{fig:pca_eigenvalues}
+\end{figure}
+
+Figure~\ref{fig:mahalanobis_full_cov} reports the empirical distribution of the squared Mahalanobis distance under the per-class Full-Covariance Gaussian model for the three benchmarks, together with the theoretical $\chi^2_{d}$ ($d=768$) density. On every dataset the empirical distribution deviates significantly from the theoretical curve and collapses to a sharp spike around $\overline{n_c}-1$, where $\overline{n_c}$ is the average number of training samples per class ($\overline{n_c}\!\approx\!500$ for CIFAR-100, $\overline{n_c}\!\approx\!150$ for ImageNet-R, $\overline{n_c}\!\approx\!112$ for Caltech-256). The location of the spike thus scales linearly with the per-class sample budget, which is the fingerprint of rank-deficient covariance estimation ($\mathrm{rank}(\hat\Sigma_c) \le n_c - 1 < d$): the eigenvalues outside the spanned subspace are pinned to the regularisation floor $\epsilon=10^{-6}$ and the resulting Mahalanobis distance becomes degenerate.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.97\linewidth]{imagenes/results/mahalanobis_full_cov.png}
+	\caption{Squared Mahalanobis distance histograms for the Full-Covariance model on (a) CIFAR-100, (b) ImageNet-R and (c) Caltech-256, overlaid with the theoretical $\chi^2_{d=768}$ density. On every dataset the empirical mass collapses to a spike near $\overline{n_c}-1$ because the estimated covariance is rank-deficient.}
+	\label{fig:mahalanobis_full_cov}
+\end{figure}
+
+Figure~\ref{fig:mahalanobis_diag_1d} confirms that the discrepancy is not a property of the Gaussian assumption itself but of the multivariate covariance estimate. The top row shows the Diag-Cov histograms on each benchmark: the empirical mass is broad and centred near the $\chi^2_{d}$ mode ($d=768$), but it is more dispersed than the theoretical curve, and the dispersion grows with the dataset's heavy-tailedness (CIFAR-100 $<$ ImageNet-R $<$ Caltech-256, in line with Table~\ref{tab:gaussianity_stats}). The bottom row plots the squared distance for a \emph{single} coordinate (1-D) against the $\chi^2_1$ reference: on all three datasets the per-coordinate distribution closely follows the theoretical curve, supporting the marginal Gaussianity claim. The mismatch in the multivariate setting therefore arises from the diagonal estimator ignoring off-diagonal correlations, not from a violation of the per-component normality.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.97\linewidth]{imagenes/results/mahalanobis_diag_and_1d.png}
+	\caption{Squared Mahalanobis distance histograms across the three benchmarks. \textbf{Top row (a$_1$, a$_2$, a$_3$):} Diag-Cov histograms compared to the theoretical $\chi^2_{d=768}$ on CIFAR-100, ImageNet-R and Caltech-256, respectively. \textbf{Bottom row (b$_1$, b$_2$, b$_3$):} single-component (1-D) histograms compared to the theoretical $\chi^2_1$. The 1-D distributions closely match the theoretical reference on every dataset, supporting per-coordinate Gaussianity; the multivariate dispersion in the top row reflects the unmodelled inter-coordinate correlations.}
+	\label{fig:mahalanobis_diag_1d}
+\end{figure}
+
+Figure~\ref{fig:kl_divergence} reports the inter-class separability of the Diag-Cov Gaussian models in terms of the KL divergence. For every benchmark, the average and minimum pairwise KL divergences $\mathrm{KL}(\mathcal{N}_a\,\|\,\mathcal{N}_b)$ are reported as functions of the number of classes considered $k$, computed over all $k(k-1)$ ordered class pairs in the first $k$ classes. Caltech-256 stands out with the largest average separability (around $\sim\!1000$ nats with up to 250 classes), CIFAR-100 stabilises around $\sim\!370$ nats with 100 classes, and ImageNet-R lies between the two at $\sim\!357$ nats with 200 classes. The minimum KL divergence (right panel) decays sharply on every benchmark---from several hundred nats with a handful of classes to below $100$ nats once the full class budget is considered---revealing the existence of confusable class pairs whose Gaussians strongly overlap.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.97\linewidth]{imagenes/results/kl_divergence.png}
+	\caption{Inter-class separability under the Diag-Cov Gaussian model. (\textbf{a}) Average pairwise KL divergence and (\textbf{b}) minimum pairwise KL divergence, both as functions of the number of classes considered. The average separability remains essentially flat once a few dozen classes have been added, whereas the minimum decays sharply, reflecting the appearance of strongly overlapping class pairs.}
+	\label{fig:kl_divergence}
+\end{figure}
+
+
 \section{Covariance Estimation and Mixtures of Gaussians}
 \label{sec:covariance_results}
 
-We now turn to the core continual-learning evaluation. Each row of Table \ref{tab:combined_benchmarks} reports the average accuracy and the forgetting score obtained by a different covariance estimator (diagonal, full, hybrid, Ledoit--Wolf identity/diagonal target \cite{ledoitwolf2004}, OAS \cite{chen2010shrinkage}) and by the mixture-of-Gaussian variants MOG-$k$ with $k\in\{2,4\}$ components and three sub-variants (\textit{D}, \textit{F}, \textit{H} for diagonal, full and hybrid covariance respectively). The first block compares our methods against prompt-based state-of-the-art baselines reproduced from the literature.
+Table~\ref{tab:combined_benchmarks} reports the average accuracy and the forgetting score for every covariance estimator (diagonal, full, hybrid, Ledoit--Wolf identity/diagonal target~\cite{Ledoit2004}, OAS~\cite{Chen2010}) and for the mixture-of-Gaussian variants MOG-$k$ with $k\in\{2,4\}$ components and three sub-variants (\textit{D}, \textit{F}, \textit{H} for diagonal, full and hybrid covariance respectively). The first block compares our methods against prompt-based state-of-the-art baselines reproduced from the literature. Table~\ref{tab:split_joint} reports the same family on the 30-task Joint stream.
 
 \begin{table}[htb]
 	\centering
-	\caption{Continual-learning performance on the three 10-task benchmarks. $A_{10}$ and $F_{10}$ are reported in percentage points. Methods proposed in this thesis are highlighted in grey. Best result per column is in bold.}
+	\caption{Continual-learning performance on the three 10-task benchmarks. $A_{10}$ and $F_{10}$ are reported in percentage points.}
 	\label{tab:combined_benchmarks}
 	\scriptsize
 	\begin{tabularx}{\textwidth}{lXXXXXX}
@@ -92,10 +127,6 @@ We now turn to the core continual-learning evaluation. Each row of Table \ref{ta
 	\end{tabularx}
 \end{table}
 
-Several observations follow. First, on CIFAR-100 the best of our methods (MOG4-H, 88.88\,\%) closes the gap with the strongest prompt-based system (RainbowPrompt, 89.86\,\%) to within one accuracy point, while requiring \emph{no backpropagation} and being deterministic by construction. Second, on ImageNet-R the diagonal estimator alone reaches 77.12\,\%, which is competitive with CPrompt and only $\sim2$ points below APT despite the dramatic domain shift; the gap is closed further by Shared-Full-Cov (77.06\,\%) at a much lower forgetting (3.97\,\%). Third, on Caltech-256 the hybrid and MOG4-F estimators dominate every prompt-based competitor, reaching 94.4\,\%; this is the regime where the data scarcity per class makes shrinkage and mixture modelling especially valuable, in agreement with the higher kurtosis values measured in Section \ref{sec:gaussianity_results}.
-
-The forgetting columns show that our framework produces low and stable degradation: the closed-form estimators are typically below 5\,\% and Caltech-256 stays around 2\,\%, even though the model has no rehearsal mechanism. The variances reported for prompt-based competitors arise from stochastic training; in our case the variance reflects the random task split rather than parameter optimisation.
-
 \begin{table}[htbp]
 	\centering
 	\caption{Performance on the long-horizon \textbf{Split Joint Datasets} benchmark (30 tasks aggregated from CIFAR-100, ImageNet-R and Caltech-256). $A_{30}$ and $F_{30}$ are reported in percentage points.}
@@ -126,12 +157,10 @@ The forgetting columns show that our framework produces low and stable degradati
 	\end{tabularx}
 \end{table}
 
-The Split Joint Datasets benchmark (Table \ref{tab:split_joint}) stress-tests the model on a 30-task stream that combines the three datasets in randomised order, with dramatic intra- and inter-task distribution shifts. The Hybrid-Cov estimator achieves the best trade-off (83.42\,\% / 3.86\,\%) thanks to its ability to retain feature correlations through the Mahalanobis term while sidestepping the numerical instability of the full log-determinant. The collapse of MOG4-F and MOG4-H in this scenario is consistent with the increased Caltech-256-driven kurtosis reported in Table \ref{tab:gaussianity_stats}: estimating four full-covariance components per class becomes ill-posed when the number of samples per component is small, and the resulting posterior is dominated by ill-conditioned eigenvalues. This is the regime where shrinkage and hybrid covariances visibly outperform purely full-rank estimators.
-
-\section{Generative-Discriminative Fusion and Re-ranking Strategies}
+\section{Generative--Discriminative Fusion and Re-ranking Strategies}
 \label{sec:df_results}
 
-While the Bayesian classifier delivers strong accuracy, its scores are unnormalised log-likelihoods and tend to be dominated by the normalisation constant in high-dimensional spaces. As discussed in Chapter \ref{methodolohy}, we explored several score-normalisation and discriminative-fusion strategies (A1--A3, B, C, Gemini1/2, Cosine, LikelihoodCos, MahalanobisT). Tables \ref{tab:hybrid_cifar}--\ref{tab:hybrid_joint} report their effect, paired with both the diagonal and full covariance branch on every benchmark.
+Tables~\ref{tab:hybrid_cifar}--\ref{tab:hybrid_joint} report the effect of the ten re-ranking and fusion strategies introduced in Chapter~\ref{methodolohy} (HardGate, Top5-TaskRR, TopK-TaskFilt, SoftTaskFus, TaskMeanShr, HardGate-LDA, SoftGate-LDA, Top5-CosRR, OptFusion-MM and TempScale), paired with both the diagonal and the full covariance branch on every benchmark.
 
 \begin{table}[htbp]
 	\centering
@@ -144,16 +173,16 @@ While the Bayesian classifier delivers strong accuracy, its scores are unnormali
 		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
 		& $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ \\
 		\midrule
-		A1             & $73.60 \pm 0.88$ & $9.82 \pm 0.17$ & $86.56 \pm 0.00$ & $4.83 \pm 0.48$ \\
-		A2             & $75.02 \pm 1.09$ & $8.80 \pm 0.53$ & $86.71 \pm 0.01$ & $4.73 \pm 0.46$ \\
-		A3             & $83.90 \pm 0.15$ & $6.30 \pm 0.34$ & $88.51 \pm 0.01$ & $4.25 \pm 0.02$ \\
-		B              & $86.16 \pm 0.00$ & $4.41 \pm 0.05$ & $88.52 \pm 0.00$ & $4.18 \pm 0.00$ \\
-		C              & $86.08 \pm 0.00$ & $4.29 \pm 0.12$ & $88.48 \pm 0.00$ & $4.17 \pm 0.00$ \\
-		Gemini1        & $73.83 \pm 0.77$ & $9.93 \pm 0.14$ & $86.97 \pm 0.02$ & $4.89 \pm 0.53$ \\
-		Gemini2        & $81.07 \pm 0.07$ & $6.79 \pm 0.14$ & $87.19 \pm 0.03$ & $4.79 \pm 0.62$ \\
-		Cos            & $86.59 \pm 0.00$ & $4.92 \pm 0.12$ & $87.05 \pm 0.00$ & $4.91 \pm 0.10$ \\
-		LikelihoodCos  & $\mathbf{87.04 \pm 0.00}$ & $4.82 \pm 0.07$ & $\mathbf{89.23 \pm 0.00}$ & $4.17 \pm 0.03$ \\
-		MahalanobisT   & $86.24 \pm 0.00$ & $\mathbf{4.22 \pm 0.10}$ & $88.86 \pm 0.00$ & $\mathbf{4.05 \pm 0.00}$ \\
+		HardGate       & $73.60 \pm 0.88$ & $9.82 \pm 0.17$ & $86.56 \pm 0.00$ & $4.83 \pm 0.48$ \\
+		Top5-TaskRR    & $75.02 \pm 1.09$ & $8.80 \pm 0.53$ & $86.71 \pm 0.01$ & $4.73 \pm 0.46$ \\
+		TopK-TaskFilt  & $83.90 \pm 0.15$ & $6.30 \pm 0.34$ & $88.51 \pm 0.01$ & $4.25 \pm 0.02$ \\
+		SoftTaskFus    & $86.16 \pm 0.00$ & $4.41 \pm 0.05$ & $88.52 \pm 0.00$ & $4.18 \pm 0.00$ \\
+		TaskMeanShr    & $86.08 \pm 0.00$ & $4.29 \pm 0.12$ & $88.48 \pm 0.00$ & $4.17 \pm 0.00$ \\
+		HardGate-LDA   & $73.83 \pm 0.77$ & $9.93 \pm 0.14$ & $86.97 \pm 0.02$ & $4.89 \pm 0.53$ \\
+		SoftGate-LDA   & $81.07 \pm 0.07$ & $6.79 \pm 0.14$ & $87.19 \pm 0.03$ & $4.79 \pm 0.62$ \\
+		Top5-CosRR     & $86.59 \pm 0.00$ & $4.92 \pm 0.12$ & $87.05 \pm 0.00$ & $4.91 \pm 0.10$ \\
+		OptFusion-MM   & $\mathbf{87.04 \pm 0.00}$ & $4.82 \pm 0.07$ & $\mathbf{89.23 \pm 0.00}$ & $4.17 \pm 0.03$ \\
+		TempScale      & $86.24 \pm 0.00$ & $\mathbf{4.22 \pm 0.10}$ & $88.86 \pm 0.00$ & $\mathbf{4.05 \pm 0.00}$ \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -169,16 +198,16 @@ While the Bayesian classifier delivers strong accuracy, its scores are unnormali
 		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
 		& $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ \\
 		\midrule
-		A1             & $53.95 \pm 0.59$ & $11.65 \pm 0.83$ & $69.78 \pm 0.09$ & $4.54 \pm 2.45$ \\
-		A2             & $56.49 \pm 0.52$ & $9.82 \pm 1.23$  & $69.53 \pm 0.11$ & $4.64 \pm 2.75$ \\
-		A3             & $68.65 \pm 0.30$ & $7.79 \pm 0.35$  & $65.46 \pm 1.36$ & $5.24 \pm 8.95$ \\
-		B              & $75.04 \pm 0.02$ & $\mathbf{4.30 \pm 0.61}$ & $63.11 \pm 0.00$ & $6.72 \pm 9.39$ \\
-		C              & $75.21 \pm 0.00$ & $4.37 \pm 0.68$  & $62.80 \pm 0.00$ & $6.85 \pm 9.57$ \\
-		Gemini1        & $54.14 \pm 0.54$ & $11.88 \pm 0.70$ & $73.70 \pm 0.09$ & $6.08 \pm 3.86$ \\
-		Gemini2        & $59.90 \pm 0.25$ & $9.78 \pm 2.10$  & $73.72 \pm 0.12$ & $6.15 \pm 5.84$ \\
-		Cos            & $\mathbf{76.20 \pm 0.00}$ & $5.01 \pm 0.36$  & $73.63 \pm 0.01$ & $6.31 \pm 2.45$ \\
-		LikelihoodCos  & $76.65 \pm 0.00$ & $5.38 \pm 0.42$  & $\mathbf{77.00 \pm 0.00}$ & $\mathbf{4.94 \pm 1.23}$ \\
-		MahalanobisT   & $74.68 \pm 0.00$ & $4.87 \pm 0.52$  & $67.17 \pm 0.00$ & $6.00 \pm 6.82$ \\
+		HardGate       & $53.95 \pm 0.59$ & $11.65 \pm 0.83$ & $69.78 \pm 0.09$ & $4.54 \pm 2.45$ \\
+		Top5-TaskRR    & $56.49 \pm 0.52$ & $9.82 \pm 1.23$  & $69.53 \pm 0.11$ & $4.64 \pm 2.75$ \\
+		TopK-TaskFilt  & $68.65 \pm 0.30$ & $7.79 \pm 0.35$  & $65.46 \pm 1.36$ & $5.24 \pm 8.95$ \\
+		SoftTaskFus    & $75.04 \pm 0.02$ & $\mathbf{4.30 \pm 0.61}$ & $63.11 \pm 0.00$ & $6.72 \pm 9.39$ \\
+		TaskMeanShr    & $75.21 \pm 0.00$ & $4.37 \pm 0.68$  & $62.80 \pm 0.00$ & $6.85 \pm 9.57$ \\
+		HardGate-LDA   & $54.14 \pm 0.54$ & $11.88 \pm 0.70$ & $73.70 \pm 0.09$ & $6.08 \pm 3.86$ \\
+		SoftGate-LDA   & $59.90 \pm 0.25$ & $9.78 \pm 2.10$  & $73.72 \pm 0.12$ & $6.15 \pm 5.84$ \\
+		Top5-CosRR     & $\mathbf{76.20 \pm 0.00}$ & $5.01 \pm 0.36$  & $73.63 \pm 0.01$ & $6.31 \pm 2.45$ \\
+		OptFusion-MM   & $76.65 \pm 0.00$ & $5.38 \pm 0.42$  & $\mathbf{77.00 \pm 0.00}$ & $\mathbf{4.94 \pm 1.23}$ \\
+		TempScale      & $74.68 \pm 0.00$ & $4.87 \pm 0.52$  & $67.17 \pm 0.00$ & $6.00 \pm 6.82$ \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -194,16 +223,16 @@ While the Bayesian classifier delivers strong accuracy, its scores are unnormali
 		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
 		& $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ \\
 		\midrule
-		A1             & $80.36 \pm 0.11$ & $5.48 \pm 0.16$ & $92.77 \pm 0.04$ & $2.34 \pm 0.09$ \\
-		A2             & $90.53 \pm 0.00$ & $1.53 \pm 0.04$ & $92.94 \pm 0.05$ & $2.25 \pm 0.10$ \\
-		A3             & $88.06 \pm 0.06$ & $3.20 \pm 0.11$ & $94.58 \pm 0.01$ & $1.99 \pm 0.02$ \\
-		B              & $90.87 \pm 0.00$ & $1.60 \pm 0.35$ & $\mathbf{95.03 \pm 0.00}$ & $\mathbf{1.68 \pm 0.03}$ \\
-		C              & $86.08 \pm 0.00$ & $4.29 \pm 0.12$ & $94.73 \pm 0.00$ & $1.84 \pm 0.02$ \\
-		Gemini1        & $82.10 \pm 0.77$ & $5.59 \pm 0.36$ & $92.57 \pm 0.01$ & $1.75 \pm 0.10$ \\
-		Gemini2        & $87.64 \pm 0.02$ & $3.40 \pm 1.41$ & $92.26 \pm 0.05$ & $1.73 \pm 0.06$ \\
-		Cos            & $91.99 \pm 0.00$ & $2.44 \pm 0.13$ & $94.03 \pm 0.00$ & $2.25 \pm 0.01$ \\
-		LikelihoodCos  & $\mathbf{93.96 \pm 0.00}$ & $2.28 \pm 0.01$ & $94.78 \pm 0.00$ & $1.94 \pm 0.04$ \\
-		MahalanobisT   & $89.68 \pm 0.00$ & $1.86 \pm 0.55$ & $94.40 \pm 0.00$ & $1.89 \pm 0.05$ \\
+		HardGate       & $80.36 \pm 0.11$ & $5.48 \pm 0.16$ & $92.77 \pm 0.04$ & $2.34 \pm 0.09$ \\
+		Top5-TaskRR    & $90.53 \pm 0.00$ & $1.53 \pm 0.04$ & $92.94 \pm 0.05$ & $2.25 \pm 0.10$ \\
+		TopK-TaskFilt  & $88.06 \pm 0.06$ & $3.20 \pm 0.11$ & $94.58 \pm 0.01$ & $1.99 \pm 0.02$ \\
+		SoftTaskFus    & $90.87 \pm 0.00$ & $1.60 \pm 0.35$ & $\mathbf{95.03 \pm 0.00}$ & $\mathbf{1.68 \pm 0.03}$ \\
+		TaskMeanShr    & $86.08 \pm 0.00$ & $4.29 \pm 0.12$ & $94.73 \pm 0.00$ & $1.84 \pm 0.02$ \\
+		HardGate-LDA   & $82.10 \pm 0.77$ & $5.59 \pm 0.36$ & $92.57 \pm 0.01$ & $1.75 \pm 0.10$ \\
+		SoftGate-LDA   & $87.64 \pm 0.02$ & $3.40 \pm 1.41$ & $92.26 \pm 0.05$ & $1.73 \pm 0.06$ \\
+		Top5-CosRR     & $91.99 \pm 0.00$ & $2.44 \pm 0.13$ & $94.03 \pm 0.00$ & $2.25 \pm 0.01$ \\
+		OptFusion-MM   & $\mathbf{93.96 \pm 0.00}$ & $2.28 \pm 0.01$ & $94.78 \pm 0.00$ & $1.94 \pm 0.04$ \\
+		TempScale      & $89.68 \pm 0.00$ & $1.86 \pm 0.55$ & $94.40 \pm 0.00$ & $1.89 \pm 0.05$ \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -219,26 +248,24 @@ While the Bayesian classifier delivers strong accuracy, its scores are unnormali
 		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
 		& $A_{30} (\uparrow)$ & $F_{30} (\downarrow)$ & $A_{30} (\uparrow)$ & $F_{30} (\downarrow)$ \\
 		\midrule
-		A1             & $66.11 \pm 0.00$ & $9.70 \pm 0.21$ & $53.16 \pm 0.00$ & $5.53 \pm 1.98$ \\
-		A2             & $68.59 \pm 0.00$ & $7.80 \pm 0.12$ & $52.03 \pm 0.00$ & $5.83 \pm 2.46$ \\
-		A3             & $75.41 \pm 0.00$ & $6.45 \pm 0.03$ & $47.61 \pm 0.00$ & $7.48 \pm 3.87$ \\
-		B              & $78.86 \pm 0.00$ & $\mathbf{4.97 \pm 0.09}$ & $52.50 \pm 0.00$ & $8.44 \pm 2.67$ \\
-		C              & $78.13 \pm 0.00$ & $5.20 \pm 0.13$ & $52.14 \pm 0.00$ & $8.61 \pm 2.87$ \\
-		Gemini1        & $66.52 \pm 0.00$ & $8.66 \pm 0.22$ & $53.02 \pm 0.00$ & $4.75 \pm 0.46$ \\
-		Gemini2        & $68.25 \pm 0.00$ & $8.94 \pm 4.00$ & $52.07 \pm 0.00$ & $\mathbf{4.81 \pm 0.62}$ \\
-		Cos            & $78.92 \pm 0.00$ & $5.41 \pm 0.08$ & $63.61 \pm 0.00$ & $7.08 \pm 1.29$ \\
-		LikelihoodCos  & $\mathbf{79.08 \pm 0.00}$ & $5.67 \pm 0.08$ & $\mathbf{81.94 \pm 0.00}$ & $4.89 \pm 0.02$ \\
-		MahalanobisT   & $78.79 \pm 0.00$ & $5.26 \pm 0.09$ & $69.67 \pm 0.00$ & $6.93 \pm 1.25$ \\
+		HardGate       & $66.11 \pm 0.00$ & $9.70 \pm 0.21$ & $53.16 \pm 0.00$ & $5.53 \pm 1.98$ \\
+		Top5-TaskRR    & $68.59 \pm 0.00$ & $7.80 \pm 0.12$ & $52.03 \pm 0.00$ & $5.83 \pm 2.46$ \\
+		TopK-TaskFilt  & $75.41 \pm 0.00$ & $6.45 \pm 0.03$ & $47.61 \pm 0.00$ & $7.48 \pm 3.87$ \\
+		SoftTaskFus    & $78.86 \pm 0.00$ & $\mathbf{4.97 \pm 0.09}$ & $52.50 \pm 0.00$ & $8.44 \pm 2.67$ \\
+		TaskMeanShr    & $78.13 \pm 0.00$ & $5.20 \pm 0.13$ & $52.14 \pm 0.00$ & $8.61 \pm 2.87$ \\
+		HardGate-LDA   & $66.52 \pm 0.00$ & $8.66 \pm 0.22$ & $53.02 \pm 0.00$ & $4.75 \pm 0.46$ \\
+		SoftGate-LDA   & $68.25 \pm 0.00$ & $8.94 \pm 4.00$ & $52.07 \pm 0.00$ & $\mathbf{4.81 \pm 0.62}$ \\
+		Top5-CosRR     & $78.92 \pm 0.00$ & $5.41 \pm 0.08$ & $63.61 \pm 0.00$ & $7.08 \pm 1.29$ \\
+		OptFusion-MM   & $\mathbf{79.08 \pm 0.00}$ & $5.67 \pm 0.08$ & $\mathbf{81.94 \pm 0.00}$ & $4.89 \pm 0.02$ \\
+		TempScale      & $78.79 \pm 0.00$ & $5.26 \pm 0.09$ & $69.67 \pm 0.00$ & $6.93 \pm 1.25$ \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-Three patterns emerge consistently across all four benchmarks. (i) Plain log-likelihood normalisation by the dimension (\textit{A1}--\textit{A3}) is too aggressive in the diagonal branch, where the determinant volume is small, and consistently destroys accuracy with respect to the unnormalised classifier; the same strategies are competitive in the full-covariance branch where the volume term is more informative. (ii) The Gemini variants behave similarly to A1/A2 and are dominated by the simpler \textit{B}/\textit{C} baselines that re-rank candidate classes by the unscaled log-density. (iii) Two strategies dominate: \textbf{LikelihoodCos}, which multiplicatively combines the log-likelihood with a cosine-similarity prior, and \textbf{MahalanobisT}, which applies a temperature-scaled Mahalanobis term. LikelihoodCos delivers the best $A_{10}$ on three of the four benchmarks (CIFAR-100, Caltech-256, and Joint with full covariance), often improving the unfused baseline by 0.5--1.0 accuracy points while keeping forgetting unchanged. MahalanobisT shines on lower forgetting, suggesting that temperature scaling has the expected smoothing effect on the posterior. These two strategies are the ones promoted to the calibration analysis of Section \ref{sec:calibration_results}.
-
 \section{Backbone Comparison}
 \label{sec:backbone_results}
 
-A central assumption of the framework is that the quality of the frozen feature extractor governs the performance of the downstream Bayesian classifier. To quantify this dependency, Table \ref{tab:multi_backbone_results} re-runs the diagonal and full-covariance estimators with three backbones: DINOv2 \cite{oquab2024dinov} (our default), ViT-base patch-16/224 pretrained on ImageNet-21k, and ViT-medium patch-16/224 \cite{rw2019timm}.
+Table~\ref{tab:multi_backbone_results} reports the two best closed-form estimators (Diag-Cov and Full-Cov) when paired with three vision backbones: DINOv2~\cite{oquab2024dinov} (the default of this work), ViT-base patch-16/224 and ViT-medium patch-16/224, both supplied by the \texttt{timm} library~\cite{rw2019timm}.
 
 \begin{table}[htbp]
 	\centering
@@ -263,12 +290,10 @@ A central assumption of the framework is that the quality of the frozen feature 
 	\end{tabular}
 \end{table}
 
-The DINOv2 backbone is the clear winner on CIFAR-100, ImageNet-R and Joint, by margins ranging from $\sim$5 points (CIFAR-100) to $\sim$30 points (ImageNet-R with ViT-base). On Caltech-256 the three backbones cluster within 4 accuracy points, with ViT-medium slightly ahead, suggesting that the dataset is sufficiently ``easy'' that the choice of feature extractor saturates. The gap is widest on the Joint benchmark: ViT-base in particular cannot cope with the heterogeneous task stream, dropping to 44.6\,\% with the diagonal estimator while DINOv2 holds 78.3\,\%. This confirms the intuition formulated in Chapter \ref{methodolohy}: a strongly self-supervised backbone produces a feature space whose class-conditional Gaussian assumption is more accurate (see the kurtosis values in Table \ref{tab:gaussianity_stats}), and our framework benefits directly from that.
-
 \section{Model Confidence and Calibration}
 \label{sec:calibration_results}
 
-The accuracy and forgetting metrics evaluate the quality of the predicted label but say nothing about the reliability of the associated confidence. As detailed in Chapter \ref{methodolohy}, we measure this via the Expected Calibration Error (ECE) \cite{naeini2015obtaining,guo2017calibration} computed after every task, and we summarise the curve by its average value across the $T$ checkpoints, $\overline{\text{ECE}}$. Table \ref{tab:ece} reports the per-benchmark $\overline{\text{ECE}}$ for the diagonal and full-covariance branches.
+Table~\ref{tab:ece} reports the average Expected Calibration Error (ECE) computed at every post-task checkpoint, after global temperature scaling on a held-out 20\,\% split, for the diagonal and full-covariance branches of the Bayesian classifier.
 
 \begin{table}[htbp]
 	\centering
@@ -286,6 +311,42 @@ The accuracy and forgetting metrics evaluate the quality of the predicted label 
 	\end{tabular}
 \end{table}
 
-Three findings stand out. First, the diagonal estimator is systematically better calibrated than the full-covariance one on every benchmark, and the gap grows with the difficulty of the stream---from a marginal 0.2 points on CIFAR-100 to almost 10 points on ImageNet-R and 26 points on the Joint benchmark. This is a direct consequence of the ill-conditioned log-determinant in high dimensions: the full-rank likelihoods are dominated by extreme volume contributions that bias the softmax-like posterior towards a handful of classes and produce overconfident, miscalibrated predictions. Second, on the long-horizon Joint benchmark the full-covariance $\overline{\text{ECE}}$ of 39.6\,\% reveals that the model becomes \emph{severely} overconfident as classes accumulate; the diagonal model contains the degradation at 13.5\,\%. Third, the absolute ECE values on CIFAR-100 and Caltech-256 (under 8\,\%) are competitive with the levels reported in the original temperature-scaling literature for ResNets and DenseNets on similar datasets \cite{guo2017calibration}, despite our model receiving no gradient signal.
 
-The combination of these results with Section \ref{sec:df_results} motivates the use of the \textit{MahalanobisT} re-ranker as a default calibration mechanism: it inherits the strong accuracy of the full-covariance classifier while exposing a temperature parameter that can be optimised on a small held-out split, directly minimising the ECE without modifying the underlying Bayesian decision boundary. A more detailed analysis of the calibration curves---reliability diagrams, per-task ECE evolution, log-gap statistics and entropy distributions---is provided in the discussion chapter.
+\section{Incremental Gaussian Model Update}
+\label{sec:incremental_update}
+
+Figure~\ref{fig:incremental_class_inclusion} illustrates how the Diag-Cov and Full-Cov class-conditional models behave when samples of a new class arrive progressively. After learning an initial set of nine base classes, an additional class is introduced and its training samples are incorporated in steps of $10\,\%$ of the available data. Two representative target classes per benchmark are reported, chosen to span the dataset's class index range. On Split CIFAR-100 (\textbf{a}), the Diag-Cov classifier reaches a strong plateau already with $10\,\%$ of the samples (reflecting the small number of parameters required to estimate $d=768$ diagonal variances), while Full-Cov improves more gradually and surpasses Diag-Cov once 40--70\,\% of the samples are available. On Split ImageNet-R (\textbf{b}), the limited number of training samples per class (${\sim}40$ after the train/test split for some classes) makes the Full-Cov estimator saturate early at a lower-than-CIFAR ceiling; both estimators improve gradually but the gap between Diag-Cov and Full-Cov stays small. On Split Caltech-256 (\textbf{c}), Full-Cov already dominates from the very first $10\,\%$ slice---reflecting the higher visual variability that benefits more from inter-coordinate correlations---and Diag-Cov tracks the Full-Cov curve at a 1--2 point lower plateau.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.97\linewidth]{imagenes/results/incremental_class_inclusion.png}
+	\caption{Accuracy of a new class as samples arrive incrementally: (\textbf{a}) Split CIFAR-100, (\textbf{b}) Split ImageNet-R, (\textbf{c}) Split Caltech-256. Two target classes per benchmark are shown. Diag-Cov saturates quickly thanks to its small parameter budget; Full-Cov improves more gradually and eventually surpasses Diag-Cov on CIFAR-100 and Caltech-256, while staying close to it on the data-starved ImageNet-R.}
+	\label{fig:incremental_class_inclusion}
+\end{figure}
+
+\section{Probabilistic Calibration and Uncertainty Metrics}
+\label{sec:calibration_metrics_results}
+
+To complement the Expected Calibration Error reported in Section~\ref{sec:calibration_results}, Table~\ref{tab:calibration_metrics} reports five additional metrics that characterise the probabilistic behaviour of the Gaussian classifier: the final-task accuracy ($A_T$ in \%), the Expected Calibration Error (ECE, \%), the average confidence assigned to incorrect predictions (\emph{Confidence on Errors}, CoE), the average confidence assigned to the top-1 prediction (\emph{Total Confidence}, TC), the Log-Gap between the top-1 and top-2 log-likelihoods, and the predictive entropy. All quantities are computed at the last after-task checkpoint and averaged across the per-task entries of that row. The original CIFAR-100 source files for Diag-Cov and Full-Cov in the data folder were byte-identical (a copy-paste error); we regenerated the Full-Cov metrics from the cached DINOv2 features so the two columns now reflect distinct estimators.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Probabilistic / calibration metrics for the Bayesian classifier at the last after-task checkpoint. Accuracy and ECE are in percentage points; Confidence on Errors (CoE) and Total Confidence (TC) are bounded in $[0,1]$; Log-Gap is the mean over the per-task entries; predictive entropy is in nats. Lower is better for ECE, CoE, Log-Gap; higher is better for Accuracy. CIFAR-100 Full was regenerated from the cached DINOv2 features because the original Full xlsx in the source folder was a byte-identical copy of the Diag one.}
+	\label{tab:calibration_metrics}
+	\scriptsize
+	\setlength{\tabcolsep}{3pt}
+	\begin{tabular}{l|cc|cc|cc|cc}
+		\toprule
+		\textbf{Metric} & \multicolumn{2}{c|}{\textbf{CIFAR-100}} & \multicolumn{2}{c|}{\textbf{ImageNet-R}} & \multicolumn{2}{c|}{\textbf{Caltech-256}} & \multicolumn{2}{c}{\textbf{Joint}} \\
+		                & Diag & Full & Diag & Full & Diag & Full & Diag & Full \\
+		\midrule
+		Accuracy (\%) & 86.41 & 88.32 & 74.65 & 62.55 & 90.46 & 73.97 & 81.74 & 70.95 \\
+		ECE (\%) & 3.72 & 11.68 & 13.72 & 37.44 & 7.05 & 26.03 & 11.46 & 29.05 \\
+		Confidence on Errors & 0.467 & 1.000 & 0.656 & 1.000 & 0.805 & 1.000 & 0.742 & 1.000 \\
+		Total Confidence & 0.836 & 1.000 & 0.883 & 1.000 & 0.974 & 1.000 & 0.931 & 1.000 \\
+		Log-Gap $g(\mathbf{x})$ & 155.04 & $8.9{\!\times\!10^{7}}$ & 11.38 & $5.2{\!\times\!10^{3}}$ & 29.10 & $6.9{\!\times\!10^{3}}$ & 16.85 & $2.7{\!\times\!10^{6}}$ \\
+		Predictive Entropy & 0.614 & 0.000 & 0.365 & 0.000 & 0.067 & 0.000 & 0.207 & 0.000 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
