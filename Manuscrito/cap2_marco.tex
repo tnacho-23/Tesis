@@ -226,9 +226,19 @@ OAS is specifically designed to minimize Mean Squared Error (MSE) under Gaussian
 \subsection{Gaussianity Assumptions and Analysis}
 In the context of generative modeling for foundation feature spaces, the validity of the Bayes classifier depends on how well the class-conditional Gaussian distributions approximate the true data distribution. The following analytical framework establishes the statistical basis for these assumptions.
 
+\subsubsection{Spectral Decay and Effective Dimensionality}
+
+The practical validity of high-dimensional Gaussian modeling is further supported by examining the spectral structure of the feature space through Principal Component Analysis (PCA). The covariance of the class-mean-centred embeddings can be decomposed as $\boldsymbol{\Sigma} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^T$, where the diagonal of $\boldsymbol{\Lambda}$ contains the eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$ and $\mathbf{P}$ holds the corresponding orthonormal eigenvectors.
+
+\paragraph{Variance concentration.}
+If the eigenvalue spectrum decays steeply---most variance is explained by the first $k \ll d$ components---then the effective dimensionality of the feature distribution is much lower than the nominal $d$. Concretely, the fraction of variance explained by the leading $k$ components is $\sum_{i=1}^{k}\lambda_i \,/\, \sum_{i=1}^{d}\lambda_i$. A fast decay implies that the class distributions occupy a low-dimensional ellipsoidal manifold, which strengthens the Gaussian approximation: the dominant directions are few and well-estimated from training data, while the remaining directions contribute only noise.
+
+\paragraph{Implications for covariance estimation.}
+When most of the variance is contained in $k$ components with $k \ll d$, a full covariance estimator must reliably estimate $d(d+1)/2$ parameters from $n_c$ samples---a severely ill-posed problem when $n_c \ll d$. By contrast, a diagonal estimator requires only $d$ parameters and is well-conditioned even with few samples per class, at the cost of ignoring off-diagonal correlations. The degree to which these correlations matter depends on how much of the joint structure is captured by the diagonal terms alone; in a feature space with strong spectral decay, the most informative directions are already approximately captured by the per-coordinate variances.
+
 \subsubsection{Univariate Analysis: Kurtosis and Skewness}
 
-The first layer of theoretical justification involves examining the univariate properties of individual feature components.
+A second layer of theoretical justification involves examining the univariate properties of individual feature components.
 
 \paragraph{Kurtosis} This statistic measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution \cite{joyce2011kurtosis}. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails. Empirical evidence suggests that for many foundation model embeddings, kurtosis values typically fall within the range of $[-1, 1]$, justifying the Gaussian approximation.
 
@@ -250,27 +260,29 @@ The first layer of theoretical justification involves examining the univariate p
 \end{figure}
 
 
-\subsubsection{Multivariate Analysis: Mahalanobis Distance}
+\subsubsection{Multivariate Analysis: Mahalanobis Distance and the $\chi^2$ Reference}
 
-While univariate normality is a prerequisite, the Bayes classifier operates in a high-dimensional joint distribution. To assess the multivariate Gaussianity of the feature space, we utilize the Squared Mahalanobis Distance:
+Per-dimension normality is necessary but not sufficient for the joint distribution to be Gaussian: the features could be marginally normal but jointly dependent in non-Gaussian ways. A principled way to probe the multivariate structure is through the squared Mahalanobis distance, which aggregates the deviation of a sample from its class prototype across all $d$ dimensions simultaneously.
 
+\paragraph{Full-covariance Mahalanobis distance.}
+For a sample $\mathbf{x}$ and class $c$ with mean $\boldsymbol{\mu}_c$ and covariance $\boldsymbol{\Sigma}_c \succ 0$, the squared Mahalanobis distance is:
 \begin{equation}
-	D^2(\mathbf{x}) = (\mathbf{x}-\boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{x}-\boldsymbol{\mu}_c)
+	D^2(\mathbf{x}) = (\mathbf{x}-\boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{x}-\boldsymbol{\mu}_c).
 \end{equation}
+If $\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c)$ then $D^2(\mathbf{x}) \sim \chi^2_d$. This follows because $\boldsymbol{\Sigma}_c^{-1/2}(\mathbf{x}-\boldsymbol{\mu}_c) \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_d)$, and the sum of $d$ squared independent standard normal variates follows a chi-squared distribution with $d$ degrees of freedom.
 
-Theoretically, if a class-conditional distribution $p(\mathbf{x} \mid y=c)$ is a $d$-dimensional Gaussian, the squared Mahalanobis distance between the samples and the class mean follows a chi-square ($\chi^2$) distribution with $d$ degrees of freedom.
+\paragraph{Diagonal-covariance case.}
+When the covariance is restricted to a diagonal form $\boldsymbol{\Sigma}_c = \mathrm{diag}(\sigma_{c,1}^2, \dots, \sigma_{c,d}^2)$, the Mahalanobis distance reduces to a sum of squared standardised residuals:
+\begin{equation}
+	m^2(\mathbf{x}) = \sum_{j=1}^{d} \frac{(x_j - \mu_{c,j})^2}{\sigma_{c,j}^2}.
+\end{equation}
+Each term $(x_j - \mu_{c,j})/\sigma_{c,j}$ is standard-normal if the $j$-th coordinate is Gaussian, and chi-squared-distributed with 1 degree of freedom when squared. If, in addition, the $d$ coordinates are jointly independent (i.e.\ the diagonal-Gaussian assumption holds exactly), then $m^2(\mathbf{x}) \sim \chi^2_d$ by additivity. The $\chi^2_d$ reference therefore serves as a simultaneous test of marginal normality \emph{and} joint independence of the feature coordinates.
 
-\paragraph{Degrees of Freedom and Rank} The behavior of this distance is sensitive to the rank of $\boldsymbol{\Sigma}_c$. If the number of training samples $N$ is smaller than the dimensionality $d$, the covariance matrix becomes rank-deficient, necessitating regularization (such as diagonal loading) to maintain numerical stability during the inversion process required for the MAP decision rule.
+\paragraph{Practical test: KL divergence from $\chi^2_d$.}
+In practice, the theoretical distribution is used as a benchmark: for each class $c$, the empirical histogram of $m^2$ values computed on held-out training samples is compared to the $\chi^2_d$ density via the KL divergence $D_{\mathrm{KL}}(p_c \| q)$, where $q = \chi^2_d$. A value near zero indicates that the diagonal-Gaussian model captures the joint structure of the data; a large value signals systematic departures---either multimodality, heavy tails, or unmodelled inter-coordinate correlations. Since even a perfectly Gaussian class produces a non-zero KL due to finite-sample noise, the observed values must be interpreted relative to a Monte Carlo baseline computed from synthetic $\mathcal{N}(\mathbf{0},\mathbf{I}_d)$ samples at the same class size.
 
-\paragraph{Correlation Modeling} The multivariate assumption also addresses inter-feature dependencies. While a diagonal covariance model ($\text{diag}(\sigma_{c,1}^2, \dots, \sigma_{c,d}^2)$) assumes independence between features, a full covariance model attempts to capture the joint geometric structure of the class in the embedding space.
-
-\subsubsection{Spectral Decay and Dimensionality}
-
-The effectiveness of Gaussian modeling is further supported by the spectral decay of the feature space. By performing Principal Component Analysis (PCA) on the embeddings, one can observe the distribution of eigenvalues.
-
-\paragraph{Information Concentration} A steep decay in the leading eigenvalues indicates that most of the discriminative variance is concentrated within a lower-dimensional subspace.
-
-\paragraph{Subspace Validity} This concentration suggests that even though the nominal dimensionality $d$ is high (e.g., $d=768$), the classes occupy structured manifolds where Gaussian density estimation provides a strong and stable inductive bias. 
+\paragraph{Rank deficiency under full covariance.}
+The distribution of $D^2$ changes drastically when $\boldsymbol{\Sigma}_c$ is rank-deficient, which occurs whenever the number of training samples $n_c < d$. In this regime the empirical covariance spans a subspace of dimension at most $n_c - 1$, and the regularised Mahalanobis distance concentrates sharply near $n_c - 1$ rather than dispersing around the $\chi^2_d$ mode of $d - 2$. This collapse is directly observable as a spike in the histogram of $D^2$ values, and it propagates directly to the softmax posterior: the log-likelihood advantage of the closest class becomes astronomical, producing near-one-hot (degenerate) probability distributions regardless of the true inter-class similarity.
 
 
 \section{Continual Learning}
@@ -350,5 +362,8 @@ The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient 
 	\item \textbf{CODA-Prompt} \cite{Smith_2023_CVPR}: Introduces a fully differentiable method where the prompt is a weighted sum of components dynamically calculated via attention mechanisms.
 	\item \textbf{Advanced Prompting}: Recent methods like \textbf{InFLoRA} \cite{liang2024inflora} and \textbf{DOLFIN} \cite{dolfin} apply low-rank adaptation and distributed learning, while \textbf{APT} \cite{Chen_2025_ICCV} injects key-value tokens directly into transformer layers to reduce inference overhead.
 \end{itemize}
+
+\subsubsection{Classifier Adaptation on Frozen Representations}
+A complementary line of work investigates classifier adaptation on top of frozen feature extractors, remaining fundamentally discriminative or metric-based. \textbf{SLCA}~\cite{zhang2023slca} proposes a slow learner with classifier alignment for continual learning on pre-trained models, enabling efficient incremental learning without backpropagation through the backbone. \textbf{ACIL}~\cite{zhuang2022acil} introduces analytic class-incremental learning with closed-form updates for linear classifiers, providing absolute memorisation and privacy protection without exemplar storage. \textbf{FeCAM}~\cite{goswami2024fecam} exploits the heterogeneity of class distributions in exemplar-free continual learning by performing classification using a Mahalanobis distance metric, highlighting the importance of modelling heterogeneous feature distributions. In contrast to these approaches, which remain fundamentally discriminative or metric-based, the framework proposed in this thesis adopts a fully probabilistic perspective and formulates class-incremental learning as recursive estimation of class-conditional densities in a stationary embedding space.
 
 
