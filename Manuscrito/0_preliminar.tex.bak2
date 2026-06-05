@@ -1,0 +1,48 @@
+
+\begin{adjustwidth}{2cm}{}
+	\MakeUppercase{Resumen de la tesis para optar al grado de magíster}\\
+	\MakeUppercase{en ciencias de la ingeniería, mención eléctrica}\\
+	\MakeUppercase{Resumen de la memoria para optar al título de}\\
+	\MakeUppercase{ingeniero civil eléctrico}\\
+	\MakeUppercase{Por: Ignacio Romero Aravena}\\
+	\MakeUppercase{Fecha: 2026}\\
+	\MakeUppercase{Profesor Guía: Javier Ruiz del Solar}\\
+\end{adjustwidth}
+
+\vspace{-1cm}
+
+\begin{center}
+	\textbf{\MakeUppercase{Mitigating Catastrophic Forgetting in Object Classification via Gaussian Class Representations
+	}}
+\end{center}
+
+El presente trabajo aborda el problema del aprendizaje continuo (\textit{Continual Learning}) en clasificación de objetos, con el objetivo de mitigar el olvido catastrófico (\textit{catastrophic forgetting}) que sufren los modelos profundos tradicionales cuando se les expone a flujos de datos no estacionarios. Se propone un esquema modular que desacopla la extracción de características de la clasificación: un extractor de características pre-entrenado y congelado (DINOv2) provee una representación general del espacio visual, mientras que cada clase de objeto se modela mediante una distribución Gaussiana independiente en dicho espacio. La clasificación se realiza por máxima verosimilitud (regla MAP), lo que permite incorporar nuevas clases sin necesidad de re-entrenar la red ni de almacenar muestras antiguas.
+
+Se estudian sistemáticamente distintos estimadores de la matriz de covarianza (diagonal, completo, híbrido, compartido, Ledoit--Wolf y OAS), variantes de Mixturas de Gaussianas (MoG) con 2 y 4 componentes, y una familia de diez estrategias de fusión generativa--discriminativa y de re-ordenamiento que combinan la verosimilitud Mahalanobis con la similaridad angular del coseno, fusión aditiva en log-dominio, normalización min--max y escalamiento por temperatura. Adicionalmente, se evalúa la calibración del modelo mediante el Expected Calibration Error (ECE), Total Confidence, Confidence on Errors, Log-Gap y entropía predictiva, y se valida la hipótesis Gaussiana a través de un análisis univariado de asimetría y curtosis sobre los \textit{embeddings} y de la comparación de las distancias de Mahalanobis empíricas con la distribución teórica $\chi^2$.
+
+Los experimentos se realizan sobre cuatro \textit{benchmarks} de aprendizaje incremental por clases: Split CIFAR-100 (10 tareas $\times$ 10 clases), Split ImageNet-R (10 tareas $\times$ 20 clases), Split Caltech-256 (10 tareas $\times$ 25 clases, utilizando sólo las primeras 250 clases) y un \textit{benchmark} unificado de 30 tareas (Split Joint Datasets) que concatena los tres anteriores en un único flujo heterogéneo. Los resultados muestran que el método propuesto alcanza desempeños competitivos con el estado del arte basado en \textit{prompts} (\textit{e.g.}\ L2P, DualPrompt, CODA-Prompt, RainbowPrompt y APT), llegando incluso a superarlos en escenarios de alta heterogeneidad de tareas como Caltech-256 y Joint, manteniendo a la vez un olvido reducido (por debajo del 5\,\% en los \textit{benchmarks} de 10 tareas) y una arquitectura significativamente más liviana, escalable y libre de gradientes que sus competidores. El análisis comparativo identifica al estimador Híbrido de covarianza y a las estrategias aditivas de fusión en log-dominio (SoftTaskFus, OptFusion-MM y TempScale) como las elecciones más robustas y recomendables para el despliegue práctico del marco.
+
+\newpage
+
+\begin{center}
+	\textbf{\MakeUppercase{Mitigating Catastrophic Forgetting in Object Classification via Gaussian Class Representations
+	}}
+\end{center}
+
+This work addresses the problem of Continual Learning for object classification, with the goal of mitigating the catastrophic forgetting that affects traditional deep models when they are exposed to non-stationary data streams. A modular framework is proposed in which feature extraction is decoupled from classification: a frozen, pre-trained DINOv2 feature extractor provides a general representation of the visual space, while every object class is modelled by an independent Gaussian distribution in that space. Classification is performed via maximum a posteriori (MAP) inference, which allows new classes to be incorporated without re-training the network or storing past samples.
+
+The thesis investigates several covariance estimators (diagonal, full, hybrid, shared, Ledoit--Wolf and OAS), two- and four-component Mixtures of Gaussians (MoG) and a family of ten generative--discriminative fusion and re-ranking strategies that combine the Mahalanobis log-likelihood with cosine angular similarity, additive log-domain fusion, min--max normalisation and temperature scaling. Probabilistic calibration is evaluated through the Expected Calibration Error (ECE), Total Confidence, Confidence on Errors, Log-Gap and predictive entropy, and the Gaussian assumption is validated through a univariate analysis of skewness and kurtosis of the embeddings as well as through the comparison of empirical squared Mahalanobis distances against the theoretical $\chi^2$ density.
+
+Experiments are conducted on four class-incremental benchmarks: Split CIFAR-100 (10 tasks $\times$ 10 classes), Split ImageNet-R (10 tasks $\times$ 20 classes), Split Caltech-256 (10 tasks $\times$ 25 classes, using only the first 250 classes) and a 30-task unified benchmark (Split Joint Datasets) that concatenates the three previous benchmarks into a heterogeneous stream. The results show that the proposed method achieves performance competitive with the prompt-based state of the art (\textit{e.g.}\ L2P, DualPrompt, CODA-Prompt, RainbowPrompt and APT), and overtakes it on the most heterogeneous benchmarks (Caltech-256 and Joint), while keeping forgetting below 5\,\% on the 10-task benchmarks and offering a substantially lighter, gradient-free and more scalable architecture than its prompt-based competitors. The comparative analysis identifies the Hybrid covariance estimator and the additive log-domain re-ranking strategies (SoftTaskFus, OptFusion-MM and TempScale) as the most robust and recommended choices for practical deployment of the framework.
+
+% opcional: incluir para tesis en inglés;
+%  en este caso hay que tener el resumen y abstract
+%   en ambos idiomas
+
+\begin{abstract}
+Traditional deep learning architectures are predominantly monolithic and struggle when exposed to non-stationary data distributions. Adding new classes typically demands exhaustive retraining on the full dataset to prevent catastrophic forgetting, a constraint that limits deployment in dynamic real-world systems. This work introduces a modular Continual Learning framework that decouples feature extraction from classification: a frozen, pre-trained DINOv2 backbone provides fixed embeddings, and an independent diagonal-covariance Gaussian model is maintained per class. New categories are incorporated by estimating their sufficient statistics—mean and per-coordinate variance—without modifying previously learned prototypes, so forgetting is structurally eliminated at the representation level. The classifier is closed-form, gradient-free, and requires no replay buffer. Pairwise Bhattacharyya distances confirm that over 99.8\,\% of class-pair prototypes are well-separated ($D_B > 50$) across all benchmarks, validating the Gaussian modelling assumption. Evaluated on Split CIFAR-100, Split ImageNet-R, and Split Caltech-256, the framework reaches accuracy competitive with prompt-based state-of-the-art methods while achieving 5--15$\times$ lower training cost per task. On Caltech-256 it surpasses every prompt-based baseline ($94.4\,\%$ vs.\ $92.5\,\%$). A Hybrid covariance estimator that combines the diagonal log-determinant with a full-rank Mahalanobis term further improves calibration on heavy-tailed benchmarks without sacrificing accuracy.
+\end{abstract}
+
+\begin{abstract}
+Las arquitecturas tradicionales de aprendizaje profundo son predominantemente monolíticas y fallan al enfrentarse a distribuciones de datos no estacionarias. Incorporar nuevas clases requiere generalmente un reentrenamiento exhaustivo para evitar el olvido catastrófico, lo que limita su despliegue en sistemas dinámicos. Este trabajo presenta un marco modular de Aprendizaje Continuo que desacopla la extracción de características de la clasificación: un backbone DINOv2 congelado proporciona embeddings fijos, y se mantiene un modelo Gaussiano diagonal independiente por clase. Las nuevas categorías se incorporan estimando su media y varianza por coordenada, sin modificar los prototipos previos, eliminando estructuralmente el olvido. El clasificador es de forma cerrada, sin gradientes y no requiere memoria de repetición. Las distancias de Bhattacharyya por pares confirman que más del 99,8\,\% de los pares de clases están bien separados ($D_B > 50$) en todos los benchmarks. Evaluado en Split CIFAR-100, Split ImageNet-R y Split Caltech-256, el marco alcanza una precisión competitiva con los métodos del estado del arte basados en prompts, con un costo de entrenamiento 5--15$\times$ menor por tarea. En Caltech-256 supera a todos los baselines ($94,4\,\%$ vs.\ $92,5\,\%$). Un estimador de covarianza Híbrido mejora adicionalmente la calibración en benchmarks de cola pesada sin sacrificar precisión.
+\end{abstract}

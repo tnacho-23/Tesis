@@ -1,4 +1,4 @@
-\chapter{Methodology} \label{methodolohy}
+\chapter{Methodology} \label{methodology}
 
 \section{Proposed Architecture}
 
@@ -34,7 +34,7 @@ where $\pi_c = p(y=c)$ is the class prior. Under a uniform prior and the Gaussia
     \hat{y} = \arg\min_{c \in \mathcal{Y}} \left[ (\mathbf{z} - \boldsymbol{\mu}_c)^T \Sigma_c^{-1} (\mathbf{z} - \boldsymbol{\mu}_c) + \log|\Sigma_c| \right].
     \label{eq:qda}
 \end{equation}
-This quadratic decision function is the core of the proposed framework. The Mahalanobis term $(\mathbf{z}-\boldsymbol{\mu}_c)^T\Sigma_c^{-1}(\mathbf{z}-\boldsymbol{\mu}_c)$ encodes the \emph{shape} of the class distribution while $\log|\Sigma_c|$ encodes its \emph{volume}. The covariance parameterisations introduced in Section~\ref{sec:covariance_estimation} are specialisations of Equation~\eqref{eq:qda} that differ in the structure imposed on $\Sigma_c$; the interplay between the shape and volume components is the central design axis of the covariance estimation study and is examined in detail in Section~\ref{sec:an:vs} of the analysis chapter.
+This quadratic decision function is the core of the proposed framework. The Mahalanobis term $(\mathbf{z}-\boldsymbol{\mu}_c)^T\Sigma_c^{-1}(\mathbf{z}-\boldsymbol{\mu}_c)$ encodes the \emph{shape} of the class distribution while $\log|\Sigma_c|$ encodes its \emph{volume}. The covariance parameterisations introduced in Section~\ref{sec:covariance_estimation} are specialisations of Equation~\eqref{eq:qda} that differ in the structure imposed on $\Sigma_c$; the interplay between the shape and volume components is the central design axis of the covariance estimation study and is examined in detail in the analysis of results.
 
 Adding a new class to the system requires only estimating the sufficient statistics $(\boldsymbol{\mu}_c, \Sigma_c)$ in the fixed feature space; previously learned class statistics are never modified. This formulation therefore enables genuinely incremental updates without backpropagation, replay buffers, or exemplar storage.
 
@@ -51,8 +51,129 @@ We follow the standard Continual Learning (CL) protocol where the model learns a
 	\item \textbf{Split Joint Dataset:} This benchmark serves as a comprehensive stress test by aggregating the 30 tasks from the three aforementioned datasets into a single, heterogeneous stream. The tasks are presented to the system in a randomized order, forcing the model to navigate extreme distribution shifts between natural, artistic, and high-resolution images. This long-horizon sequence is specifically designed to evaluate the model's resilience against catastrophic forgetting over an extended period of diverse learning objectives.
 \end{itemize}
 
+\subsection{Model Metrics}
+
+As mentioned, to quantify performance, SOTA works \cite{wang2022learning} utilize two standard metrics derived from the test accuracy scores: the average accuracy and the average forgetting.
+
+On the one hand, \textbf{Average Accuracy ($A_t$)}, presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point.
+
+\begin{equation}
+	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}
+	\label{eq_AA}
+\end{equation}
+
+On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops.
+
+\begin{equation}
+	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right)
+	\label{eq_AF}
+\end{equation}
+
+
 
 Regarding forgetting, the proposed framework does not exhibit forgetting in the conventional sense, as previously learned class statistics are never modified when new classes are introduced. The measured forgetting values therefore primarily reflect the increased classification difficulty as the number of competing classes grows, rather than degradation of previously learned representations.
+
+
+\section{Feature-Space Characterization and Gaussianity Analysis}
+\label{sec:method:gaussianity_main}
+
+\subsection{Probabilistic Classification in High Dimension}
+\label{sec:method:highdimdim}
+
+In high-dimensional feature spaces such as those produced by foundational vision models, probabilistic classification faces a systematic calibration challenge. While the Maximum A Posteriori (MAP) decision rule correctly identifies the most likely class, the resulting posterior probabilities $p(y=c \mid \mathbf{x})$ often exhibit extreme overconfidence: the model assigns near-unit probability to its top prediction even when that prediction is wrong, effectively masking the true uncertainty of the classification.
+
+\paragraph{Uncertainty Collapse in High Dimensions}
+Under diagonal covariance Gaussian models, the log-likelihood for class $c$ is:
+\begin{equation}
+	\log p(\mathbf{x} \mid y=c) = \ln \mathcal{A}_c - \frac{1}{2} \underbrace{\sum_{i=1}^{d} \frac{(x_i - \mu_{c,i})^2}{\sigma_{c,i}^2}}_{m^2_c(\mathbf{x})}
+\end{equation}
+where $\ln \mathcal{A}_c = -\frac{d}{2}\ln(2\pi) - \frac{1}{2}\sum_i \ln(\sigma_{c,i}^2)$ is the log-normalisation constant and $m^2_c(\mathbf{x})$ is the squared Diag-Cov Mahalanobis distance. For truly Gaussian data this distance concentrates tightly around its expected value $d$ (see Section~\ref{sec:method:gaussianity}), but the \emph{difference} in log-likelihoods between the winning class and any other class grows with $d$. Intuitively, each of the $d=768$ standardised coordinates contributes a small increment to the distance gap, and these increments accumulate. When the raw log-likelihoods are converted into a posterior, even a modest advantage translates into a near-one-hot posterior: the probability mass collapses almost entirely onto the single best-fitting class. This \emph{uncertainty collapse} makes the raw posterior probabilities unreliable as confidence estimates, which is particularly harmful in continual learning, where the number of competing classes grows with each new task.
+
+\paragraph{Bayesian Temperature Scaling}
+To recover reliable uncertainty estimates without altering the MAP decision boundary, we introduce a Temperature Scaling parameter $T > 0$ directly into the Bayesian inference process. We treat $T$ as a global smoothing factor applied to the log-likelihoods before softmax normalisation. The calibrated posterior is:
+\begin{equation}
+	p(y=c \mid \mathbf{x};\, T) = \exp \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=c) - \mathcal{L}_E \right)
+\end{equation}
+where $\mathcal{L}_E$ is the log-evidence computed via the numerically stable logsumexp operator:
+\begin{equation}
+	\mathcal{L}_E = \operatorname{logsumexp}_{j \in \mathcal{Y}} \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=j) \right)
+\end{equation}
+Choosing $T > 1$ divides all log-likelihoods by $T$, shrinking the differences between classes proportionally and \emph{softening} the posterior distribution. Choosing $T < 1$ sharpens it. Crucially, $T$ does not change the rank order of the log-likelihoods, so the MAP prediction is preserved. The effect on uncertainty is captured by the calibration metrics defined in Section~\ref{sec:method:metrics}: a well-chosen $T$ reduces the Expected Calibration Error (ECE), lowers the Confidence on Errors (CoE), and brings the predictive entropy closer to the difficulty of the task.
+
+\subsection{Gaussianity Tests}
+\label{sec:method:gaussianity}
+
+Before committing to a class-conditional Gaussian classifier we must verify that the assumption is empirically defensible on the DINOv2 embedding space.
+We employ three complementary tests, arranged from weakest (moment-based) to strongest (formal hypothesis test) for the univariate case, plus a separate multivariate test.
+
+\subsubsection{Per-Dimension Gaussianity: Moments and Formal Test}
+\label{sec:method:gaussianity:moments}
+\phantomsection\label{sec:method:gaussianity:normaltest}
+
+To verify Gaussianity at the level of individual feature coordinates, we use three complementary indicators applied to every (class~$c$, dimension~$j$) pair across the 80\,\% training split.
+
+\paragraph{Shape moments.}
+Following the normality diagnostics of Pearson~\cite{pearson1895skewness} and D'Agostino and Pearson~\cite{dagostino1971omnibus,dagostino1973tests}, we compute the sample skewness and excess kurtosis for each class~$c$ along each of the $d=768$ coordinates:
+\begin{equation}
+\widehat{\mathrm{Skew}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^3}{\hat\sigma_{c,j}^{3}},\qquad
+\widehat{\mathrm{Kurt}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^4}{\hat\sigma_{c,j}^{4}} - 3,
+\label{eq:moments}
+\end{equation}
+so that both quantities vanish exactly for a Gaussian~\cite{pearson1895skewness,joyce2011kurtosis}. We report their mean, standard deviation, mean absolute value, and the fraction of coordinates satisfying the informal cut-offs $|\mathrm{Skew}|<0.5$ and $|\mathrm{Kurt}|<1.0$.
+
+\paragraph{D'Agostino--Pearson omnibus test.}
+The moments alone do not constitute a formal statistical test. We therefore apply the D'Agostino--Pearson omnibus test to every (class, dimension) pair~\cite{dagostino1971omnibus,dagostino1973tests}. The test combines the two shape statistics into a single composite statistic:
+\begin{equation}
+K^2 \;=\; Z_1\!\left(\widehat{\mathrm{Skew}}\right)^2 + Z_2\!\left(\widehat{\mathrm{Kurt}}\right)^2 \;\sim\; \chi^2_2 \quad \text{under } H_0,
+\label{eq:normaltest}
+\end{equation}
+where $Z_1$ and $Z_2$ are normalised transformations of the skewness and kurtosis estimators respectively, and $H_0$ is the hypothesis that the data are normally distributed. We reject $H_0$ at $\alpha=0.05$ and report the fraction of pairs that \emph{pass} the test (i.e.\ fail to reject normality).
+
+\paragraph{Relaxed criterion.}
+Because the omnibus test is sensitive to the relatively large class sizes available ($n_c\!\approx\!80$--$400$)---even minor departures from perfect normality accumulate into significant $K^2$ values---we supplement it with a size-independent indicator: a dimension is classified as near-Gaussian if $|\mathrm{Skew}|<1$ \emph{and} $|\mathrm{Kurt}|<1$ hold simultaneously. The strict test and the relaxed criterion together provide a lower and an upper bound on the fraction of approximately Gaussian feature dimensions; both are reported in Section~\ref{sec:gaussianity_results}.
+
+
+\subsubsection{Multivariate Gaussianity: Henze--Zirkler Test}
+\label{sec:method:gaussianity:multivariate}
+
+Per-dimension normality is necessary but not sufficient for the joint $d$-dimensional distribution to be Gaussian. A set of coordinates can each be marginally normal while the joint distribution departs from multivariate normality due to non-linear dependence or higher-order cross-moment structure. We therefore complement the univariate analysis with the Henze--Zirkler (HZ) test~\cite{henze1990class}, whose theoretical basis is described in Section~\ref{sec:method:gaussianity:hz_theory}.
+
+\paragraph{Implementation.}
+The test is applied directly in the native $d=768$ feature space using the diagonal covariance formulation, rather than delegating to a library that would internally construct a full sample covariance matrix---which is rank-deficient whenever $n_c < d$ and would yield degenerate results. Concretely, the Mahalanobis distances required by the HZ statistic are computed analytically by inverting the $d$ per-coordinate sample variances, with a numerical floor of $\varepsilon$ applied to guard against inactive dimensions. All available samples for each class are used (100\,\% of the data, no train/test split), since the test is applied for validation rather than as part of the training pipeline.
+
+\paragraph{Reported quantities.}
+For each benchmark we report the mean and standard deviation of $T_{\mathrm{HZ}}$ across all classes, together with the $[\mathrm{P}_{10}, \mathrm{P}_{90}]$ percentile band. Under perfect multivariate normality $T_{\mathrm{HZ}} = 1$ exactly; values above $1$ indicate that the data is more structured than a Gaussian. The results are reported in Section~\ref{sec:mv_gaussianity_results}.
+
+\subsection{Inter-Class Pairwise Bhattacharyya Distance}
+\label{sec:method:gaussianity:interclass}
+
+While the Henze--Zirkler test of Section~\ref{sec:method:gaussianity:hz_theory} measures the goodness-of-fit of individual classes to the diagonal-Gaussian model, the \emph{inter-class} pairwise Bhattacharyya distance measures how distinguishable any two class-conditional Gaussians are from one another.
+The Bhattacharyya distance is symmetric and provides a direct connection to the Bayes error rate via the Bhattacharyya coefficient $\rho_{ij} = e^{-D_B(i,j)}$.
+Under the diagonal-Gaussian parameterisation, the Bhattacharyya distance between classes $i$ and $j$ is:
+\begin{equation}
+    D_B(i,j)
+    = \frac{1}{8}(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)^{\top}
+      \bar{\Sigma}^{-1}
+      (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)
+      + \frac{1}{2}\ln\!\left(
+        \frac{\det\bar{\Sigma}}{\sqrt{\det\Sigma_i\,\det\Sigma_j}}
+      \right),
+    \label{eq:interclass_bhattacharyya}
+\end{equation}
+where $\bar{\Sigma} = (\Sigma_i + \Sigma_j)/2$.
+Because both $\Sigma_i$ and $\bar{\Sigma}$ are diagonal, all matrix operations reduce to element-wise arithmetic: determinants become sums of logs, and the matrix inverse reduces to element-wise reciprocals.
+$D_B=0$ indicates complete distributional overlap; larger values correspond to greater separability and a lower Bhattacharyya coefficient $\rho = e^{-D_B}$.
+We track three statistics as the class count grows: (a)~the mean pairwise $D_B$ with a $[\mathrm{P}_{10},\mathrm{P}_{90}]$ percentile band, (b)~the minimum pairwise $D_B$ (the hardest class pair), and (c)~the count of pairs below selected threshold values to characterise the tail of the distribution.
+Together, these three curves characterise the class-confusion landscape that the Bayesian classifier must navigate as the continual-learning stream progresses.
+
+\subsection{Spectral Analysis of the Embedding Space}
+\label{sec:method:gaussianity:pca}
+
+To characterise the global structure of the DINOv2 feature space, independently of the class-conditional model, we compute the PCA spectrum of the $\ell_2$-normalised embeddings pooled across all training classes.
+The $d=768$ eigenvalues of the empirical data covariance are sorted in decreasing order; we report both the individual percentage-of-variance contribution of each principal component and the cumulative explained variance.
+This diagnostic measures the \emph{effective intrinsic dimensionality} of the shared representation: a rapid eigenvalue decay implies that the discriminative signal is concentrated in a low-dimensional subspace, whereas a slow decay indicates that the signal is distributed across the full ambient space.
+The spectral profile also constrains the effective rank available to the per-class covariance estimators: a per-class estimator can only populate directions already covered by the pooled class spectrum.
+Results are reported in Section~\ref{sec:spectral_analysis}.
 
 \section{Covariance Estimation}
 \label{sec:covariance_estimation}
@@ -102,7 +223,7 @@ To ensure the matrix is invertible and to improve numerical stability, a regular
 		where $\ln A_c = -\frac{1}{2} (d \ln(2\pi) + \ln |\hat{\Sigma}_c|)$.
 
 \subsection{Hybrid Covariance}
-The hybrid covariance estimator is designed to leverage the correlation information for distance metrics while mitigating the numerical instability inherent in calculating the determinant of high-dimensional, potentially rank-deficient matrices. In this approach, we decoupling the estimation of the Mahalanobis distance and the normalization constant.For each class $c$, the full covariance matrix $\hat{\Sigma}_c$ is estimated and regularized as described in the previous section:
+The hybrid covariance estimator decouples the estimation of the Mahalanobis distance from the normalisation constant.For each class $c$, the full covariance matrix $\hat{\Sigma}_c$ is estimated and regularized as described in the previous section:
 
 \begin{equation}
 	\hat{\Sigma}_c = \Sigma_c + \epsilon I
@@ -117,7 +238,7 @@ where $\sigma_{c,j}^2$ are the diagonal entries of $\hat{\Sigma}_c$. The resulti
 	g_c(\mathbf{x}) = -\frac{1}{2} \left( d \ln(2\pi) + \sum_{j=1}^{d} \ln(\sigma_{c,j}^2) + (\mathbf{x} - \boldsymbol{\mu}_c)^T \hat{\Sigma}_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) \right)
 \end{equation}
 
-This hybrid formulation prevents the ``vanishing determinant'' problem that often occurs in high dimensions, where very small eigenvalues (even after regularization) can disproportionately inflate the log-likelihood and lead to biased classification toward classes with lower variance.
+This formulation avoids the numerical issues that arise when very small eigenvalues inflate the log-determinant, at the cost of using an approximation for the volume term.
 
 
 \subsection{OAS Covariance}
@@ -127,13 +248,13 @@ Oracle Approximating Shrinkage (OAS) is a shrinkage technique that computes an s
 \begin{equation}
 	\hat{\Sigma}_{\text{OAS}, c} = (1 - \rho_c) \hat{\Sigma}_{\text{SCM}, c} + \rho_c \hat{F}_c
 \end{equation}
-where $\rho_c$ is the shrinkage coefficient calculated specifically for class $c$, $\hat{\Sigma}_{\text{SCM}, c}$ is the sample covariance matrix, and $\hat{F}_c = \frac{\text{tr}(\hat{\Sigma}_{\text{SCM}, c})}{d} I$ is the shrinkage target.In our implementation, we utilize the scikit-learn \texttt{OAS} object to compute the precision matrix $\Psi_c = \hat{\Sigma}_{\text{OAS}, c}^{-1}$ directly. This precision matrix is then used to calculate the Mahalanobis distance in the log-likelihood discriminant function:
+where $\rho_c$ is the shrinkage coefficient calculated specifically for class $c$, $\hat{\Sigma}_{\text{SCM}, c}$ is the sample covariance matrix, and $\hat{F}_c = \frac{\text{tr}(\hat{\Sigma}_{\text{SCM}, c})}{d} I$ is the shrinkage target.In our implementation, we compute the precision matrix $\Psi_c = \hat{\Sigma}_{\text{OAS}, c}^{-1}$ directly via the OAS algorithm. This precision matrix is then used to calculate the Mahalanobis distance in the log-likelihood discriminant function:
 
 \begin{equation}
 	g_c(\mathbf{x}) = \ln A_c - \frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_c)^T \Psi_c (\mathbf{x} - \boldsymbol{\mu}_c)
 \end{equation}
 
-where $\ln A_c$ is the normalization constant derived from the log-determinant of the OAS-estimated covariance matrix, calculated via the \texttt{slogdet} function for numerical stability. This approach ensures that the model captures class-specific correlations while remaining robust to the ``curse of dimensionality.''
+where $\ln A_c$ is the normalization constant derived from the log-determinant of the OAS-estimated covariance matrix, evaluated numerically via the stable log-determinant of the eigendecomposition. This approach ensures that the model captures class-specific correlations while remaining robust to the ``curse of dimensionality.''
 
 \subsection{Ledoit-Wolff}
 
@@ -228,7 +349,7 @@ In high-dimensional classification tasks, relying on a single metric often fails
 
 Importantly, these strategies are agnostic to the specific structure of the class-conditional distributions; they can be applied whether the underlying generative model utilizes a \textbf{diagonal covariance} matrix for computational efficiency or a \textbf{full covariance} matrix to capture complex feature correlations.
 
-The ten strategies are presented in the order used throughout the rest of the thesis: the \emph{recommended} group (SoftTaskFusion, TaskMeanShrink, Top5-CosineReRank, OptFusion-MinMax and TempScale) comes first; the \emph{brittle} group (HardGate, Top5-TaskReRank, TopK-TaskFilter) follows; and the two \emph{marginal} LDA variants (HardGate-LDA, SoftGate-LDA) close the section. The corresponding empirical taxonomy is justified in Section~\ref{sec:an:taxonomy} of the Analysis chapter.
+The nine strategies are presented in the order used throughout the rest of the thesis: the \emph{recommended} group (SoftTaskFusion, TaskMeanShrink, Top5-CosineReRank and OptFusion-MinMax) comes first; the \emph{brittle} group (HardGate, Top5-TaskReRank, TopK-TaskFilter) follows; and the two \emph{marginal} LDA variants (HardGate-LDA, SoftGate-LDA) close the section. The corresponding empirical taxonomy is derived from the analysis of the experimental results.
 
 
 \subsection{SoftTaskFusion: Soft Class--Task Log-Probability Fusion} \label{df:softtaskfusion}
@@ -310,27 +431,7 @@ S_{final} = \alpha \cdot \text{Norm}(S_{gen}) + (1 - \alpha) \cdot \text{Norm}(S
 
 
 
-The fusion weight $\alpha \in [0, 1]$ is determined using the Optuna framework, which performs a Bayesian optimization search over a validation subset (20\% of the training data). By maximizing the Average Accuracy on this validation set, the model identifies the optimal balance between the generative and discriminative evidence before performing the final evaluation on the held-out test set. This approach ensures that the re-ranking is not merely a heuristic but is tuned to the specific geometric properties of the DINOv2 feature space.
-
-\subsection{TempScale: Generative Calibration via Temperature Scaling} \label{df:tempscale}
-
-The Temperature-Scaled Calibration strategy aims to adjust the ``sharpness'' of the generative probability distributions. In high-dimensional latent spaces, log-likelihood values can reach extreme magnitudes, potentially leading to over-confident or miscalibrated predictions when competing against a growing number of classes in a continual learning stream. 
-
-This approach introduces a global scalar parameter $T > 0$, known as the temperature, which scales the log-likelihood scores before the final decision is made. For a given input feature $\mathbf{x}$, the calibrated score $S_c$ for class $c$ is defined as:
-\begin{equation}
-S_c(\mathbf{x}; T) = \frac{1}{T} \left( \ln A_c - \frac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_c)^T \Sigma_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c) \right)
-\end{equation}
-The effect of the temperature parameter varies depending on its value:
-\begin{itemize}
-\item \textbf{$T > 1$ (Smoothing):} Reduces the difference between scores, softening the distribution and making the model less confident.
-\item \textbf{$T < 1$ (Sharpening):} Exaggerates the differences between scores, making the distribution more peaky around the most likely class.
-\end{itemize}
-
-
-
-To avoid data leakage and over-fitting, the optimal temperature $T^*$ is determined through an automated search using the Optuna framework. The training dataset is split into a ``Statistics Set'' (80\%) used to estimate the Gaussian parameters ($\mu, \Sigma$) and a ``Validation Set'' (20\%) used to evaluate the temperature performance. The search is conducted across a logarithmic range ($0.01$ to $10.0$) to find the $T$ that maximizes the Average Accuracy on the validation set. Once optimized, the fixed $T^*$ is applied to the final evaluation on the held-out test set, ensuring a calibrated balance across all tasks in the sequence.
-
-
+The fusion weight $\alpha \in [0, 1]$ is determined through an automated Bayesian hyperparameter search over a validation subset (20\% of the training data). By maximising the Average Accuracy on this validation set, the optimal balance between the generative and discriminative evidence is identified prior to the final evaluation on the held-out test set. This approach ensures that the fusion weight reflects the geometric properties of the DINOv2 feature space rather than a fixed heuristic.
 
 \subsection{HardGate: Hierarchical Task Gating} \label{df:hardgate}
 
@@ -393,11 +494,6 @@ where $t(c)$ is the task to which class $c$ belongs. For every class, the featur
 \item \textbf{$\text{Score}_{\text{LDA}}$:} The log-likelihood of the class in its task-specific 9D LDA subspace.
 \end{itemize}
 This additive fusion in the log-domain (equivalent to a product of probabilities) allows the local expert models to influence the task selection. If a class in Task A has an extremely high likelihood in its 9D subspace, it can override a slightly higher task-level likelihood for Task B, leading to more robust global classification.
-\section{Backbones Comparison}
-\label{sec:method:backbones}
-
-Throughout this work, DINOv2 \cite{oquab2024dinov} is used as the default backbone feature extractor for the Gaussian-based classifiers because of its self-supervised training regime and the strong empirical evidence of approximately Gaussian, well-conditioned class-conditional distributions presented in Section~\ref{sec:method:gaussianity}. However, the proposed framework is agnostic to the specific feature extractor used: any frozen encoder that produces fixed-dimensional embeddings can plug in unchanged into the downstream Gaussian classifier. To quantify the dependence of the framework on the choice of backbone, we further analyse the impact of the backbone architecture by re-running the Diag-Cov and Full-Cov variants using two supervised Vision Transformers from the \texttt{timm} library \cite{rw2019timm}: \textbf{ViT-base/16} (ViT-b, $d=768$) and \textbf{ViT-medium/16} (ViT-m, $d=512$), both pre-trained on ImageNet-21k \cite{imagenet21k}. The covariance estimation, hyper-parameters and evaluation protocol are kept identical across backbones to isolate the effect of the upstream representation; the results are reported in Section~\ref{sec:backbone_results}.
-
 \section{Sample Efficiency and Incremental Class Inclusion}
 \label{sec:method:incremental}
 
@@ -408,116 +504,15 @@ Two representative target classes per benchmark are selected to span the range o
 This protocol directly measures the \emph{sample efficiency} of each covariance estimator---how many samples are required before the classifier reaches its asymptotic accuracy---which is directly relevant to the continual-learning setting where new classes may arrive with limited data.
 The corresponding results are reported in Section~\ref{sec:incremental_update}.
 
-\section{Feature-Space and Calibration Analysis}
+\section{Backbones Comparison}
+\label{sec:method:backbones}
+
+Throughout this work, DINOv2 \cite{oquab2024dinov} is used as the default backbone feature extractor for the Gaussian-based classifiers because of its self-supervised training regime and the strong empirical evidence of approximately Gaussian, well-conditioned class-conditional distributions presented in Section~\ref{sec:method:gaussianity}. However, the proposed framework is agnostic to the specific feature extractor used: any frozen encoder that produces fixed-dimensional embeddings can plug in unchanged into the downstream Gaussian classifier. To quantify the dependence of the framework on the choice of backbone, we further analyse the impact of the backbone architecture by re-running the Diag-Cov and Full-Cov variants using two supervised Vision Transformers from the \texttt{timm} library \cite{rw2019timm}: \textbf{ViT-base/16} (ViT-b, $d=768$) and \textbf{ViT-medium/16} (ViT-m, $d=512$), both pre-trained on ImageNet-21k \cite{imagenet21k}. The covariance estimation, hyper-parameters and evaluation protocol are kept identical across backbones to isolate the effect of the upstream representation; the results are reported in Section~\ref{sec:backbone_results}.
+
+
+\section{Probabilistic Calibration Analysis}
 \label{sec:method:calibration_gaussianity}
 \phantomsection\label{sec:method:metrics}
-
-\subsection{Probabilistic Classification in High Dimension}
-\label{sec:method:highdimdim}
-
-In high-dimensional feature spaces such as those produced by foundational vision models, probabilistic classification faces a systematic calibration challenge. While the Maximum A Posteriori (MAP) decision rule correctly identifies the most likely class, the resulting posterior probabilities $p(y=c \mid \mathbf{x})$ often exhibit extreme overconfidence: the model assigns near-unit probability to its top prediction even when that prediction is wrong, effectively masking the true uncertainty of the classification.
-
-\paragraph{Uncertainty Collapse in High Dimensions}
-Under diagonal covariance Gaussian models, the log-likelihood for class $c$ is:
-\begin{equation}
-	\log p(\mathbf{x} \mid y=c) = \ln \mathcal{A}_c - \frac{1}{2} \underbrace{\sum_{i=1}^{d} \frac{(x_i - \mu_{c,i})^2}{\sigma_{c,i}^2}}_{m^2_c(\mathbf{x})}
-\end{equation}
-where $\ln \mathcal{A}_c = -\frac{d}{2}\ln(2\pi) - \frac{1}{2}\sum_i \ln(\sigma_{c,i}^2)$ is the log-normalisation constant and $m^2_c(\mathbf{x})$ is the squared Diag-Cov Mahalanobis distance. For truly Gaussian data this distance concentrates tightly around its expected value $d$ (see Section~\ref{sec:method:gaussianity}), but the \emph{difference} in log-likelihoods between the winning class and any other class grows with $d$. Intuitively, each of the $d=768$ standardised coordinates contributes a small increment to the distance gap, and these increments accumulate. When the raw log-likelihoods are converted into a posterior, even a modest advantage translates into a near-one-hot posterior: the probability mass collapses almost entirely onto the single best-fitting class. This \emph{uncertainty collapse} makes the raw posterior probabilities unreliable as confidence estimates, which is particularly harmful in continual learning, where the number of competing classes grows with each new task.
-
-\paragraph{Bayesian Temperature Scaling}
-To recover reliable uncertainty estimates without altering the MAP decision boundary, we introduce a Temperature Scaling parameter $T > 0$ directly into the Bayesian inference process. We treat $T$ as a global smoothing factor applied to the log-likelihoods before softmax normalisation. The calibrated posterior is:
-\begin{equation}
-	p(y=c \mid \mathbf{x};\, T) = \exp \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=c) - \mathcal{L}_E \right)
-\end{equation}
-where $\mathcal{L}_E$ is the log-evidence computed via the numerically stable logsumexp operator:
-\begin{equation}
-	\mathcal{L}_E = \operatorname{logsumexp}_{j \in \mathcal{Y}} \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=j) \right)
-\end{equation}
-Choosing $T > 1$ divides all log-likelihoods by $T$, shrinking the differences between classes proportionally and \emph{softening} the posterior distribution. Choosing $T < 1$ sharpens it. Crucially, $T$ does not change the rank order of the log-likelihoods, so the MAP prediction is preserved. The effect on uncertainty is captured by the calibration metrics defined in Section~\ref{sec:method:metrics}: a well-chosen $T$ reduces the Expected Calibration Error (ECE), lowers the Confidence on Errors (CoE), and brings the predictive entropy closer to the difficulty of the task.
-
-\subsection{Spectral Analysis of the Embedding Space}
-\label{sec:method:gaussianity:pca}
-
-To characterise the global structure of the DINOv2 feature space, independently of the class-conditional model, we compute the PCA spectrum of the $\ell_2$-normalised embeddings pooled across all training classes.
-The $d=768$ eigenvalues of the empirical data covariance are sorted in decreasing order; we report both the individual percentage-of-variance contribution of each principal component and the cumulative explained variance.
-This diagnostic measures the \emph{effective intrinsic dimensionality} of the shared representation: a rapid eigenvalue decay implies that the discriminative signal is concentrated in a low-dimensional subspace, whereas a slow decay indicates that the signal is distributed across the full ambient space.
-The spectral profile also constrains the effective rank available to the per-class covariance estimators: a per-class estimator can only populate directions already covered by the pooled class spectrum.
-Results are reported in Section~\ref{sec:pca_results}.
-
-\subsection{Inter-Class Pairwise KL Divergence}
-\label{sec:method:gaussianity:interclass}
-
-While the per-class KL of Section~\ref{sec:method:gaussianity:multivariate} measures goodness-of-fit of individual classes to the diagonal-Gaussian model, the \emph{inter-class} pairwise KL divergence measures how distinguishable any two class-conditional Gaussians are from one another.
-Under the diagonal-Gaussian parameterisation, the KL divergence from class~$c$ to class~$c'$ has the closed form:
-\begin{equation}
-    D_{\mathrm{KL}}\!\left(\mathcal{N}(\boldsymbol{\mu}_c,\Sigma_c)\,\|\,\mathcal{N}(\boldsymbol{\mu}_{c'},\Sigma_{c'})\right)
-    = \frac{1}{2}\!\left[\sum_{j=1}^{d}\frac{\sigma_{c,j}^{2}}{\sigma_{c',j}^{2}}
-      + \sum_{j=1}^{d}\frac{(\mu_{c',j}-\mu_{c,j})^{2}}{\sigma_{c',j}^{2}}
-      - d
-      + \sum_{j=1}^{d}\ln\frac{\sigma_{c',j}^{2}}{\sigma_{c,j}^{2}}\right].
-    \label{eq:interclass_kl}
-\end{equation}
-As a practical scale reference: pairs with $\mathrm{KL}>100$ are well-separated and reliably classified; pairs with $20\le\mathrm{KL}\le100$ exhibit moderate overlap with occasional errors; pairs with $\mathrm{KL}<20$ are strongly overlapping and constitute the primary confusion sources.
-We track three statistics as the class count grows: (a)~the mean pairwise KL with a $[\mathrm{P}_{10},\mathrm{P}_{90}]$ percentile band, (b)~the minimum pairwise KL (the hardest class pair), and (c)~the count of pairs below reference thresholds of $\mathrm{KL}=50$ and $\mathrm{KL}=100$.
-Together, these three curves characterise the class-confusion landscape that the Bayesian classifier must navigate as the continual-learning stream progresses.
-
-\subsection{Gaussianity Tests}
-\label{sec:method:gaussianity}
-
-Before committing to a class-conditional Gaussian classifier we must verify that the assumption is empirically defensible on the DINOv2 embedding space.
-We employ three complementary tests, arranged from weakest (moment-based) to strongest (formal hypothesis test) for the univariate case, plus a separate multivariate test.
-
-\subsubsection{Per-Dimension Gaussianity: Moments and Formal Test}
-\label{sec:method:gaussianity:moments}
-\phantomsection\label{sec:method:gaussianity:normaltest}
-
-To verify Gaussianity at the level of individual feature coordinates, we use three complementary indicators applied to every (class~$c$, dimension~$j$) pair across the 80\,\% training split.
-
-\paragraph{Shape moments.}
-Following the normality diagnostics of Pearson~\cite{pearson1895skewness} and D'Agostino and Pearson~\cite{dagostino1971omnibus,dagostino1973tests}, we compute the sample skewness and excess kurtosis for each class~$c$ along each of the $d=768$ coordinates:
-\begin{equation}
-\widehat{\mathrm{Skew}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^3}{\hat\sigma_{c,j}^{3}},\qquad
-\widehat{\mathrm{Kurt}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^4}{\hat\sigma_{c,j}^{4}} - 3,
-\label{eq:moments}
-\end{equation}
-so that both quantities vanish exactly for a Gaussian~\cite{pearson1895skewness,joyce2011kurtosis}. We report their mean, standard deviation, mean absolute value, and the fraction of coordinates satisfying the informal cut-offs $|\mathrm{Skew}|<0.5$ and $|\mathrm{Kurt}|<1.0$.
-
-\paragraph{D'Agostino--Pearson omnibus test.}
-The moments alone do not constitute a formal statistical test. We therefore apply the D'Agostino--Pearson omnibus test (\texttt{scipy.stats.normaltest}) to every (class, dimension) pair~\cite{dagostino1971omnibus,dagostino1973tests}. The test combines the two shape statistics into a single composite statistic:
-\begin{equation}
-K^2 \;=\; Z_1\!\left(\widehat{\mathrm{Skew}}\right)^2 + Z_2\!\left(\widehat{\mathrm{Kurt}}\right)^2 \;\sim\; \chi^2_2 \quad \text{under } H_0,
-\label{eq:normaltest}
-\end{equation}
-where $Z_1$ and $Z_2$ are normalised transformations of the skewness and kurtosis estimators respectively, and $H_0$ is the hypothesis that the data are normally distributed. We reject $H_0$ at $\alpha=0.05$ and report the fraction of pairs that \emph{pass} the test (i.e.\ fail to reject normality).
-
-\paragraph{Relaxed criterion.}
-Because the omnibus test is sensitive to the relatively large class sizes available ($n_c\!\approx\!80$--$400$)---even minor departures from perfect normality accumulate into significant $K^2$ values---we supplement it with a size-independent indicator: a dimension is classified as near-Gaussian if $|\mathrm{Skew}|<1$ \emph{and} $|\mathrm{Kurt}|<1$ hold simultaneously. The strict test and the relaxed criterion together provide a lower and an upper bound on the fraction of approximately Gaussian feature dimensions; both are reported in Section~\ref{sec:gaussianity_results}.
-
-\subsubsection{Multivariate Gaussianity via Per-Class KL Divergence}
-\label{sec:method:gaussianity:multivariate}
-
-Per-dimension normality is necessary but not sufficient for the joint $d$-dimensional distribution to be Gaussian. A set of coordinates can be individually normal but jointly non-Gaussian if they are non-linearly dependent or if higher-order cross-moments deviate from the Gaussian expectation. We therefore complement the univariate analysis with a multivariate test based on the geometry of the Mahalanobis distance.
-
-\paragraph{From Mahalanobis distances to a chi-squared reference.}
-Under the diagonal-Gaussian model, the $d$ standardised residuals $(x_j - \mu_{c,j})/\sigma_{c,j}$ should be independent standard normals. Their sum of squares is the squared Diag-Cov Mahalanobis distance:
-\begin{equation}
-m^2_c(\mathbf{x}) \;=\; \sum_{j=1}^{d} \frac{(x_j - \mu_{c,j})^2}{\sigma_{c,j}^2}.
-\label{eq:mahal_chisq}
-\end{equation}
-By the additive property of the chi-squared distribution, if the model is correct then $m^2_c(\mathbf{x}) \sim \chi^2_d$ with $d=768$ degrees of freedom. This gives a concrete, parameter-free reference: a class whose empirical distance distribution matches $\chi^2_{768}$ is fully consistent with the diagonal Gaussian assumption; systematic deviations indicate that the joint structure departs from it.
-
-\paragraph{KL divergence as a per-class goodness-of-fit score.}
-For each class $c$ we compute $m^2_c(\mathbf{x})$ for all training samples, build an empirical histogram $p_c$ over a fixed bin grid, and measure the discrepancy from the theoretical $\chi^2_{768}$ density $q$ using the KL divergence:
-\begin{equation}
-D_{\mathrm{KL}}(p_c \,\|\, q) \;=\; \sum_{i} p_c(i)\,\log\!\frac{p_c(i)}{q(i) + \epsilon},
-\label{eq:kl_mv}
-\end{equation}
-where the sum runs over non-empty histogram bins and $\epsilon=10^{-10}$ prevents division by zero. A value of $D_{\mathrm{KL}} \approx 0$ means the class's distance distribution is practically indistinguishable from $\chi^2_{768}$---the diagonal Gaussian model fits well. A large value means the empirical mass is concentrated or shifted relative to the reference: either the distribution is too narrow (pointing to rank deficiency or strong correlations) or too heavy-tailed (indicating multimodality or outliers). The per-class KL values are averaged across all classes to produce a single per-dataset goodness-of-fit score.
-
-\paragraph{Monte Carlo calibration of practical thresholds.}
-Even perfectly Gaussian data produce a non-zero KL value when sampled at finite $n_c$, because the empirical histogram is noisy. To quantify this \emph{finite-sample noise floor}, we draw $N_{\mathrm{sim}}=500$ synthetic Gaussian classes from $\mathcal{N}(\mathbf{0},\mathbf{I}_d)$ using the same median class size $\bar{n}_c$ as the real dataset and compute their histogram-KL under identical binning. The 95th percentile of this synthetic distribution, $\mathrm{KL}_{\mathrm{base}}$, is the KL one would expect from a truly Gaussian class purely due to sampling variation. The \emph{excess factor} $F = \mathrm{KL}_{\mathrm{obs}} / \mathrm{KL}_{\mathrm{base}}$ then measures how many times the observed KL exceeds the Gaussian noise floor, providing a sample-size-corrected indicator of multivariate non-Gaussianity. In addition, we apply fixed absolute thresholds (low: $\mathrm{KL}<5$; moderate: $5\le\mathrm{KL}<10$; high: $\mathrm{KL}\ge10$) to classify individual classes---where a low KL indicates an approximately Gaussian class---allowing a direct count of how many classes deviate substantially from the diagonal Gaussian reference.
-
-Because the DINOv2 backbone is shared across all benchmarks, the Gaussianity analysis is reported only for this feature extractor; backbones with markedly different statistical priors are evaluated in Section~\ref{sec:method:backbones} through the downstream classification metrics.
 
 \subsection{Confidence and Calibration Metrics}
 
@@ -594,21 +589,3 @@ Table~\ref{tab:metrics_summary} collects all six metrics (accuracy and the five 
 		\bottomrule
 	\end{tabular}
 \end{table}
-
-\subsection{Model Metrics}
-
-To quantify performance, SOTA works \cite{wang2022learning} utilize two standard metrics derived from the test accuracy scores: the average accuracy and the average forgetting.
-
-On the one hand, \textbf{Average Accuracy ($A_t$)}, presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point.
-
-\begin{equation}
-	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}
-	\label{eq_AA}
-\end{equation}
-
-On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops.
-
-\begin{equation}
-	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right)
-	\label{eq_AF}
-\end{equation}

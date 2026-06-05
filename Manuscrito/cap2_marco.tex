@@ -166,6 +166,96 @@ The MAP decision rule becomes
 	\right].
 \end{equation}
 
+\subsection{Gaussianity Assumptions and Analysis}
+In the context of generative modeling for foundation feature spaces, the validity of the Bayes classifier depends on how well the class-conditional Gaussian distributions approximate the true data distribution. The following analytical framework establishes the statistical basis for these assumptions.
+
+\subsubsection{Principal Component Analysis}
+\label{sec:marco:pca}
+
+Principal Component Analysis (PCA) is a linear dimensionality-reduction technique that finds an orthonormal basis for the data by diagonalising the empirical covariance matrix~\cite{jolliffe2002principal}. Given a centred data matrix $\mathbf{X} \in \mathbb{R}^{N \times d}$ (zero-mean columns), the empirical covariance is
+
+\begin{equation}
+\mathbf{S} = \frac{1}{N-1}\mathbf{X}^{T}\mathbf{X}.
+\end{equation}
+
+Its eigendecomposition $\mathbf{S} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^{T}$ yields orthonormal eigenvectors $\mathbf{P} = [\mathbf{p}_1, \ldots, \mathbf{p}_d]$ sorted so that the corresponding eigenvalues satisfy $\lambda_1 \ge \lambda_2 \ge \cdots \ge \lambda_d \ge 0$. Each eigenvector $\mathbf{p}_i$ is a \emph{principal component} (PC), and $\lambda_i$ equals the variance of the data projected onto $\mathbf{p}_i$.
+
+\paragraph{Dimensionality reduction.}
+Retaining only the leading $k$ eigenvectors defines the projection matrix $\mathbf{P}_k = [\mathbf{p}_1, \ldots, \mathbf{p}_k] \in \mathbb{R}^{d \times k}$. A new observation $\mathbf{x} \in \mathbb{R}^d$ is mapped to a $k$-dimensional representation via
+
+\begin{equation}
+\tilde{\mathbf{x}} = \mathbf{P}_k^{T}(\mathbf{x} - \boldsymbol{\mu}),
+\label{eq:pca_project}
+\end{equation}
+
+where $\boldsymbol{\mu}$ is the global mean estimated from the training corpus. The resulting coordinates $\tilde{\mathbf{x}}$ are decorrelated: $\operatorname{Cov}(\tilde{\mathbf{x}}) = \operatorname{diag}(\lambda_1, \ldots, \lambda_k)$. The fraction of total variance preserved by the projection is
+
+\begin{equation}
+R(k) = \frac{\sum_{i=1}^{k}\lambda_i}{\sum_{i=1}^{d}\lambda_i}.
+\end{equation}
+
+\paragraph{Optimality and geometric interpretation.}
+Among all rank-$k$ linear projections, PCA minimises the mean-squared reconstruction error and maximises the variance of the projected data (Eckart--Young theorem~\cite{eckart1936approximation}). Geometrically, the projected subspace aligns with the axes of the data ellipsoid along which the observations spread most.
+
+\paragraph{Application to high-dimensional embeddings.}
+When the original dimension $d$ is large (e.g.\ $d=768$ for DINOv2 ViT-B/14) but the data occupy a low-dimensional subspace---as evidenced by rapid eigenvalue decay---reducing to $k \ll d$ dimensions before downstream classification offers two complementary benefits: (i) it concentrates the discriminative signal in fewer coordinates, potentially improving the accuracy of subsequent covariance estimators; and (ii) it reduces computational cost by a factor of $\mathcal{O}((d/k)^2)$ for quadratic (Mahalanobis) classifiers. The trade-off is that components beyond $k$ are discarded, which may remove residual discriminative information if the spectrum does not decay quickly enough.
+
+\subsubsection{Spectral Decay and Effective Dimensionality}
+
+The practical validity of high-dimensional Gaussian modeling is further supported by examining the spectral structure of the feature space through Principal Component Analysis (PCA). The covariance of the class-mean-centred embeddings can be decomposed as $\boldsymbol{\Sigma} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^T$, where the diagonal of $\boldsymbol{\Lambda}$ contains the eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$ and $\mathbf{P}$ holds the corresponding orthonormal eigenvectors.
+
+\paragraph{Variance concentration.}
+If the eigenvalue spectrum decays steeply---most variance is explained by the first $k \ll d$ components---then the effective dimensionality of the feature distribution is much lower than the nominal $d$. Concretely, the fraction of variance explained by the leading $k$ components is $\sum_{i=1}^{k}\lambda_i \,/\, \sum_{i=1}^{d}\lambda_i$.
+
+
+\subsubsection{Univariate Gaussianity}
+
+A second layer of theoretical justification involves examining the univariate properties of individual feature components.
+
+\paragraph{Kurtosis} This statistic measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution \cite{joyce2011kurtosis}. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails. Empirical evidence suggests that for many foundation model embeddings, kurtosis values typically fall within the range of $[-1, 1]$, justifying the Gaussian approximation.
+
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.37\textwidth]{imagenes/marco/kurtosis.png}
+	\caption{Visual representation of kurtosis levels: leptokurtic ($>0$), mesokurtic ($=0$) and platykurtic ($<0$) distributions \cite{joyce2011kurtosis}.}
+	\label{fig:kurtosis}
+\end{figure}
+
+\paragraph{Skewness} This measure quantifies the asymmetry of a distribution around its mean. As shown in Figure \ref{fig:skewness}, a symmetric distribution (center) is a fundamental assumption of the Gaussian model, implying that the mean $\boldsymbol{\mu}_c$, median, and mode coincide, providing an adequate representation of the class prototype within the embedding space. A positive skew (right) indicates a distribution with a long tail extending toward higher values, while a negative skew (left) indicates a long tail extending toward lower values. Significant skewness would suggest that the class-conditional mean is no longer a central representation of the feature distribution.
+
+\begin{figure}[ht]
+	\centering
+	\includegraphics[width=0.7\textwidth]{imagenes/marco/skeweness.jpg}
+	\caption{Comparison of negatively-skewed, symmetric and positively-skewed distributions \cite{pearson1895skewness}.}
+	\label{fig:skewness}
+\end{figure}
+
+
+\subsubsection{Multivariate Gaussianity}
+\label{sec:method:gaussianity:hz_theory}
+
+Per-dimension normality is necessary but not sufficient for the joint $d$-dimensional distribution to be Gaussian. The Henze--Zirkler (HZ) test~\cite{henze1990class} is an omnibus multivariate diagnostic that addresses this gap by comparing the empirical characteristic function of the data against the theoretical characteristic function of a multivariate normal distribution.
+
+Given $n$ centred samples $\mathbf{z}_i = \mathbf{x}_i - \hat{\boldsymbol{\mu}}_c$ and a smoothing bandwidth $b > 0$, the test statistic is built from three terms evaluated using the squared Mahalanobis distances $d_M^2(\cdot,\cdot)$ induced by the class covariance $\boldsymbol{\Sigma}_c$:
+
+\begin{equation}
+	A = \frac{1}{n^2} \sum_{j=1}^{n} \sum_{k=1}^{n} e^{-\frac{b^2}{2}d_M^2(\mathbf{z}_j, \mathbf{z}_k)},
+\end{equation}
+\begin{equation}
+	B = \frac{2}{n}(1+b^2)^{-d/2} \sum_{j=1}^{n} e^{-\frac{b^2}{2(1+b^2)}d_M^2(\mathbf{z}_j, \mathbf{0})},
+\end{equation}
+\begin{equation}
+	C = (1+2b^2)^{-d/2}.
+\end{equation}
+
+Term $A$ measures the average pairwise kernel similarity of the observed samples; term $B$ quantifies how consistently the empirical density decays away from the class centroid compared to a Gaussian; and term $C$ is the asymptotic self-similarity constant of a true $d$-dimensional Gaussian. The final statistic is:
+\begin{equation}
+	T_{n,b} = n \cdot \left[ A - B + C \right].
+\end{equation}
+
+Under the null hypothesis of multivariate normality, $T_{n,b}$ converges to a fixed value close to $1$; departures above $1$ indicate that the data is more structured (tighter clusters or heavier tails) than a Gaussian. The bandwidth $b$ controls the resolution of the characteristic function comparison and is set optimally as a function of $n$ and $d$ (see Section~\ref{sec:method:gaussianity}).
+
 \subsection{Advanced Covariance Estimation in High Dimensions}
 In many modern applications, such as image feature analysis using DINOv2, the dimensionality $d$ (often in the hundreds or thousands) often exceeds the sample size $n$. In this ``large $d$, small $n$" regime, the empirical sample covariance matrix (SCM) $S$ is a poor estimator: its eigenvalues are biased, and the matrix is singular if $n < d$. This singularity prevents the inversion of the matrix required for the quadratic form in classification and density estimation.
 
@@ -221,68 +311,6 @@ The OAS estimator \cite{Chen2010} refines the Ledoit-Wolf approach by assuming t
 \end{equation}
 
 OAS is specifically designed to minimize Mean Squared Error (MSE) under Gaussianity and often outperforms standard shrinkage when the data distribution is approximately normal.
-
-
-\subsection{Gaussianity Assumptions and Analysis}
-In the context of generative modeling for foundation feature spaces, the validity of the Bayes classifier depends on how well the class-conditional Gaussian distributions approximate the true data distribution. The following analytical framework establishes the statistical basis for these assumptions.
-
-\subsubsection{Spectral Decay and Effective Dimensionality}
-
-The practical validity of high-dimensional Gaussian modeling is further supported by examining the spectral structure of the feature space through Principal Component Analysis (PCA). The covariance of the class-mean-centred embeddings can be decomposed as $\boldsymbol{\Sigma} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^T$, where the diagonal of $\boldsymbol{\Lambda}$ contains the eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$ and $\mathbf{P}$ holds the corresponding orthonormal eigenvectors.
-
-\paragraph{Variance concentration.}
-If the eigenvalue spectrum decays steeply---most variance is explained by the first $k \ll d$ components---then the effective dimensionality of the feature distribution is much lower than the nominal $d$. Concretely, the fraction of variance explained by the leading $k$ components is $\sum_{i=1}^{k}\lambda_i \,/\, \sum_{i=1}^{d}\lambda_i$. A fast decay implies that the class distributions occupy a low-dimensional ellipsoidal manifold, which strengthens the Gaussian approximation: the dominant directions are few and well-estimated from training data, while the remaining directions contribute only noise.
-
-\paragraph{Implications for covariance estimation.}
-When most of the variance is contained in $k$ components with $k \ll d$, a full covariance estimator must reliably estimate $d(d+1)/2$ parameters from $n_c$ samples---a severely ill-posed problem when $n_c \ll d$. By contrast, a diagonal estimator requires only $d$ parameters and is well-conditioned even with few samples per class, at the cost of ignoring off-diagonal correlations. The degree to which these correlations matter depends on how much of the joint structure is captured by the diagonal terms alone; in a feature space with strong spectral decay, the most informative directions are already approximately captured by the per-coordinate variances.
-
-\subsubsection{Univariate Analysis: Kurtosis and Skewness}
-
-A second layer of theoretical justification involves examining the univariate properties of individual feature components.
-
-\paragraph{Kurtosis} This statistic measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution \cite{joyce2011kurtosis}. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails. Empirical evidence suggests that for many foundation model embeddings, kurtosis values typically fall within the range of $[-1, 1]$, justifying the Gaussian approximation.
-
-
-\begin{figure}[ht]
-	\centering
-	\includegraphics[width=0.37\textwidth]{imagenes/marco/kurtosis.png}
-	\caption{Visual representation of kurtosis levels: leptokurtic ($>0$), mesokurtic ($=0$) and platykurtic ($<0$) distributions \cite{joyce2011kurtosis}.}
-	\label{fig:kurtosis}
-\end{figure}
-
-\paragraph{Skewness} This measure quantifies the asymmetry of a distribution around its mean. As shown in Figure \ref{fig:skewness}, a symmetric distribution (center) is a fundamental assumption of the Gaussian model, implying that the mean $\boldsymbol{\mu}_c$, median, and mode coincide, providing an adequate representation of the class prototype within the embedding space. A positive skew (right) indicates a distribution with a long tail extending toward higher values, while a negative skew (left) indicates a long tail extending toward lower values. Significant skewness would suggest that the class-conditional mean is no longer a central representation of the feature distribution.
-
-\begin{figure}[ht]
-	\centering
-	\includegraphics[width=0.7\textwidth]{imagenes/marco/skeweness.jpg}
-	\caption{Comparison of negatively-skewed, symmetric and positively-skewed distributions \cite{pearson1895skewness}.}
-	\label{fig:skewness}
-\end{figure}
-
-
-\subsubsection{Multivariate Analysis: Mahalanobis Distance and the $\chi^2$ Reference}
-
-Per-dimension normality is necessary but not sufficient for the joint distribution to be Gaussian: the features could be marginally normal but jointly dependent in non-Gaussian ways. A principled way to probe the multivariate structure is through the squared Mahalanobis distance, which aggregates the deviation of a sample from its class prototype across all $d$ dimensions simultaneously.
-
-\paragraph{Full-covariance Mahalanobis distance.}
-For a sample $\mathbf{x}$ and class $c$ with mean $\boldsymbol{\mu}_c$ and covariance $\boldsymbol{\Sigma}_c \succ 0$, the squared Mahalanobis distance is:
-\begin{equation}
-	D^2(\mathbf{x}) = (\mathbf{x}-\boldsymbol{\mu}_c)^T \boldsymbol{\Sigma}_c^{-1} (\mathbf{x}-\boldsymbol{\mu}_c).
-\end{equation}
-If $\mathbf{x} \sim \mathcal{N}(\boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c)$ then $D^2(\mathbf{x}) \sim \chi^2_d$. This follows because $\boldsymbol{\Sigma}_c^{-1/2}(\mathbf{x}-\boldsymbol{\mu}_c) \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_d)$, and the sum of $d$ squared independent standard normal variates follows a chi-squared distribution with $d$ degrees of freedom.
-
-\paragraph{Diagonal-covariance case.}
-When the covariance is restricted to a diagonal form $\boldsymbol{\Sigma}_c = \mathrm{diag}(\sigma_{c,1}^2, \dots, \sigma_{c,d}^2)$, the Mahalanobis distance reduces to a sum of squared standardised residuals:
-\begin{equation}
-	m^2(\mathbf{x}) = \sum_{j=1}^{d} \frac{(x_j - \mu_{c,j})^2}{\sigma_{c,j}^2}.
-\end{equation}
-Each term $(x_j - \mu_{c,j})/\sigma_{c,j}$ is standard-normal if the $j$-th coordinate is Gaussian, and chi-squared-distributed with 1 degree of freedom when squared. If, in addition, the $d$ coordinates are jointly independent (i.e.\ the diagonal-Gaussian assumption holds exactly), then $m^2(\mathbf{x}) \sim \chi^2_d$ by additivity. The $\chi^2_d$ reference therefore serves as a simultaneous test of marginal normality \emph{and} joint independence of the feature coordinates.
-
-\paragraph{Practical test: KL divergence from $\chi^2_d$.}
-In practice, the theoretical distribution is used as a benchmark: for each class $c$, the empirical histogram of $m^2$ values computed on held-out training samples is compared to the $\chi^2_d$ density via the KL divergence $D_{\mathrm{KL}}(p_c \| q)$, where $q = \chi^2_d$. A value near zero indicates that the diagonal-Gaussian model captures the joint structure of the data; a large value signals systematic departures---either multimodality, heavy tails, or unmodelled inter-coordinate correlations. Since even a perfectly Gaussian class produces a non-zero KL due to finite-sample noise, the observed values must be interpreted relative to a Monte Carlo baseline computed from synthetic $\mathcal{N}(\mathbf{0},\mathbf{I}_d)$ samples at the same class size.
-
-\paragraph{Rank deficiency under full covariance.}
-The distribution of $D^2$ changes drastically when $\boldsymbol{\Sigma}_c$ is rank-deficient, which occurs whenever the number of training samples $n_c < d$. In this regime the empirical covariance spans a subspace of dimension at most $n_c - 1$, and the regularised Mahalanobis distance concentrates sharply near $n_c - 1$ rather than dispersing around the $\chi^2_d$ mode of $d - 2$. This collapse is directly observable as a spike in the histogram of $D^2$ values, and it propagates directly to the softmax posterior: the log-likelihood advantage of the closest class becomes astronomical, producing near-one-hot (degenerate) probability distributions regardless of the true inter-class similarity.
 
 
 \section{Continual Learning}
