@@ -1,4 +1,5 @@
-\chapter{Methodology} \label{methodology}
+\chapter{Methodology}
+\label{methodology}
 
 \section{Proposed Architecture}
 
@@ -73,108 +74,6 @@ On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{e
 
 Regarding forgetting, the proposed framework does not exhibit forgetting in the conventional sense, as previously learned class statistics are never modified when new classes are introduced. The measured forgetting values therefore primarily reflect the increased classification difficulty as the number of competing classes grows, rather than degradation of previously learned representations.
 
-
-\section{Feature-Space Characterization and Gaussianity Analysis}
-\label{sec:method:gaussianity_main}
-
-\subsection{Probabilistic Classification in High Dimension}
-\label{sec:method:highdimdim}
-
-In high-dimensional feature spaces such as those produced by foundational vision models, probabilistic classification faces a systematic calibration challenge. While the Maximum A Posteriori (MAP) decision rule correctly identifies the most likely class, the resulting posterior probabilities $p(y=c \mid \mathbf{x})$ often exhibit extreme overconfidence: the model assigns near-unit probability to its top prediction even when that prediction is wrong, effectively masking the true uncertainty of the classification.
-
-\paragraph{Uncertainty Collapse in High Dimensions}
-Under diagonal covariance Gaussian models, the log-likelihood for class $c$ is:
-\begin{equation}
-	\log p(\mathbf{x} \mid y=c) = \ln \mathcal{A}_c - \frac{1}{2} \underbrace{\sum_{i=1}^{d} \frac{(x_i - \mu_{c,i})^2}{\sigma_{c,i}^2}}_{m^2_c(\mathbf{x})}
-\end{equation}
-where $\ln \mathcal{A}_c = -\frac{d}{2}\ln(2\pi) - \frac{1}{2}\sum_i \ln(\sigma_{c,i}^2)$ is the log-normalisation constant and $m^2_c(\mathbf{x})$ is the squared Diag-Cov Mahalanobis distance. For truly Gaussian data this distance concentrates tightly around its expected value $d$ (see Section~\ref{sec:method:gaussianity}), but the \emph{difference} in log-likelihoods between the winning class and any other class grows with $d$. Intuitively, each of the $d=768$ standardised coordinates contributes a small increment to the distance gap, and these increments accumulate. When the raw log-likelihoods are converted into a posterior, even a modest advantage translates into a near-one-hot posterior: the probability mass collapses almost entirely onto the single best-fitting class. This \emph{uncertainty collapse} makes the raw posterior probabilities unreliable as confidence estimates, which is particularly harmful in continual learning, where the number of competing classes grows with each new task.
-
-\paragraph{Bayesian Temperature Scaling}
-To recover reliable uncertainty estimates without altering the MAP decision boundary, we introduce a Temperature Scaling parameter $T > 0$ directly into the Bayesian inference process. We treat $T$ as a global smoothing factor applied to the log-likelihoods before softmax normalisation. The calibrated posterior is:
-\begin{equation}
-	p(y=c \mid \mathbf{x};\, T) = \exp \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=c) - \mathcal{L}_E \right)
-\end{equation}
-where $\mathcal{L}_E$ is the log-evidence computed via the numerically stable logsumexp operator:
-\begin{equation}
-	\mathcal{L}_E = \operatorname{logsumexp}_{j \in \mathcal{Y}} \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=j) \right)
-\end{equation}
-Choosing $T > 1$ divides all log-likelihoods by $T$, shrinking the differences between classes proportionally and \emph{softening} the posterior distribution. Choosing $T < 1$ sharpens it. Crucially, $T$ does not change the rank order of the log-likelihoods, so the MAP prediction is preserved. The effect on uncertainty is captured by the calibration metrics defined in Section~\ref{sec:method:metrics}: a well-chosen $T$ reduces the Expected Calibration Error (ECE), lowers the Confidence on Errors (CoE), and brings the predictive entropy closer to the difficulty of the task.
-
-\subsection{Gaussianity Tests}
-\label{sec:method:gaussianity}
-
-Before committing to a class-conditional Gaussian classifier we must verify that the assumption is empirically defensible on the DINOv2 embedding space.
-We employ three complementary tests, arranged from weakest (moment-based) to strongest (formal hypothesis test) for the univariate case, plus a separate multivariate test.
-
-\subsubsection{Per-Dimension Gaussianity: Moments and Formal Test}
-\label{sec:method:gaussianity:moments}
-\phantomsection\label{sec:method:gaussianity:normaltest}
-
-To verify Gaussianity at the level of individual feature coordinates, we use three complementary indicators applied to every (class~$c$, dimension~$j$) pair across the 80\,\% training split.
-
-\paragraph{Shape moments.}
-Following the normality diagnostics of Pearson~\cite{pearson1895skewness} and D'Agostino and Pearson~\cite{dagostino1971omnibus,dagostino1973tests}, we compute the sample skewness and excess kurtosis for each class~$c$ along each of the $d=768$ coordinates:
-\begin{equation}
-\widehat{\mathrm{Skew}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^3}{\hat\sigma_{c,j}^{3}},\qquad
-\widehat{\mathrm{Kurt}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^4}{\hat\sigma_{c,j}^{4}} - 3,
-\label{eq:moments}
-\end{equation}
-so that both quantities vanish exactly for a Gaussian~\cite{pearson1895skewness,joyce2011kurtosis}. We report their mean, standard deviation, mean absolute value, and the fraction of coordinates satisfying the informal cut-offs $|\mathrm{Skew}|<0.5$ and $|\mathrm{Kurt}|<1.0$.
-
-\paragraph{D'Agostino--Pearson omnibus test.}
-The moments alone do not constitute a formal statistical test. We therefore apply the D'Agostino--Pearson omnibus test to every (class, dimension) pair~\cite{dagostino1971omnibus,dagostino1973tests}. The test combines the two shape statistics into a single composite statistic:
-\begin{equation}
-K^2 \;=\; Z_1\!\left(\widehat{\mathrm{Skew}}\right)^2 + Z_2\!\left(\widehat{\mathrm{Kurt}}\right)^2 \;\sim\; \chi^2_2 \quad \text{under } H_0,
-\label{eq:normaltest}
-\end{equation}
-where $Z_1$ and $Z_2$ are normalised transformations of the skewness and kurtosis estimators respectively, and $H_0$ is the hypothesis that the data are normally distributed. We reject $H_0$ at $\alpha=0.05$ and report the fraction of pairs that \emph{pass} the test (i.e.\ fail to reject normality).
-
-\paragraph{Relaxed criterion.}
-Because the omnibus test is sensitive to the relatively large class sizes available ($n_c\!\approx\!80$--$400$)---even minor departures from perfect normality accumulate into significant $K^2$ values---we supplement it with a size-independent indicator: a dimension is classified as near-Gaussian if $|\mathrm{Skew}|<1$ \emph{and} $|\mathrm{Kurt}|<1$ hold simultaneously. The strict test and the relaxed criterion together provide a lower and an upper bound on the fraction of approximately Gaussian feature dimensions; both are reported in Section~\ref{sec:gaussianity_results}.
-
-
-\subsubsection{Multivariate Gaussianity: Henze--Zirkler Test}
-\label{sec:method:gaussianity:multivariate}
-
-Per-dimension normality is necessary but not sufficient for the joint $d$-dimensional distribution to be Gaussian. A set of coordinates can each be marginally normal while the joint distribution departs from multivariate normality due to non-linear dependence or higher-order cross-moment structure. We therefore complement the univariate analysis with the Henze--Zirkler (HZ) test~\cite{henze1990class}, whose theoretical basis is described in Section~\ref{sec:method:gaussianity:hz_theory}.
-
-\paragraph{Implementation.}
-The test is applied directly in the native $d=768$ feature space using the diagonal covariance formulation, rather than delegating to a library that would internally construct a full sample covariance matrix---which is rank-deficient whenever $n_c < d$ and would yield degenerate results. Concretely, the Mahalanobis distances required by the HZ statistic are computed analytically by inverting the $d$ per-coordinate sample variances, with a numerical floor of $\varepsilon$ applied to guard against inactive dimensions. All available samples for each class are used (100\,\% of the data, no train/test split), since the test is applied for validation rather than as part of the training pipeline.
-
-\paragraph{Reported quantities.}
-For each benchmark we report the mean and standard deviation of $T_{\mathrm{HZ}}$ across all classes, together with the $[\mathrm{P}_{10}, \mathrm{P}_{90}]$ percentile band. Under perfect multivariate normality $T_{\mathrm{HZ}} = 1$ exactly; values above $1$ indicate that the data is more structured than a Gaussian. The results are reported in Section~\ref{sec:mv_gaussianity_results}.
-
-\subsection{Inter-Class Pairwise Bhattacharyya Distance}
-\label{sec:method:gaussianity:interclass}
-
-While the Henze--Zirkler test of Section~\ref{sec:method:gaussianity:hz_theory} measures the goodness-of-fit of individual classes to the diagonal-Gaussian model, the \emph{inter-class} pairwise Bhattacharyya distance measures how distinguishable any two class-conditional Gaussians are from one another.
-The Bhattacharyya distance is symmetric and provides a direct connection to the Bayes error rate via the Bhattacharyya coefficient $\rho_{ij} = e^{-D_B(i,j)}$.
-Under the diagonal-Gaussian parameterisation, the Bhattacharyya distance between classes $i$ and $j$ is:
-\begin{equation}
-    D_B(i,j)
-    = \frac{1}{8}(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)^{\top}
-      \bar{\Sigma}^{-1}
-      (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)
-      + \frac{1}{2}\ln\!\left(
-        \frac{\det\bar{\Sigma}}{\sqrt{\det\Sigma_i\,\det\Sigma_j}}
-      \right),
-    \label{eq:interclass_bhattacharyya}
-\end{equation}
-where $\bar{\Sigma} = (\Sigma_i + \Sigma_j)/2$.
-Because both $\Sigma_i$ and $\bar{\Sigma}$ are diagonal, all matrix operations reduce to element-wise arithmetic: determinants become sums of logs, and the matrix inverse reduces to element-wise reciprocals.
-$D_B=0$ indicates complete distributional overlap; larger values correspond to greater separability and a lower Bhattacharyya coefficient $\rho = e^{-D_B}$.
-We track three statistics as the class count grows: (a)~the mean pairwise $D_B$ with a $[\mathrm{P}_{10},\mathrm{P}_{90}]$ percentile band, (b)~the minimum pairwise $D_B$ (the hardest class pair), and (c)~the count of pairs below selected threshold values to characterise the tail of the distribution.
-Together, these three curves characterise the class-confusion landscape that the Bayesian classifier must navigate as the continual-learning stream progresses.
-
-\subsection{Spectral Analysis of the Embedding Space}
-\label{sec:method:gaussianity:pca}
-
-To characterise the global structure of the DINOv2 feature space, independently of the class-conditional model, we compute the PCA spectrum of the $\ell_2$-normalised embeddings pooled across all training classes.
-The $d=768$ eigenvalues of the empirical data covariance are sorted in decreasing order; we report both the individual percentage-of-variance contribution of each principal component and the cumulative explained variance.
-This diagnostic measures the \emph{effective intrinsic dimensionality} of the shared representation: a rapid eigenvalue decay implies that the discriminative signal is concentrated in a low-dimensional subspace, whereas a slow decay indicates that the signal is distributed across the full ambient space.
-The spectral profile also constrains the effective rank available to the per-class covariance estimators: a per-class estimator can only populate directions already covered by the pooled class spectrum.
-Results are reported in Section~\ref{sec:spectral_analysis}.
-
 \section{Covariance Estimation}
 \label{sec:covariance_estimation}
 
@@ -185,7 +84,7 @@ As mentioned, due to the high the dimensionality of the extracted feature, the e
 In this configuration, we assume that the features within each class $c$ are independent, leading to a diagonal covariance matrix $\Sigma_c = \text{diag}(\sigma_{c,1}^2, \sigma_{c,2}^2, \dots, \sigma_{c,d}^2)$. This simplification significantly reduces the number of parameters to estimate from $O(d^2)$ to $O(d)$, which is particularly advantageous when the dimensionality $d = 768$ is large relative to the number of samples per class.For each class $c \in \{1, \dots, C\}$, the mean vector $\mu_c$ and the diagonal elements of $\Sigma_c$ are computed as:
 
 \begin{equation}
-\mu_c = \frac{1}{n_c} \sum_{i=1}^{n_c} x_i, \quad \sigma_{c,j}^2 = \frac{1}{n_c} \sum_{i=1}^{n_c} (x_{i,j} - \mu_{c,j})^2 + \epsilon
+	\mu_c = \frac{1}{n_c} \sum_{i=1}^{n_c} x_i, \quad \sigma_{c,j}^2 = \frac{1}{n_c} \sum_{i=1}^{n_c} (x_{i,j} - \mu_{c,j})^2 + \epsilon
 \end{equation}
 where $\epsilon = 10^{-6}$ is a small constant added to ensure numerical stability and strictly positive variances. The log-likelihood of a test sample $\mathbf{x}$ belonging to class $c$ is determined by the discriminant function:
 
@@ -201,6 +100,11 @@ Under the assumption of a uniform prior $P(c)$ and Gaussian distribution, this s
 
 In the implementation, this is computed using a pre-calculated constant $\ln A_c = -\frac{d}{2}\ln(2\pi) - \frac{1}{2}\sum \ln(\sigma_{c,j}^2)$ and the squared Mahalanobis distance weighted by the inverse of the diagonal variances.
 
+\paragraph{Score component analysis.}
+To characterise how each term contributes to classification, the two components of the score are evaluated separately on the held-out validation partition. Gaussian parameters are estimated exclusively from the training partition and remain fixed. At evaluation time, every validation sample is scored against \emph{all} $C$ classes simultaneously, not only its ground-truth class. This produces a $C$-dimensional vector of volume terms $\{\ln A_c\}$ (one value per class, independent of any test sample) and a full $N_{\mathrm{val}} \times C$ matrix for both $d_{\mathrm{mah}}(\mathbf{x},c)$ and $\mathrm{score}(\mathbf{x},c)$. Inspecting the marginal distributions of these matrices reveals whether the classifier's decisions are dominated by the volume penalty (covariance geometry) or by the shape term (distance to the class mean), and whether the two components interact as expected under the Gaussian model.
+
+For the \textbf{diagonal-covariance} estimator the full $N_{\mathrm{val}} \times C$ matrix is computed in closed form via vectorised operations, since the precision matrix is diagonal. For the \textbf{full-covariance} estimator, the analysis is carried out on a random subsample of the validation partition to keep the computation tractable.
+
 
 \subsection{Full Covariances}
 
@@ -213,14 +117,64 @@ To account for the dependencies between different dimensions of the feature vect
 To ensure the matrix is invertible and to improve numerical stability, a regularizatio is applied by adding a small identity term to the diagonal: $\hat{\Sigma}_c = \Sigma_c + \epsilon I$, with $\epsilon = 10^{-6}$.The implementation performs the inversion and determinant calculation using the eigendecomposition of the symmetric covariance matrix, $\hat{\Sigma}_c = P \Lambda P^T$, where $\Lambda$ contains the eigenvalues $\lambda_j$. To further ensure stability, eigenvalues are clipped to a minimum value of $10^{-6}$. The inverse and the log-determinant are then computed as:
 \begin{equation}
 	\hat{\Sigma}_c^{-1} = P \Lambda^{-1} P^T, \quad \ln |\hat{\Sigma}_c| = \sum_{j=1}^{d} \ln(\lambda_j)
-	\end{equation}
-	
-	The discriminant function for classification is the full quadratic form:
-	\begin{equation}
-		g_c(\mathbf{x}) = \ln A_c - \frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_c)^T \hat{\Sigma}_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c)
-	\end{equation}
-		
-		where $\ln A_c = -\frac{1}{2} (d \ln(2\pi) + \ln |\hat{\Sigma}_c|)$.
+\end{equation}
+
+The discriminant function for classification is the full quadratic form:
+\begin{equation}
+	g_c(\mathbf{x}) = \ln A_c - \frac{1}{2} (\mathbf{x} - \boldsymbol{\mu}_c)^T \hat{\Sigma}_c^{-1} (\mathbf{x} - \boldsymbol{\mu}_c)
+\end{equation}
+
+where $\ln A_c = -\frac{1}{2} (d \ln(2\pi) + \ln |\hat{\Sigma}_c|)$.
+
+\subsection{Covariance Conditioning Analysis}
+\label{sec:method:conditioning}
+
+The sample covariance matrix $\hat{\Sigma}_c \in \mathbb{R}^{d \times d}$ estimated from $n_c$ training samples is rank-deficient whenever $n_c < d$.
+In our setting $d = 768$ while $n_c$ ranges from approximately $40$ to $400$ depending on the benchmark, so the matrix always has at most $n_c - 1$ non-zero eigenvalues out of $d = 768$, leaving $d - (n_c - 1)$ eigenvalues that are structurally zero before any regularisation is applied.
+To quantify this ill-conditioning we analyse the eigenvalue spectrum of the regularised matrix $\hat{\Sigma}_c^{\text{reg}} = \hat{\Sigma}_c + \varepsilon I$, $\varepsilon = 10^{-6}$, and compute the following metrics per class.
+
+\paragraph{Condition number.}
+The condition number is defined as the ratio of the largest to the smallest eigenvalue:
+\begin{equation}
+	\kappa(\hat{\Sigma}_c^{\text{reg}}) = \frac{\lambda_{\max}}{\lambda_{\min}},
+	\label{eq:condition_number}
+\end{equation}
+where $\lambda_{\max}$ and $\lambda_{\min}$ are the extremal eigenvalues of $\hat{\Sigma}_c^{\text{reg}}$.
+A large $\kappa$ indicates that the matrix is nearly singular in the sense that directions associated with small eigenvalues contribute negligible variance and inflate the Mahalanobis distance.
+We report $\log_{10}(\kappa)$ to compress the dynamic range.
+
+\paragraph{Effective dimensions.}
+A dimension $j$ is classified as \emph{effective} if $\lambda_j \geq \varepsilon_{\mathrm{thr}} = 10^{-4}$, and as \emph{degenerate} otherwise.
+The number of degenerate dimensions per class measures directly how many of the $d = 768$ directions are driven to the regularisation floor and thus carry no meaningful covariance information.
+
+\paragraph{Effective rank.}
+The entropy-based effective rank~\cite{roy2007effective} captures the spread of the eigenvalue distribution:
+\begin{equation}
+	r_{\mathrm{eff}}(\hat{\Sigma}_c^{\text{reg}})
+	= \exp\!\left(-\sum_{j=1}^{d} p_j \ln p_j\right),
+	\qquad p_j = \frac{\lambda_j}{\sum_{k}\lambda_k}.
+	\label{eq:effective_rank}
+\end{equation}
+This equals $d$ for a perfectly isotropic matrix ($\lambda_j = \mathrm{const}$) and equals $1$ when a single eigenvalue dominates.
+In practice it provides a soft count of the directions that carry the bulk of the variance.
+
+\subsection{Cross-Class Frobenius Norm Analysis}
+\label{sec:method:frobenius}
+
+To characterise the geometric diversity of the class-conditional covariance matrices after regularisation, we compute all pairwise Frobenius distances:
+\begin{equation}
+	D_{ij}^F = \|\hat{\Sigma}_i^{\text{reg}} - \hat{\Sigma}_j^{\text{reg}}\|_F
+	= \sqrt{\sum_{k,l}\!\left(\hat{\sigma}_{i,kl} - \hat{\sigma}_{j,kl}\right)^2},
+	\label{eq:frobenius_dist}
+\end{equation}
+where $\hat{\Sigma}_c^{\text{reg}} = \hat{\Sigma}_c + \gamma I$, $\gamma = 10^{-6}$.
+The resulting $C \times C$ symmetric matrix $\mathbf{D}^F$ with zero diagonal captures how similar or dissimilar any two class covariances are in the ambient Frobenius geometry.
+
+A small $D_{ij}^F$ indicates that classes $i$ and $j$ share nearly identical second-order statistics, implying that the Mahalanobis-based classifier must rely primarily on the mean displacement $\boldsymbol{\mu}_i - \boldsymbol{\mu}_j$ rather than covariance contrast.
+Conversely, a large $D_{ij}^F$ indicates that the covariance geometry itself provides additional discriminative information beyond the first-order term.
+
+We summarise the resulting distribution via its mean, standard deviation, and percentile bands, and visualise the full $C \times C$ heatmap for each benchmark.
+Results are reported in Section~\ref{sec:covariance_structure_results}.
 
 \subsection{Hybrid Covariance}
 The hybrid covariance estimator decouples the estimation of the Mahalanobis distance from the normalisation constant.For each class $c$, the full covariance matrix $\hat{\Sigma}_c$ is estimated and regularized as described in the previous section:
@@ -299,14 +253,14 @@ where $N$ is the total number of training samples and $\mu_{c,j}$ is the mean of
 \subsubsection{Shared Hybrid Covariance}
 
 The shared hybrid approach serves as a regularized middle ground. It utilizes the full shared precision matrix $\Psi$ for the quadratic distance calculation to capture feature interactions, but simplifies the normalization constant (the log-determinant) by considering only the diagonal elements of the shared matrix. This prevents the classification scores from being dominated by extreme eigenvalues while still benefiting from the descriptive power of the full correlation structure.
-	
+
 \subsection{Mixture of Gaussians}
 
 In order to capture potential multi-modality within the feature space of a single class, we employ Gaussian Mixture Models (GMM). We implemented the following models using the previously defined diagonal, full and hybrid covariances approaches.
 
 \subsubsection{Mixture of 2 Gaussians}
 
- Forcing each class to be defined as a GMM with $K=2$ components, each class $c$ can be modeled by a probability density function:
+Forcing each class to be defined as a GMM with $K=2$ components, each class $c$ can be modeled by a probability density function:
 
 \begin{equation}
 	p(\mathbf{x}|c) = \sum_{k=1}^{K} \pi_{c,k} \mathcal{N}(x | \mu_{c,k}, \Sigma_{c,k})
@@ -342,6 +296,193 @@ where $n$ is the number of samples in the class, $k$ is the number of free param
 \end{equation}
 
 where $\text{LSE}$ denotes the LogSumExp operator. This methodology allows for a more granular representation of class distributions—using a single Gaussian for simple, compact classes and up to four Gaussians for classes with high intra-class variance or distinct visual sub-clusters—while preserving the numerical efficiency of diagonal estimators.
+
+
+\section{Final-State Confusion Matrix Evaluation}
+\label{sec:method:confusion_matrix}
+
+The confusion matrix at the final incremental state $T_{\max}$ provides a diagnostic complementary to the scalar accuracy and calibration metrics reported in Sections~\ref{sec:covariance_estimation} and~\ref{sec:method:calibration_gaussianity}. While average accuracy collapses all per-class errors into a single scalar, the confusion matrix reveals the full joint distribution of true and predicted labels, exposing structured misclassification patterns---such as visual or semantic similarity between classes---that are otherwise invisible.
+
+
+\subsection{Confusion Matrix Definition}
+
+Let $\mathcal{D}_{\mathrm{test}} = \{(\mathbf{x}_i, y_i)\}_{i=1}^{M}$ be the held-out test partition, where $y_i \in \mathcal{C}_{T_{\max}}$ is the ground-truth label and $\hat{y}_i = \arg\max_{c} \log p(\mathbf{x}_i \mid c)$ is the label predicted by maximum-likelihood classification. The confusion matrix $\mathbf{M} \in \mathbb{Z}_{\geq 0}^{N \times N}$ is defined entry-wise as
+\begin{equation}
+    M_{c,\hat{c}} = \bigl|\{i : y_i = c \;\wedge\; \hat{y}_i = \hat{c}\}\bigr|, \qquad c, \hat{c} \in \{0, \ldots, N-1\}.
+    \label{eq:confusion_matrix}
+\end{equation}
+Rows index true classes and columns index predicted classes; a perfect classifier yields a diagonal matrix. For visualisation the row-normalised version
+\begin{equation}
+    \tilde{M}_{c,\hat{c}} = \frac{M_{c,\hat{c}}}{\displaystyle\sum_{\hat{c}'} M_{c,\hat{c}'}}
+    \label{eq:confusion_matrix_norm}
+\end{equation}
+is displayed, so that each row sums to one and represents the empirical misclassification distribution for a single true class.
+
+\subsection{Mahalanobis-Only Inference}
+\label{sec:method:mahal_only}
+
+The standard Gaussian classifier assigns each class $c$ the log-posterior score
+\begin{equation}
+    s_c(\mathbf{x}) = \log A_c - \tfrac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_c)^\top \Sigma_c^{-1}(\mathbf{x} - \boldsymbol{\mu}_c),
+    \label{eq:gaussian_score}
+\end{equation}
+where the log-normalisation constant $\log A_c = -\tfrac{d}{2}\log(2\pi) - \tfrac{1}{2}\log|\Sigma_c|$ depends on the determinant of $\Sigma_c$. For the diagonal model, $\log A_c = -\tfrac{d}{2}\log(2\pi) - \tfrac{1}{2}\sum_{j=1}^{d}\log\sigma_{c,j}^2$; for the full model, $\log A_c = -\tfrac{d}{2}\log(2\pi) - \tfrac{1}{2}\sum_{k}\log\lambda_{c,k}$, where $\{\lambda_{c,k}\}$ are the eigenvalues of $\Sigma_c$.
+
+The \emph{Mahalanobis-only} variant removes the normalisation term entirely, reducing the decision rule to the squared Mahalanobis distance alone:
+\begin{equation}
+    \tilde{s}_c(\mathbf{x}) = -\tfrac{1}{2}(\mathbf{x} - \boldsymbol{\mu}_c)^\top \Sigma_c^{-1}(\mathbf{x} - \boldsymbol{\mu}_c).
+    \label{eq:mahal_score}
+\end{equation}
+The predicted class is still $\hat{y} = \arg\max_c \tilde{s}_c(\mathbf{x})$. Geometrically, each class boundary is now determined solely by the inverse covariance shape (the ellipsoidal metric) rather than by the combination of shape and volume encoded in $\log A_c$.
+
+This ablation isolates the contribution of the log-determinant term. When all classes share the same covariance (e.g.\ a common LDA-style matrix), $\log A_c$ is identical for all $c$ and cancels in the $\arg\max$; removing it has no effect. Differences emerge when per-class covariances have varying determinants: a class whose feature distribution occupies a large volume has a small $\log A_c$ (large $|\Sigma_c|$), which acts as a penalty in the full Gaussian rule. Removing $\log A_c$ therefore biases decisions toward high-volume classes and can degrade accuracy when class volumes differ meaningfully---as is the case for the diagonal model, where per-dimension variances are learned independently. Conversely, for the full-covariance model on balanced datasets, the eigenvalues tend to be similar across classes (all classes see the same number of training samples and similar covariance structure), so $\log A_c$ is approximately constant and the Mahalanobis-only and full-Gaussian rules are nearly equivalent.
+
+The ablation is implemented by substituting $\log A_c \leftarrow 0$ for all $c$ in the scoring function (Eq.~\ref{eq:gaussian_score}) while keeping the estimated parameters $\{\boldsymbol{\mu}_c, \Sigma_c^{-1}\}$ unchanged.
+
+
+\section{Feature-Space Characterization and Gaussianity Analysis}
+\label{sec:method:gaussianity_main}
+
+\subsection{Probabilistic Classification in High Dimension}
+\label{sec:method:highdimdim}
+
+In high-dimensional feature spaces such as those produced by foundational vision models, probabilistic classification faces a systematic calibration challenge. While the Maximum A Posteriori (MAP) decision rule correctly identifies the most likely class, the resulting posterior probabilities $p(y=c \mid \mathbf{x})$ often exhibit extreme overconfidence: the model assigns near-unit probability to its top prediction even when that prediction is wrong, effectively masking the true uncertainty of the classification.
+
+\paragraph{Uncertainty Collapse in High Dimensions}
+Under diagonal covariance Gaussian models, the log-likelihood for class $c$ is:
+\begin{equation}
+	\log p(\mathbf{x} \mid y=c) = \ln \mathcal{A}_c - \frac{1}{2} \underbrace{\sum_{i=1}^{d} \frac{(x_i - \mu_{c,i})^2}{\sigma_{c,i}^2}}_{m^2_c(\mathbf{x})}
+\end{equation}
+where $\ln \mathcal{A}_c = -\frac{d}{2}\ln(2\pi) - \frac{1}{2}\sum_i \ln(\sigma_{c,i}^2)$ is the log-normalisation constant and $m^2_c(\mathbf{x})$ is the squared Diag-Cov Mahalanobis distance. For truly Gaussian data this distance concentrates tightly around its expected value $d$ (see Section~\ref{sec:method:gaussianity}), but the \emph{difference} in log-likelihoods between the winning class and any other class grows with $d$. Intuitively, each of the $d=768$ standardised coordinates contributes a small increment to the distance gap, and these increments accumulate. When the raw log-likelihoods are converted into a posterior, even a modest advantage translates into a near-one-hot posterior: the probability mass collapses almost entirely onto the single best-fitting class. This \emph{uncertainty collapse} makes the raw posterior probabilities unreliable as confidence estimates, which is particularly harmful in continual learning, where the number of competing classes grows with each new task.
+
+\paragraph{Bayesian Temperature Scaling}
+To recover reliable uncertainty estimates without altering the MAP decision boundary, we introduce a Temperature Scaling parameter $T > 0$ directly into the Bayesian inference process. We treat $T$ as a global smoothing factor applied to the log-likelihoods before softmax normalisation. The calibrated posterior is:
+\begin{equation}
+	p(y=c \mid \mathbf{x};\, T) = \exp \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=c) - \mathcal{L}_E \right)
+\end{equation}
+where $\mathcal{L}_E$ is the log-evidence computed via the numerically stable logsumexp operator:
+\begin{equation}
+	\mathcal{L}_E = \operatorname{logsumexp}_{j \in \mathcal{Y}} \!\left( \frac{1}{T} \log p(\mathbf{x} \mid y=j) \right)
+\end{equation}
+Choosing $T > 1$ divides all log-likelihoods by $T$, shrinking the differences between classes proportionally and \emph{softening} the posterior distribution. Choosing $T < 1$ sharpens it. Crucially, $T$ does not change the rank order of the log-likelihoods, so the MAP prediction is preserved. The effect on uncertainty is captured by the calibration metrics defined in Section~\ref{sec:method:metrics}: a well-chosen $T$ reduces the Expected Calibration Error (ECE), lowers the Confidence on Errors (CoE), and brings the predictive entropy closer to the difficulty of the task.
+
+\subsection{Gaussianity Tests}
+\label{sec:method:gaussianity}
+
+Before committing to a class-conditional Gaussian classifier we must verify that the assumption is empirically defensible on the DINOv2 embedding space.
+We employ three complementary tests, arranged from weakest (moment-based) to strongest (formal hypothesis test) for the univariate case, plus a separate multivariate test.
+
+\subsubsection{Per-Dimension Gaussianity: Moments and Formal Test}
+\label{sec:method:gaussianity:moments}
+\phantomsection\label{sec:method:gaussianity:normaltest}
+
+To verify Gaussianity at the level of individual feature coordinates, we use three complementary indicators applied to every (class~$c$, dimension~$j$) pair across the 80\,\% training split.
+
+\paragraph{Shape moments.}
+Following the normality diagnostics of Pearson~\cite{pearson1895skewness} and D'Agostino and Pearson~\cite{dagostino1971omnibus,dagostino1973tests}, we compute the sample skewness and excess kurtosis for each class~$c$ along each of the $d=768$ coordinates:
+\begin{equation}
+\widehat{\mathrm{Skew}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^3}{\hat\sigma_{c,j}^{3}},\qquad
+\widehat{\mathrm{Kurt}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^4}{\hat\sigma_{c,j}^{4}} - 3,
+\label{eq:moments}
+\end{equation}
+so that both quantities vanish exactly for a Gaussian~\cite{pearson1895skewness,joyce2011kurtosis}. We report their mean, standard deviation, mean absolute value, and the fraction of coordinates satisfying the informal cut-offs $|\mathrm{Skew}|<0.5$ and $|\mathrm{Kurt}|<1.0$.
+
+\paragraph{D'Agostino--Pearson omnibus test.}
+The moments alone do not constitute a formal statistical test. We therefore apply the D'Agostino--Pearson omnibus test to every (class, dimension) pair~\cite{dagostino1971omnibus,dagostino1973tests}. The test combines the two shape statistics into a single composite statistic:
+\begin{equation}
+K^2 \;=\; Z_1\!\left(\widehat{\mathrm{Skew}}\right)^2 + Z_2\!\left(\widehat{\mathrm{Kurt}}\right)^2 \;\sim\; \chi^2_2 \quad \text{under } H_0,
+\label{eq:normaltest}
+\end{equation}
+where $Z_1$ and $Z_2$ are normalised transformations of the skewness and kurtosis estimators respectively, and $H_0$ is the hypothesis that the data are normally distributed. We reject $H_0$ at $\alpha=0.05$ and report the fraction of pairs that \emph{pass} the test (i.e.\ fail to reject normality).
+
+\paragraph{Relaxed criterion.}
+Because the omnibus test is sensitive to the relatively large class sizes available ($n_c\!\approx\!80$--$400$)---even minor departures from perfect normality accumulate into significant $K^2$ values---we supplement it with a size-independent indicator: a dimension is classified as near-Gaussian if $|\mathrm{Skew}|<1$ \emph{and} $|\mathrm{Kurt}|<1$ hold simultaneously. The strict test and the relaxed criterion together provide a lower and an upper bound on the fraction of approximately Gaussian feature dimensions; both are reported in Section~\ref{sec:gaussianity_results}.
+
+
+\subsubsection{Multivariate Gaussianity: Henze--Zirkler Test}
+\label{sec:method:gaussianity:multivariate}
+
+Per-dimension normality is necessary but not sufficient for the joint $d$-dimensional distribution to be Gaussian. A set of coordinates can each be marginally normal while the joint distribution departs from multivariate normality due to non-linear dependence or higher-order cross-moment structure. We therefore complement the univariate analysis with the Henze--Zirkler (HZ) test~\cite{henze1990class}, whose theoretical basis is described in Section~\ref{sec:method:gaussianity:hz_theory}.
+
+\paragraph{Diagonal-covariance HZ at native resolution ($d=768$).}
+As a first pass, the test is applied in the native $d=768$ feature space using a manual diagonal-covariance formulation. The Mahalanobis distances required by the HZ statistic are computed analytically by inverting only the $d$ per-coordinate sample variances (circumventing the rank-deficiency that arises from full matrix inversion when $n_c<d$), with a numerical floor of $\varepsilon=10^{-10}$ applied to guard against inactive dimensions. All available samples for each class are used (100\,\% of the data, no train/test split). Under exact multivariate normality, $\mathbb{E}[T_{\mathrm{HZ}}] = 1 - (1+2b^2)^{-d/2} \to 1$ for large $d$ (Eq.~\ref{eq:hz_expected}), so $T_{\mathrm{HZ}} \approx 1$ is the Gaussian reference at native dimensionality. The resulting $T_{\mathrm{HZ}}$ values, together with their per-dataset histograms, are reported in Section~\ref{sec:mv_gaussianity_results}.
+
+\paragraph{PCA-reduced HZ (valid multivariate analysis).}
+To obtain a statistically informative multivariate HZ test, we project each class to a $K$-dimensional PCA subspace where the sample covariance is full rank ($K = \min(\lfloor n_c/3 \rfloor, 50)$ ensures $n_c \geq 3K$). The test is then applied by \texttt{pingouin.multivariate\_normality}~\cite{vallat2018pingouin} in this reduced space. The bandwidth $b$ follows the standard HZ recommendation~\cite{henze1990class}, and the same 80\,\% training split as the univariate tests is used. Because $K \leq 50 \ll d$, the kernel terms no longer underflow and the resulting $T_{\mathrm{HZ}}$ values---close to~$1$ for Gaussian data and growing monotonically with distributional complexity---are reported together with per-dataset histograms in Section~\ref{sec:mv_gaussianity_results}.
+
+\paragraph{Reported quantities (multivariate).}
+For each benchmark and each analysis variant (diagonal $d=768$ and PCA-reduced), we report the mean and standard deviation of $T_{\mathrm{HZ}}$ across all classes, together with the $[\mathrm{P}_{10}, \mathrm{P}_{90}]$ percentile band.
+
+\subsubsection{Univariate Henze--Zirkler Test per Dimension}
+\label{sec:method:gaussianity:hz_univariate}
+
+As a complement to both the moment-based diagnostics of Section~\ref{sec:method:gaussianity:moments} and the multivariate HZ test above, we introduce a univariate HZ analysis applied independently to every (class~$c$, dimension~$j$) pair. This bridges the two levels: it uses the same formal HZ statistic as the multivariate test but at $d=1$, providing a stricter hypothesis-based criterion than the D'Agostino--Pearson omnibus test while also being more interpretable than the full-dimensional multivariate result.
+
+\paragraph{Bandwidth.}
+For $d=1$ the standard HZ smoothing parameter reduces to:
+\begin{equation}
+b^2 \;=\; \frac{1}{2}\left(\frac{3}{4}\right)^{2/5} n_c^{-2/5},
+\label{eq:hz_bw_univariate}
+\end{equation}
+which decays as $n_c^{-2/5}$ and is small ($b^2 \approx 0.04$) for the class sizes encountered here ($n_c \in [60,\,400]$).
+
+\paragraph{Efficient vectorised computation.}
+For $d=1$ the pairwise kernel term in $T_{\mathrm{HZ}}$ can be expanded via its Taylor series around $b^2 x_j x_k = 0$:
+\begin{equation}
+A_m \;=\; \frac{1}{n_c^2}\sum_{j,k} e^{-\frac{b^2}{2}(z_{j,m}-z_{k,m})^2}
+      \;=\; \frac{1}{n_c^2}\sum_{\ell=0}^{L}
+            \frac{b^{2\ell}}{\ell!}\,S_\ell^2\;+\;\mathcal{O}\!\left((b^2)^{L+1}\right),
+\label{eq:hz_taylor}
+\end{equation}
+where $S_\ell = \sum_j v_{j,m}\,z_{j,m}^\ell$ and $v_{j,m} = \exp(-b^2 z_{j,m}^2 / 2)$. All $d=768$ dimensions are processed simultaneously; the memory footprint is $\mathcal{O}(n_c \cdot d)$ (no $n_c \times n_c$ matrix is formed). With $L=8$ terms the approximation error is below $10^{-6}$ for all encountered bandwidths, verified against the exact per-dimension computation.
+
+\paragraph{Expected value under $H_0$ and p-value.}
+Under exact normality the expected value of $T_{\mathrm{HZ}}$ for a $d$-dimensional problem is:
+\begin{equation}
+\mathbb{E}_{H_0}[T_{\mathrm{HZ}}] \;=\; 1 - (1 + 2b^2)^{-d/2},
+\label{eq:hz_expected}
+\end{equation}
+which unifies both the univariate and multivariate cases. For $d=1$ and the small bandwidths encountered here ($b^2\approx 0.04$), the term $(1+2b^2)^{-1/2}\approx 0.96$ remains close to~$1$, so $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]\approx 0.04$. For large $d$ (e.g.\ the $d=768$ multivariate case), even a modest bandwidth causes $(1+2b^2)^{-d/2}\to 0$, driving $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]\to 1$. In short, the Gaussian reference value is near~$0$ for $d=1$ and near~$1$ for large $d$; both cases follow from the same formula with different exponents. For the univariate analysis, with $d=1$, the expected value is approximately $0.04$ for $n_c=400$ and increases toward~$1$ as $n_c\to 0$ (fewer samples, wider kernel). Empirically, the ratio $T_{\mathrm{HZ}}\,/\,\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ follows a $\chi^2(1)$ distribution under $H_0$ (verified by simulation with coefficient of variation $\approx\sqrt{2}$), yielding the one-tailed p-value:
+\begin{equation}
+p \;=\; 1 - F_{\chi^2(1)}\!\left(\frac{T_{\mathrm{HZ}}}{\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]}\right).
+\label{eq:hz_pvalue}
+\end{equation}
+A dimension $j$ of class $c$ passes the test if $p > \alpha = 0.05$, i.e.\ $T_{\mathrm{HZ}} < 3.841\,\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$.
+
+\paragraph{Reported quantities (univariate HZ).}
+For each benchmark we report the distribution of $T_{\mathrm{HZ}}$ values over all $(C \times d)$ pairs (histograms), the mean per-class $T_{\mathrm{HZ}}$, and the fraction of pairs passing the test at $\alpha=0.05$. Results are in Section~\ref{sec:uv_hz_gaussianity_results}.
+
+\subsection{Inter-Class Pairwise Bhattacharyya Distance}
+\label{sec:method:gaussianity:interclass}
+
+While the Henze--Zirkler test of Section~\ref{sec:method:gaussianity:hz_theory} measures the goodness-of-fit of individual classes to the diagonal-Gaussian model, the \emph{inter-class} pairwise Bhattacharyya distance measures how distinguishable any two class-conditional Gaussians are from one another.
+The Bhattacharyya distance is symmetric and provides a direct connection to the Bayes error rate via the Bhattacharyya coefficient $\rho_{ij} = e^{-D_B(i,j)}$.
+Under the diagonal-Gaussian parameterisation, the Bhattacharyya distance between classes $i$ and $j$ is:
+\begin{equation}
+    D_B(i,j)
+    = \frac{1}{8}(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)^{\top}
+      \bar{\Sigma}^{-1}
+      (\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)
+      + \frac{1}{2}\ln\!\left(
+        \frac{\det\bar{\Sigma}}{\sqrt{\det\Sigma_i\,\det\Sigma_j}}
+      \right),
+    \label{eq:interclass_bhattacharyya}
+\end{equation}
+where $\bar{\Sigma} = (\Sigma_i + \Sigma_j)/2$.
+Because both $\Sigma_i$ and $\bar{\Sigma}$ are diagonal, all matrix operations reduce to element-wise arithmetic: determinants become sums of logs, and the matrix inverse reduces to element-wise reciprocals.
+$D_B=0$ indicates complete distributional overlap; larger values correspond to greater separability and a lower Bhattacharyya coefficient $\rho = e^{-D_B}$.
+We track three statistics as the class count grows: (a)~the mean pairwise $D_B$ with a $[\mathrm{P}_{10},\mathrm{P}_{90}]$ percentile band, (b)~the minimum pairwise $D_B$ (the hardest class pair), and (c)~the count of pairs below selected threshold values to characterise the tail of the distribution.
+Together, these three curves characterise the class-confusion landscape that the Bayesian classifier must navigate as the continual-learning stream progresses.
+
+\subsection{Spectral Analysis of the Embedding Space}
+\label{sec:method:gaussianity:pca}
+
+To characterise the global structure of the DINOv2 feature space, independently of the class-conditional model, we compute the PCA spectrum of the $\ell_2$-normalised embeddings pooled across all training classes.
+The $d=768$ eigenvalues of the empirical data covariance are sorted in decreasing order; we report both the individual percentage-of-variance contribution of each principal component and the cumulative explained variance.
+This diagnostic measures the \emph{effective intrinsic dimensionality} of the shared representation: a rapid eigenvalue decay implies that the discriminative signal is concentrated in a low-dimensional subspace, whereas a slow decay indicates that the signal is distributed across the full ambient space.
+The spectral profile also constrains the effective rank available to the per-class covariance estimators: a per-class estimator can only populate directions already covered by the pooled class spectrum.
+Results are reported in Section~\ref{sec:spectral_analysis}.
+
 
 \section{Generative-Discriminative Fusion and Re-ranking Strategies}
 

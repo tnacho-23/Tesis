@@ -64,7 +64,7 @@ Beyond large-scale pre-training, fine-grained classification is evaluated using:
 
 \begin{itemize}
 	\item \textbf{CIFAR-100:} Consists of 60,000 low-resolution ($32\times32$) images \cite{cifar100}. It is unique for its two-level hierarchy, where 100 ``fine'' classes are nested within 20 ``coarse'' superclasses, allowing for the evaluation of both specific and broad categorization.
-	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalisation. In this thesis we use the first 250 categories (approximately 28,100 images) so that the resulting class-incremental protocol can be divided into 10 balanced tasks of 25 classes each (see Chapter~\ref{methodolohy}).
+	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalisation. In this thesis we use the first 250 categories (approximately 28,100 images) so that the resulting class-incremental protocol can be divided into 10 balanced tasks of 25 classes each (see Chapter~\ref{methodology}).
 \end{itemize}
 
 \subsubsection{Self-Supervised Advancements: DINOv2}
@@ -311,6 +311,48 @@ The OAS estimator \cite{Chen2010} refines the Ledoit-Wolf approach by assuming t
 \end{equation}
 
 OAS is specifically designed to minimize Mean Squared Error (MSE) under Gaussianity and often outperforms standard shrinkage when the data distribution is approximately normal.
+
+\subsubsection{Frobenius Norm and Matrix Distance}
+\label{sec:marco:frobenius}
+
+The \textbf{Frobenius norm} of a matrix $\mathbf{A} \in \mathbb{R}^{m \times n}$ is defined as the square root of the sum of its squared entries:
+\begin{equation}
+    \|\mathbf{A}\|_F = \sqrt{\sum_{i=1}^{m}\sum_{j=1}^{n} a_{ij}^2}
+                     = \sqrt{\operatorname{tr}(\mathbf{A}^T\mathbf{A})}.
+    \label{eq:frobenius_norm}
+\end{equation}
+It is the natural extension of the Euclidean vector norm to matrices and satisfies all norm axioms (non-negativity, homogeneity, triangle inequality). For symmetric positive semi-definite matrices such as covariance matrices, it has two useful equivalent forms. Writing the eigendecomposition $\mathbf{A} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^T$,
+\begin{equation}
+    \|\mathbf{A}\|_F = \sqrt{\sum_{i=1}^{d}\lambda_i^2},
+\end{equation}
+so the Frobenius norm measures the $\ell_2$ norm of the eigenvalue vector.
+
+\paragraph{Frobenius distance between covariance matrices.}
+Given two regularised covariance matrices $\hat{\boldsymbol{\Sigma}}_i, \hat{\boldsymbol{\Sigma}}_j \in \mathbb{R}^{d \times d}$, their \emph{Frobenius distance} is:
+\begin{equation}
+    D^F_{ij} = \|\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j\|_F
+             = \sqrt{\operatorname{tr}\!\left[(\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j)^2\right]}.
+    \label{eq:frobenius_distance_theory}
+\end{equation}
+This quantity measures how geometrically similar the two class-conditional distributions are in their second-order structure, independently of mean displacement.
+A small $D^F_{ij}$ indicates that the two classes share nearly the same spread and correlation structure; a large value indicates that one class occupies a substantially different region of the feature covariance landscape.
+
+\paragraph{Relationship to Ledoit-Wolf optimality.}
+The Ledoit-Wolf shrinkage estimator~\cite{Ledoit2004} is derived precisely by minimising the \emph{expected} Frobenius loss between the estimated and the true covariance:
+\begin{equation}
+    \hat{\rho}^* = \arg\min_\rho\; \mathbb{E}\!\left[\|\hat{\boldsymbol{\Sigma}}_{LW}(\rho) - \boldsymbol{\Sigma}\|_F^2\right],
+\end{equation}
+which makes $D^F$ the natural loss criterion for evaluating covariance estimator quality. In the HDLSS regime ($n_c \ll d$), the sample covariance deviates substantially from the truth in Frobenius sense, and shrinkage reduces this deviation by pulling outlying eigenvalues toward a structured target.
+
+\paragraph{Sensitivity to regularisation.}
+When diagonal loading $\hat{\boldsymbol{\Sigma}}_c^{\text{reg}} = \hat{\boldsymbol{\Sigma}}_c + \varepsilon I$ is applied uniformly across classes, any class-to-class difference in $\hat{\boldsymbol{\Sigma}}_c$ is preserved exactly in $D^F_{ij}$, since the $\varepsilon I$ terms cancel:
+\begin{equation}
+    D^F_{ij}
+    = \|\hat{\boldsymbol{\Sigma}}_i^{\text{reg}} - \hat{\boldsymbol{\Sigma}}_j^{\text{reg}}\|_F
+    = \|\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j\|_F.
+\end{equation}
+However, when $n_c \ll d$ and the majority of eigenvalues of $\hat{\boldsymbol{\Sigma}}_c$ are near zero, $\hat{\boldsymbol{\Sigma}}_c \approx \mathbf{0}$ for most directions, so $\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j \approx \mathbf{0}$ and $D^F_{ij} \to 0$ regardless of class identity.
+This regularisation-collapse effect---analysed empirically in Section~\ref{sec:frobenius_results}---provides a diagnostic for whether full covariance estimation can provide meaningful discriminative structure beyond the diagonal approximation.
 
 
 \section{Continual Learning}
