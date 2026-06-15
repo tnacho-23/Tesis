@@ -128,12 +128,12 @@ Table~\ref{tab:mahal_ablation} compares the full Gaussian scoring rule (Eq.~\ref
 		\textbf{Cov.\ Model} & \textbf{Inference} & \textbf{CIFAR-100} & \textbf{Caltech-256} & \textbf{ImageNet-R} \\
 		\midrule
 		\multirow{3}{*}{Diag-Cov}
-		& Gaussian   & 86.63 & 90.06 & 77.12 \\
+		& Gaussian   & 86.07 & 90.06 & 77.12 \\
 		& Mahal-only & 78.75 & 72.64 & 65.52 \\
 		\midrule
 		\multirow{3}{*}{Full-Cov}
-		& Gaussian   & 88.07 & 90.01 & 75.08 \\
-		& Mahal-only & 88.07 & 90.01 & 75.08 \\
+		& Gaussian   & 88.48 & 90.01 & 75.08 \\
+		& Mahal-only & 88.48 & 90.01 & 75.08 \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -227,17 +227,17 @@ Table~\ref{tab:gaussianity_stats} reports the aggregate per-dimension Gaussianit
 
 \begin{table}[htb]
 	\centering
-	\caption{Per-feature normality tests on the training split. All percentages report the fraction of \emph{(class, dimension) pairs} satisfying the criterion, where each dataset contributes $C \times d$ pairs ($d=768$). \emph{normaltest} is the D'Agostino--Pearson composite test at $\alpha=0.05$ (H$_0$: the dimension is normally distributed); \emph{relaxed} is the joint criterion $|\mathrm{Skew}|<1$ \textbf{and} $|\mathrm{Kurt}|<1$; \emph{both} denotes pairs passing both criteria simultaneously. The median $p$-value is computed across all (class, dimension) pairs.}
+	\caption{Per-feature normality tests on the training split. All percentages report the fraction of \emph{(class, dimension) pairs} satisfying the criterion, where each dataset contributes $C \times d$ pairs ($d=768$). \emph{normaltest} is the D'Agostino--Pearson composite test at $\alpha=0.05$ (H$_0$: the dimension is normally distributed); \emph{relaxed} is the joint criterion $|\mathrm{Skew}|<1$ \textbf{and} $|\mathrm{Kurt}|<1$; \emph{both} denotes pairs passing both criteria simultaneously.}
 	\label{tab:gaussianity_normaltest}
 	\scriptsize
 	\setlength{\tabcolsep}{4pt}
 	\begin{tabular}{lcccc}
 		\toprule
-		\textbf{Dataset} & \textbf{normaltest (\% pairs)} & \textbf{relaxed (\% pairs)} & \textbf{both (\% pairs)} & \textbf{median $p$-value} \\
+		\textbf{Dataset} & \textbf{normaltest (\% pairs)} & \textbf{relaxed (\% pairs)} & \textbf{both (\% pairs)}\\
 		\midrule
-		CIFAR-100   & $70.0$ & $97.8$ & $70.0$ & $0.194$ \\
-		ImageNet-R  & $80.8$ & $91.6$ & $79.7$ & $0.317$ \\
-		Caltech-256 & $73.4$ & $82.3$ & $71.3$ & $0.244$ \\
+		CIFAR-100   & $70.0$ & $97.8$ & $70.0$ \\
+		ImageNet-R  & $80.8$ & $91.6$ & $79.7$ \\
+		Caltech-256 & $73.4$ & $82.3$ & $71.3$ \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -264,11 +264,11 @@ The reference point for interpreting the observed $T_{\mathrm{HZ}}$ values is th
 	\setlength{\tabcolsep}{4pt}
 	\begin{tabular}{lcc cc c}
 		\toprule
-		\textbf{Dataset} & \textbf{pairs} & $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ & $T_{\mathrm{HZ}}$ mean\,$\pm$\,std & $[\mathrm{P}_{10},\mathrm{P}_{90}]$ & median $p$-val \\
+		\textbf{Dataset} & \textbf{pairs} & $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ & $T_{\mathrm{HZ}}$ mean\,$\pm$\,std & $[\mathrm{P}_{10},\mathrm{P}_{90}]$ \\
 		\midrule
-		CIFAR-100   & 76\,800  & $\approx 0.04$ & $0.00052 \pm 0.00095$ & $[0.00002,\;0.00132]$ & $0.941$ \\
-		ImageNet-R  & 153\,600 & $\approx 0.06$ & $0.00134 \pm 0.00210$ & $[0.00006,\;0.00346]$ & $0.923$ \\
-		Caltech-256 & 192\,000 & $\approx 0.07$ & $0.00234 \pm 0.00379$ & $[0.00009,\;0.00605]$ & $0.903$ \\
+		CIFAR-100   & 76\,800  & $\approx 0.04$ & $0.00052 \pm 0.00095$ & $[0.00002,\;0.00132]$\\
+		ImageNet-R  & 153\,600 & $\approx 0.06$ & $0.00134 \pm 0.00210$ & $[0.00006,\;0.00346]$ \\
+		Caltech-256 & 192\,000 & $\approx 0.07$ & $0.00234 \pm 0.00379$ & $[0.00009,\;0.00605]$ \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -419,7 +419,7 @@ On CIFAR-100, increasing PCA dimensionality from 64 to 256 improves diagonal-cov
 \subsection{Conditioning Analysis}
 \label{sec:conditioning_results}
 
-Table~\ref{tab:conditioning} summarises the conditioning metrics of the regularised full covariance matrices $\hat{\Sigma}_c^{\text{reg}} = \hat{\Sigma}_c + 10^{-6}I$ computed on the 80\,\% training split (Section~\ref{sec:method:conditioning}). The three reported metrics characterise different aspects of how well-conditioned the per-class covariance is. The \textbf{condition number} $\kappa = \lambda_{\max}/\lambda_{\min}$ measures the spread between the largest and smallest eigenvalue; because it can span many orders of magnitude it is reported on a $\log_{10}$ scale. A high $\log_{10}(\kappa)$ means the matrix is nearly singular, so small perturbations in the data can cause large changes in the estimated inverse. \textbf{Degenerate dimensions} counts how many of the $d=768$ eigenvalues fall below the threshold $\varepsilon_{\mathrm{thr}}=10^{-4}$; these directions carry negligible variance and are effectively noise. \textbf{Effective rank} is the entropy-based soft count of informative directions (Eq.~\ref{eq:effective_rank}): unlike the hard rank it penalises unequal eigenvalue distributions, so a matrix whose variance is concentrated in a few directions will have a low effective rank even if many eigenvalues are technically non-zero.
+Table~\ref{tab:conditioning} summarises the conditioning metrics of the regularised full covariance matrices $\hat{\Sigma}_c^{\text{reg}} = \hat{\Sigma}_c + 10^{-6}I$ computed on the training split (Section~\ref{sec:method:conditioning}). The three reported metrics characterise different aspects of how well-conditioned the per-class covariance is. The \textbf{condition number} $\kappa = \lambda_{\max}/\lambda_{\min}$ measures the spread between the largest and smallest eigenvalue; because it can span many orders of magnitude it is reported on a $\log_{10}$ scale. A high $\log_{10}(\kappa)$ means the matrix is nearly singular, so small perturbations in the data can cause large changes in the estimated inverse. \textbf{Degenerate dimensions} counts how many of the $d=768$ eigenvalues fall below the threshold $\varepsilon_{\mathrm{thr}}=10^{-4}$; these directions carry negligible variance and are effectively noise. \textbf{Effective rank} is the entropy-based soft count of informative directions (Eq.~\ref{eq:effective_rank}): unlike the hard rank it penalises unequal eigenvalue distributions, so a matrix whose variance is concentrated in a few directions will have a low effective rank even if many eigenvalues are technically non-zero.
 
 \begin{table}[htb]
     \centering
@@ -468,11 +468,11 @@ Figure~\ref{fig:frob_heatmaps} shows the $C \times C$ pairwise Frobenius distanc
     \setlength{\tabcolsep}{5pt}
     \begin{tabular}{lcccccc}
         \toprule
-        \textbf{Dataset} & \textbf{Pairs} & Mean & Std & Min & Median & Max \\
+        \textbf{Dataset} & Mean & Std & Min & Median & Max \\
         \midrule
-        CIFAR-100   & 4\,950  & 329.26 & 41.05 & 146.15 & 328.29 & 457.02 \\
-        Caltech-256 & 31\,125 & 0.16   & 0.03  & 0.04   & 0.15   & 0.32   \\
-        ImageNet-R  & 19\,900 & 0.17   & 0.02  & 0.09   & 0.17   & 0.25   \\
+        CIFAR-100    & 329.26 & 41.05 & 146.15 & 328.29 & 457.02 \\
+        Caltech-256  & 0.16   & 0.03  & 0.04   & 0.15   & 0.32   \\
+        ImageNet-R   & 0.17   & 0.02  & 0.09   & 0.17   & 0.25   \\
         \bottomrule
     \end{tabular}
 \end{table}
