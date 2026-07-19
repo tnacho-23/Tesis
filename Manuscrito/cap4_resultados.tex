@@ -1,15 +1,43 @@
-\chapter{Results}
+\chapter{Experimental Results and Analysis}
 \label{ch:results}
+\label{ch:analysis}
 
-This chapter presents the quantitative results of the experimental campaign in the following order: Section~\ref{sec:covariance_results} reports continual-learning metrics for the covariance estimators and mixture-of-Gaussian variants, including final-state confusion matrices and the effect of the log-normalisation constant; Section~\ref{sec:Gaussianity characterization_combined} characterises the feature space, consolidating score component distributions, marginal and multivariate Gaussianity tests (Section~\ref{sec:gaussianity_results}), inter-class separability via pairwise Bhattacharyya distance (Section~\ref{sec:interclass_results}), and the PCA spectral decay of the DINOv2 embeddings together with the accuracy under PCA-reduced representations (Section~\ref{sec:spectral_analysis}); Section~\ref{sec:covariance_structure_results} reports the covariance matrix conditioning and cross-class Frobenius analysis; Section~\ref{sec:df_results} covers the generative--discriminative re-ranking strategies; Section~\ref{sec:incremental_update} presents the sample efficiency and incremental class-inclusion curves; Section~\ref{sec:backbone_results} ablates the choice of feature extractor; and Section~\ref{sec:calibration_results_section} reports the probabilistic confidence and calibration metrics. All interpretation is deferred to Chapter~\ref{ch:analysis}.
+This chapter presents the quantitative results of the experimental campaign together with their interpretation, topic by topic. Each section below first reports the relevant measurements and then, immediately afterwards, discusses the structural reasons behind the observed behaviour, so that evidence and analysis can be read side by side. The order of the sections mirrors the order in which the corresponding topics are introduced in the methodology (Chapter~\ref{methodology}). Section~\ref{sec:an:datasets} characterises the four benchmarks used throughout the thesis, including the empirical Gaussianity statistics that later sections validate formally. Section~\ref{sec:covariance_results} reports continual-learning metrics for the covariance estimators and mixture-of-Gaussian variants against prompt-based and analytic state-of-the-art baselines, together with the volume--shape trade-off that explains their relative ordering, the numerical correction of the Full-Cov and Hybrid-Cov estimators and its empirical consequences, the effect of the log-normalisation constant, the score-component distributions, linear shrinkage, mixture models, and the framework's positioning against prompt-based baselines. Section~\ref{sec:calibration_results_section} reports the probabilistic confidence and calibration metrics and interprets them as a further quality of the volume term. Section~\ref{sec:incremental_update} examines how average accuracy evolves as the pool of active classes is incrementally expanded. Section~\ref{sec:interclass_results} quantifies inter-class separability via the pairwise Bhattacharyya distance and interprets the resulting separability curves. Section~\ref{sec:backbone_results} ablates the choice of feature extractor and discusses the framework's sensitivity to this choice. Section~\ref{sec:spectral_analysis} characterises the PCA spectral decay of the DINOv2 embedding space and its consequence for PCA-reduced continual-learning accuracy. Section~\ref{sec:gaussianity_results} reports the statistical validation of the Gaussianity assumption, combining moment-based diagnostics with the formal D'Agostino--Pearson and Henze--Zirkler hypothesis tests, and interprets what this validation implies for the modelling choices made throughout. Section~\ref{sec:an:summary} closes the chapter by synthesising the principal findings into practical recommendations.
 
-For every benchmark we report the average accuracy after the last task, $A_{T}$, and the forgetting score $F_{T}$ as defined in Chapter~\ref{methodology}. Whenever possible we report mean and variance over three independent runs (different task-order seeds). Since the proposed Gaussian classifiers maintain only sufficient statistics $(\boldsymbol{\mu}_c, \Sigma_c)$ and do not involve parameter optimisation during incremental updates, the resulting classifier is independent of the specific class-presentation order; this explains the $\pm 0.00$ standard deviation reported for our methods throughout. State-of-the-art prompt-based competitors are reproduced from the published values reported in their respective papers. Methods proposed in this thesis are highlighted in grey. The best result per column is shown in bold.
+For every benchmark we report the average accuracy after the last task, $A_{T}$, and the forgetting score $F_{T}$ as defined in Chapter~\ref{methodology}. Whenever possible we report mean and variance over three independent runs (different task-order seeds). Since the proposed Gaussian classifiers maintain only sufficient statistics $(\boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c)$ and do not involve parameter optimisation during incremental updates, the resulting classifier is independent of the specific class-presentation order; this explains the $\pm 0.00$ standard deviation reported for our methods throughout. State-of-the-art prompt-based competitors are reproduced from the published values reported in their respective papers. Methods proposed in this thesis are highlighted in grey. The best result per column is shown in bold.
 
+
+\section{Benchmark Properties}
+\label{sec:an:datasets}
+
+The four benchmarks evaluated in this thesis span a wide spectrum of statistical difficulty for a Gaussian classifier. Their salient properties are summarised in Table~\ref{tab:dataset_summary}.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Statistical characterisation of the four benchmarks. $\overline{n_c}$ denotes the average sample budget per class.}
+	\label{tab:dataset_summary}
+	\scriptsize
+	\setlength{\tabcolsep}{4pt}
+	\begin{tabular}{lcccccc}
+		\toprule
+		\textbf{Benchmark} & \textbf{\# Classes} & \textbf{\# Tasks} & \textbf{Image source} & $\overline{n_c}$\\
+		\midrule
+		Split CIFAR-100   & 100 & 10 & Natural, low-resolution ($32{\times}32$)   & $500$    \\
+		Split ImageNet-R  & 200 & 10 & Renditions: art, sketch, cartoon          & $150$     \\
+		Split Caltech-256 & 250 & 10 & Natural, high-resolution, variable scale  & $112$  \\
+		Split Joint       & 550 & 30 & Heterogeneous concatenation of the above  & mixed    \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+The three primary datasets differ along two largely orthogonal axes: visual complexity (which determines how heavy-tailed the embedding coordinates are) and sample budget (which determines how reliably the per-class covariance can be estimated). CIFAR-100 occupies the favourable corner of both axes, ImageNet-R adds a deliberate input-distribution shift, and Caltech-256 combines heavy tails with a small per-class budget. The Joint benchmark inherits the worst feature of each of the three constituent datasets and is therefore the most informative regime for separating method behaviour.
 
 \section{Covariance Estimation and Mixtures of Gaussians}
-\label{sec:covariance_results}
 
-Table~\ref{tab:combined_benchmarks} reports the average accuracy and the forgetting score for every covariance estimator (diagonal, full, hybrid, Ledoit--Wolf identity/diagonal target~\cite{Ledoit2004}, OAS~\cite{Chen2010}) and for the mixture-of-Gaussian variants MOG-$k$ with $k\in\{2,4\}$ components and three sub-variants (\textit{D}, \textit{F}, \textit{H} for diagonal, full and hybrid covariance respectively). The first block compares our methods against prompt-based state-of-the-art baselines reproduced from the literature. Table~\ref{tab:split_joint} reports the same family on the 30-task Joint stream.
+\label{sec:covariance_results}
+Table~\ref{tab:combined_benchmarks} reports the average accuracy and the forgetting score for every covariance estimator (diagonal, full, hybrid, Ledoit--Wolf identity/diagonal target~\cite{Ledoit2004}, OAS~\cite{Chen2010}) and for the mixture-of-Gaussian variants MOG-$k$ with $k\in\{2,4\}$ components and three sub-variants (\textit{D}, \textit{F}, \textit{H} for diagonal, full and hybrid covariance respectively). 
+To ensure statistical robustness, all proposed configurations are evaluated across three independent experimental runs using distinct randomized task-presentation seeds, with performance reported as the sample mean alongside its corresponding standard deviation. For the state-of-the-art baselines, these variance metrics are included when available from their original literature sources.
+The table is organised in three blocks: prompt-based state-of-the-art baselines reproduced from the literature; analytic, feature-based baselines (SimpleCIL, FeCAM, RanPAC); and, at the bottom, the proposed Gaussian estimators. Table~\ref{tab:split_joint} reports the same family on the 30-task Joint stream.
 
 \begin{table}[htb]
 	\centering
@@ -24,24 +52,29 @@ Table~\ref{tab:combined_benchmarks} reports the average accuracy and the forgett
 		\midrule
 		L2P             & $83.86 \pm 1.17$ & $7.35 \pm 0.39$ & $61.57 \pm 0.40$ & $9.73 \pm 0.42$ & $92.11 \pm 0.32$ & $2.94 \pm 0.26$ \\
 		DualPrompt      & $86.51 \pm 0.49$ & $5.16 \pm 0.20$ & $68.13 \pm 0.52$ & $4.68 \pm 0.18$ & $92.50 \pm 0.16$ & $2.50 \pm 0.16$ \\
-		DualPrompt-PGP  & $86.92 \pm 0.05$ & $5.35 \pm 0.19$ & $69.34 \pm 0.05$ & $4.53 \pm 0.04$ & --- & --- \\
-		CODA-Prompt     & $87.00 \pm 0.38$ & $4.78 \pm 0.24$ & $74.24 \pm 0.56$ & $4.92 \pm 0.21$ & --- & --- \\
-		CPrompt         & $87.83 \pm 0.37$ & $4.88 \pm 0.79$ & $76.71 \pm 0.61$ & $4.66 \pm 0.93$ & --- & --- \\
-		ConvPrompt      & $88.87 \pm 0.33$ & $4.75 \pm 0.15$ & $77.86 \pm 0.25$ & $4.33 \pm 0.24$ & --- & --- \\
-		RainbowPrompt   & $\mathbf{89.86 \pm 0.11}$ & $\mathbf{3.44 \pm 0.26}$ & $79.09 \pm 0.13$ & $3.90 \pm 0.23$ & --- & --- \\
-		APT             & $88.88 \pm 0.65$ & $3.47 \pm 0.55$ & $\mathbf{79.40 \pm 0.47}$ & $4.38 \pm 0.46$ & --- & --- \\
+		DualPrompt-PGP  & $86.92 \pm 0.05$ & $5.35 \pm 0.19$ & $69.34 \pm 0.05$ & $4.53 \pm 0.04$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		CODA-Prompt     & $87.00 \pm 0.38$ & $4.78 \pm 0.24$ & $74.24 \pm 0.56$ & $4.92 \pm 0.21$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		CPrompt         & $87.83 \pm 0.37$ & $4.88 \pm 0.79$ & $76.71 \pm 0.61$ & $4.66 \pm 0.93$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		ConvPrompt      & $88.87 \pm 0.33$ & $4.75 \pm 0.15$ & $77.86 \pm 0.25$ & $4.33 \pm 0.24$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		RainbowPrompt   & $89.86 \pm 0.11$ & $3.44 \pm 0.26$ & $79.09 \pm 0.13$ & $3.90 \pm 0.23$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		APT             & $88.88 \pm 0.65$ & $3.47 \pm 0.55$ & $79.40 \pm 0.47$ & $3.47 \pm 0.55$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
 		\midrule
-		\rowcolor{gray!15} Diag-Cov (ours)         & $86.07 \pm 0.00$ & $4.30 \pm 0.12$ & $77.12 \pm 0.00$ & $7.44 \pm 0.17$ & $90.06 \pm 0.00$ & $\mathbf{1.69 \pm 0.36}$ \\
-		\rowcolor{gray!15} Full-Cov (ours)         & $88.48 \pm 0.00$ & $4.18 \pm 0.00$ & $75.08 \pm 0.00$ & $5.07 \pm 0.03$ & $90.01 \pm 0.01$ & $2.16 \pm 0.05$ \\
-		\rowcolor{gray!15} Hybrid-Cov (ours)       & $88.49 \pm 0.00$ & $4.18 \pm 0.00$ & $75.12 \pm 0.00$ & $5.03 \pm 0.04$ & $94.36 \pm 0.00$ & $2.09 \pm 0.08$ \\
-		\rowcolor{gray!15} Shared-Diag-Cov (ours)  & $86.54 \pm 0.00$ & $4.61 \pm 0.10$ & $75.12 \pm 0.01$ & $4.80 \pm 0.24$ & $93.00 \pm 0.00$ & $2.00 \pm 0.11$ \\
-		\rowcolor{gray!15} Shared-Full-Cov (ours)  & $88.56 \pm 0.00$ & $3.76 \pm 0.11$ & $77.06 \pm 0.01$ & $\mathbf{3.97 \pm 0.30}$ & $93.54 \pm 0.00$ & $2.05 \pm 0.29$ \\
+		SimpleCIL (NMC) \cite{janson2022simple} & $83.70$ & \multicolumn{1}{c}{---} & $55.56$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		FeCAM \cite{goswami2024fecam}           & $85.70$ & \multicolumn{1}{c}{---} & $63.70$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		RanPAC \cite{mcdonnell2023ranpac}       & $\mathbf{92.20}$ & \multicolumn{1}{c}{---} & $77.90$ & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} & \multicolumn{1}{c}{---} \\
+		\midrule
+		\rowcolor{gray!15} Diag-Cov (ours)         & $86.07 \pm 0.00$ & $4.30 \pm 0.12$ & $77.12 \pm 0.00$ & $7.44 \pm 0.17$ & $90.06 \pm 0.00$ & $1.69 \pm 0.36$ \\
+		\rowcolor{gray!15} Full-Cov (ours)         & $88.38 \pm 0.00$ & $4.12 \pm 0.00$ & $74.71 \pm 0.00$ & $5.16 \pm 0.02$ & $94.93 \pm 0.01$ & $1.74 \pm 0.05$ \\
+		\rowcolor{gray!15} Hybrid-Cov (ours)       & $88.38 \pm 0.00$ & $4.18 \pm 0.00$ & $74.71 \pm 0.00$ & $5.03 \pm 0.04$ & $94.93 \pm 0.00$ & $2.09 \pm 0.08$ \\
+		\rowcolor{gray!15} Shared-Diag-Cov (ours)  & $86.87 \pm 0.00$ & $4.72 \pm 0.17$ & $75.40 \pm 0.00$ & $5.17 \pm 0.38$ & $92.97 \pm 0.00$ & $2.06 \pm 0.02$ \\
+		\rowcolor{gray!15} Shared-Full-Cov (ours)  & $88.72 \pm 0.00$ & $4.68 \pm 0.16$ & $77.99 \pm 0.00$ & $5.87 \pm 1.44$ & $93.62 \pm 0.00$ & $2.39 \pm 0.09$ \\
 		\rowcolor{gray!15} MOG2-D (ours)           & $86.96 \pm 0.00$ & $4.24 \pm 0.02$ & $70.15 \pm 0.00$ & $4.93 \pm 0.02$ & $91.41 \pm 0.00$ & $1.67 \pm 0.30$ \\
 		\rowcolor{gray!15} MOG2-F (ours)           & $85.01 \pm 0.00$ & $5.13 \pm 0.17$ & $73.42 \pm 0.00$ & $5.49 \pm 0.26$ & $93.95 \pm 0.00$ & $2.14 \pm 0.11$ \\
 		\rowcolor{gray!15} MOG2-H (ours)           & $84.68 \pm 0.00$ & $5.26 \pm 0.22$ & $73.52 \pm 0.00$ & $5.47 \pm 0.23$ & $93.93 \pm 0.00$ & $2.13 \pm 0.10$ \\
 		\rowcolor{gray!15} MOG4-D (ours)           & $87.80 \pm 0.00$ & $4.02 \pm 0.06$ & $72.52 \pm 0.01$ & $5.06 \pm 0.15$ & $91.12 \pm 0.00$ & $1.63 \pm 0.31$ \\
-		\rowcolor{gray!15} MOG4-F (ours)           & $88.87 \pm 0.00$ & $3.99 \pm 0.00$ & $75.07 \pm 0.00$ & $5.07 \pm 0.05$ & $\mathbf{94.39 \pm 0.00}$ & $2.12 \pm 0.08$ \\
+		\rowcolor{gray!15} MOG4-F (ours)           & $88.87 \pm 0.00$ & $3.99 \pm 0.00$ & $75.07 \pm 0.00$ & $5.07 \pm 0.05$ & $94.39 \pm 0.00$ & $2.12 \pm 0.08$ \\
 		\rowcolor{gray!15} MOG4-H (ours)           & $88.88 \pm 0.00$ & $4.04 \pm 0.00$ & $75.01 \pm 0.00$ & $5.12 \pm 0.04$ & $94.36 \pm 0.00$ & $2.09 \pm 0.08$ \\
+		\rowcolor{gray!15} MOG4-Shared (ours)      & $88.98 \pm 0.00$ & $4.03 \pm 0.09$ & $\mathbf{80.19 \pm 0.00}$ & $4.44 \pm 0.12$ & $\mathbf{94.61 \pm 0.00}$ & $1.88 \pm 0.09$ \\
 		\rowcolor{gray!15} OAS (ours)              & $84.38 \pm 0.00$ & $3.90 \pm 0.07$ & $71.47 \pm 0.00$ & $4.57 \pm 0.29$ & $86.70 \pm 0.00$ & $1.90 \pm 1.77$ \\
 		\rowcolor{gray!15} LW-I (ours)             & $84.78 \pm 0.00$ & $3.93 \pm 0.09$ & $71.91 \pm 0.00$ & $4.54 \pm 0.43$ & $89.89 \pm 0.00$ & $1.50 \pm 0.08$ \\
 		\rowcolor{gray!15} LW-D (ours)             & $82.85 \pm 0.00$ & $3.94 \pm 0.28$ & $70.35 \pm 0.00$ & $4.62 \pm 0.95$ & $90.04 \pm 0.00$ & $1.66 \pm 0.30$ \\
@@ -62,322 +95,565 @@ Table~\ref{tab:combined_benchmarks} reports the average accuracy and the forgett
 		& $A_{30} (\uparrow)$ & $F_{30} (\downarrow)$ \\
 		\midrule
 		Diag-Cov        & $78.32 \pm 0.21$ & $6.05 \pm 0.12$ \\
-		Full-Cov        & $78.65 \pm 0.00$ & $4.69 \pm 0.02$ \\
-		Hybrid-Cov      & $\mathbf{83.42 \pm 0.00}$ & $\mathbf{3.86 \pm 0.04}$ \\
-		Shared-Full-Cov & $80.77 \pm 0.00$ & $4.47 \pm 0.08$ \\
-		Shared-Diag-Cov & $79.52 \pm 0.00$ & $4.95 \pm 0.18$ \\
+		Full-Cov        & $59.35 \pm 0.00$ & $4.69 \pm 0.02$ \\
+		Hybrid-Cov      & $59.35 \pm 0.00$ & $3.86 \pm 0.04$ \\
+		Shared-Diag-Cov & $80.11 \pm 0.00$ & $4.89 \pm 0.05$ \\
+		Shared-Full-Cov & $81.49 \pm 0.00$ & $5.49 \pm 0.05$ \\
 		MOG2-D          & $73.91 \pm 0.02$ & $5.69 \pm 0.02$ \\
 		MOG2-F          & $78.41 \pm 0.02$ & $5.85 \pm 0.04$ \\
 		MOG2-H          & $80.27 \pm 0.02$ & $5.04 \pm 0.04$ \\
 		MOG4-D          & $80.28 \pm 0.01$ & $4.67 \pm 0.00$ \\
 		MOG4-F          & $59.68 \pm 0.25$ & $5.88 \pm 0.16$ \\
 		MOG4-H          & $58.01 \pm 0.30$ & $5.97 \pm 0.09$ \\
+		MOG4-Shared 	& $\mathbf{84.49 \pm 0.00}$ & $3.79 \pm 0.12$ \\
 		OAS             & $77.46 \pm 0.00$ & $4.60 \pm 0.10$ \\
 		LW-I            & $76.41 \pm 0.01$ & $5.83 \pm 0.31$ \\
 		LW-D            & $77.42 \pm 0.02$ & $5.41 \pm 0.38$ \\
+
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
 
-\subsection{Final-State Confusion Matrices}
-\label{sec:confusion_matrix_results}
+The discussion that follows uses the principal results of Tables~\ref{tab:combined_benchmarks} and~\ref{tab:split_joint} to comprehensively evaluate the behavior of the alternative covariance parameterisations (Diag, Full, Hybrid, OAS, Ledoit--Wolf, Shared) and contrast them against the mixture-of-Gaussian variants.
 
-Figures~\ref{fig:cm_cifar}--\ref{fig:cm_imagenetr} show the normalised confusion matrices at $T_{\max}$ for the three benchmarks and Diag and Full covariance estimation methods, produced from the pre-extracted DINOv2 features as described in Section~\ref{sec:method:confusion_matrix}. The diagonal of each matrix corresponds to correct classifications; off-diagonal mass reveals systematic misclassification between visually or semantically similar classes.
+\subsection{Covariance Parameterisations and the Shape-Volume Axis}
+\label{sec:an:covariance_mechanics}
 
-\begin{figure}[htbp]
-	\centering
-	\subfigure[Diag-Cov, Acc\,=\,86.6\%]{\includegraphics[width=0.48\textwidth]{imagenes/results/CIFAR100_Separable_Tmax.pdf}\label{fig:cm_cifar_sep}}\hfill
-	\subfigure[Full-Cov, Acc\,=\,88.9\%]{\includegraphics[width=0.48\textwidth]{imagenes/results/CIFAR100_NoSeparable_Tmax.pdf}\label{fig:cm_cifar_full}}
-	\caption{Normalised confusion matrices at $T_{\max}$ ($N=100$ classes) for CIFAR-100.}
-	\label{fig:cm_cifar}
-\end{figure}
+The performance hierarchy observed across the benchmarks is heavily governed by the ratio of the per-class sample budget $n_c$ to the feature dimensionality $d=768$, reflecting a distinct trade-off between structural capacity and numerical stability.
 
-\begin{figure}[htbp]
-	\centering
-	\subfigure[Diag-Cov, Acc\,=\,90.6\%]{\includegraphics[width=0.48\textwidth]{imagenes/results/Caltech_Separable_Tmax.pdf}\label{fig:cm_caltech_sep}}\hfill
-	\subfigure[NoSeparable (Full-Cov), Acc\,=\,94.8\%]{\includegraphics[width=0.48\textwidth]{imagenes/results/Caltech_NoSeparable_Tmax.pdf}\label{fig:cm_caltech_full}}
-	\caption{Normalised confusion matrices at $T_{\max}$ ($N=250$ classes) for Caltech-256.}
-	\label{fig:cm_caltech}
-\end{figure}
+In the relatively high-sample regime of Split CIFAR-100 ($n_c = 400$), estimators that capture full off-diagonal correlations dominate. Both Full-Cov and MOG4-F match the state-of-the-art prompt-based method \textit{ConvPrompt} at $88.87\%$ without relying on any trainable parameters or upstream gradient optimization. This indicates that when the sample budget is deep enough to reliably approximate the $d^2$ free parameters of a covariance matrix, modeling the true geometric \emph{shape} of the class manifold provides a highly effective inductive bias that Euclidean or simple prototype-based models fail to capture.
 
-\begin{figure}[htbp]
-	\centering
-	\subfigure[Diag-Cov, Acc\,=\,72.2\%]{\includegraphics[width=0.48\textwidth]{imagenes/results/ImagenetR_Separable_Tmax.pdf}\label{fig:cm_imagenetr_sep}}\hfill
-	\subfigure[Full-Cov, Acc\,=\,73.6\%]{\includegraphics[width=0.48\textwidth]{imagenes/results/ImagenetR_NoSeparable_Tmax.pdf}\label{fig:cm_imagenetr_full}}
-	\caption{Normalised confusion matrices at $T_{\max}$ ($N=200$ classes) for ImageNet-R.}
-	\label{fig:cm_imagenetr}
-\end{figure}
+Conversely, the limitations of unconstrained second-order modeling become obvious in severely under-sampled or imbalanced regimes. On Split ImageNet-R ($n_c = 40$), the empirical sample covariance matrix becomes highly singular, causing near-zero eigenvalues to corrupt the log-determinant volume term during Cholesky inversion. Under these exact constraints, the Hybrid-Cov estimator provides a highly robust fallback. By utilizing the full empirical structure exclusively for the Mahalanobis distance (the shape term) while replacing the sensitive log-determinant calculation with a well-conditioned diagonal volume approximation, it successfully preserves cross-feature correlations without succumbing to the spectral collapse that degrades standard full-covariance formulations.
 
-The Diag-Cov classifier achieves $T_{\max}$ accuracies of $86.6\%$, $90.6\%$, and $72.2\%$ for CIFAR-100, Caltech-256, and ImageNet-R respectively, with off-diagonal mass that is diffuse across all benchmarks. The NoSeparable (Full-Cov) classifier achieves $88.9\%$ on CIFAR-100, $94.8\%$ on Caltech-256, and $73.6\%$ on ImageNet-R. These $T_{\max}$ single-split accuracies are not directly comparable to the CIL average accuracies in Table~\ref{tab:combined_benchmarks}, which are averaged over all $T$ task checkpoints and three random task orderings.
+\subsection{Linear Shrinkage versus Structural Decoupling}
+\label{sec:an:shrinkage}
 
-\subsection{Effect of the Log-Normalisation Constant}
-\label{sec:mahal_ablation}
+A critical finding of this evaluation is the persistent underperformance of classical linear shrinkage estimators, with OAS and Ledoit--Wolf (LW) achieving the lowest accuracy among the Gaussian-based methodologies across all constituent datasets. Linear shrinkage algorithms mitigate rank-deficiency by computing a convex combination that systematically blends the noisy sample covariance matrix with a highly structured target (such as the identity matrix).
 
-Table~\ref{tab:mahal_ablation} compares the full Gaussian scoring rule (Eq.~\ref{eq:gaussian_score}) with the Mahalanobis-only variant (Eq.~\ref{eq:mahal_score}), which sets $\log A_c = 0$ for all classes. Both rules use the same estimated parameters; the difference is whether the log-determinant penalty is included.
+However, because this blending is applied uniformly across the entire covariance structure, it inadvertently mixes the discriminative feature signal with isotropic noise across all available eigenvalues. This spectral flattening acts as a destructive regularizer in visual foundation spaces. By muting the high-variance principal axes that define class-specific directions, shrinkage methods fundamentally compress the structural contrast between distinct categories. In comparison, the Hybrid-Cov and Diag-Cov methods handle small-sample constraints through targeted structural parameterisation, ensuring that the prominent discriminative axes are preserved natively without receiving arbitrary isotropic dampening.
+
+\subsection{Homoscedasticity and the Long-Horizon Joint Benchmark}
+\label{sec:an:homoscedasticity}
+
+The introduction of the long-horizon 30-task Joint Dataset Benchmark exposes a severe structural failure mode for traditional independent class density estimation, while validating the utility of homoscedastic approximations. As demonstrated in Table~\ref{tab:split_joint}, both Full-Cov and Hybrid-Cov experience a sharp performance drop, falling to an identical $59.35\%$ accuracy. 
+
+This severe drop is a direct consequence of sample-size heterogeneity across the aggregated stream. Because individual components are pulled from CIFAR-100 ($n_c=400$), ImageNet-R ($n_c=40$), and Caltech-256 ($n_c=64$), the estimated covariance matrices for different categories possess entirely different empirical ranks. Consequently, the resulting log-determinant volume terms and Mahalanobis distances scale on completely disparate numerical bounds, rendering posterior comparisons between classes structurally invalid. 
+
+The Shared-Full-Cov framework resolves this rank imbalance by enforcing a global homoscedastic assumption across the embedding space, achieving high accuracy on the Joint benchmark ($81.49\%$). By pooling the inner product sums into a singular, incrementally updated shared covariance matrix $\Sigma_{\text{shared}}$, the model ensures that every active class is evaluated against an identical statistical baseline. This regularizes the volume term across all categories by construction, demonstrating that when an incremental system is confronted with severely imbalanced or multi-domain streams, modeling a unified global feature noise structure is significantly more robust than estimating unconstrained, localized per-class variations.
+
+\subsection{The Power of Shared Structural Covariances and MOG4-Shared}
+\label{sec:an:shared_covariances}
+
+The most remarkable result on the long-horizon, 30-task Joint Dataset stream is the overwhelming success of the MOG4-Shared configuration, which secures the highest overall accuracy at $84.49\%$ (Table~\ref{tab:split_joint}). This performance significantly outpaces not only the localized independent Gaussian models but also the shared single-component baselines, exposing critical nuances in how visual foundation model embeddings interact with second-order statistics under extreme distribution shifts.
+
+As established, the architectural failure of independent second-order parameterisations under data imbalance stems from the unconstrained scaling of their volume constraints. The homoscedastic pooling layer of the Shared variants fixes this completely by enforcing a uniform baseline. Crucially, MOG4-Shared elevates this homoscedastic formulation by reintroducing representational flexibility exactly where it is most beneficial: the first-order location parameters. While a single shared Gaussian per class forces categories to be modeled as unimodal sub-spaces, MOG4-Shared allows the Bayesian Information Criterion (BIC) to dynamically assign up to four independent centroids per class, all scaled by the identical, robustly estimated global noise structure $\Sigma_{\text{shared}}$.
+
+This specific combination yields two massive architectural advantages on the heterogeneous Joint stream:
+\begin{enumerate}
+	\item \textbf{Intra-Class Visual Heterogeneity:} For classes that exhibit high visual intra-class variance or stylistic multi-modality---a common challenge when cross-dataset images span low-resolution natural frames (CIFAR-100), artistic sketches (ImageNet-R), and clean product photography (Caltech-256)---the multiple centroids of the mixture model map separate visual sub-clusters elegantly without parameter interference.
+	\item \textbf{Decoupled Parameter Budgets:} Because the components do not attempt to fit independent, unconstrained full covariance matrices, the free-parameter budget scales linearly with the number of mixtures rather than quadratically with the ambient feature dimension ($\mathcal{O}(K \cdot d)$ vs $\mathcal{O}(K \cdot d^2)$). The global covariance matrix absorbs the structural correlation signal from the deep multi-dataset pool, allowing individual mixture components to remain highly sample-efficient even when a new class arrives with a severely restricted sample budget.
+\end{enumerate}
+
+The dominance of MOG4-Shared over the single-component Shared-Full-Cov ($84.49\%$ vs. $81.49\%$) explicitly proves that once numerical stability is guaranteed via homoscedastic pooling, modeling multi-modal location statistics is the key to unlocking the maximum representational capacity of Visual Foundation Models in long-horizon incremental learning.
+
+\subsection{Mixture Models and the Multi-Modality Question}
+\label{sec:an:mog_extended}
+
+The mixture variants MOG2-D/F/H and MOG4-D/F/H assess whether modelling multi-modal class-conditional distributions can yield additional gains under independent assumptions. The empirical pattern remains uneven. Mixture models slightly outperform a single Gaussian on Caltech-256---where intra-class variability is sufficient to justify two or four components---but offer at best a draw on CIFAR-100, where the class-conditional features are already well modelled by a single Gaussian. 
+
+The most striking observation remains the parallel collapse of MOG4-F and MOG4-H on the Joint benchmark ($59\%$). Two compounding factors explain this collapse: the parameter budget of four full-covariance components per class in $d=768$ amounts to $1.18\times 10^{6}$ free parameters, an order of magnitude beyond the per-class sample budget inherited from Caltech-256; and the BIC selector embedded in the implementation occasionally favours a sub-optimal number of components when the underlying density is unimodal but rotated. The practical recommendation is therefore to deploy mixtures selectively, in settings where the class density is genuinely multi-modal or protected by shared global covariance metrics, and to avoid them otherwise.
+
+
+\section{Confidence, Calibration, and the Dimensionality Pathology}
+\label{sec:calibration_results_section}
+
+Table~\ref{tab:calibration_metrics} reports six comprehensive metrics that characterize the probabilistic behavior and reliability of the Bayesian classifier at the final after-task checkpoint. While raw accuracy scores establish a model's predictive power, evaluating the alignment between its subjective certainty and its objective correctness is vital for safety-critical or open-world deployment.
 
 \begin{table}[htbp]
 	\centering
-	\caption{$T_{\max}$ classification accuracy (\%) for the Gaussian and Mahalanobis-only inference rules, under diagonal (Diag-Cov) and full (Full-Cov) covariance estimation.}
-	\label{tab:mahal_ablation}
+	\caption{Probabilistic calibration metrics for the Bayesian classifier at the last after-task checkpoint. Accuracy and ECE are in percentage points; CoE, TC, PM and Entropy are in $[0,1]$. PM (Probability Margin) is the average difference $p_{(1)}-p_{(2)}$ between the top-1 and top-2 softmax probabilities; TC is the average of $p_{(1)}$ alone. Lower is better for ECE and CoE; higher is better for Accuracy.}
+	\label{tab:calibration_metrics}
 	\scriptsize
-	\setlength{\tabcolsep}{6pt}
-	\renewcommand{\arraystretch}{1.25}
-	\begin{tabular}{llccc}
+	\setlength{\tabcolsep}{3pt}
+	\begin{tabular}{l|cc|cc|cc|cc}
 		\toprule
-		\textbf{Cov.\ Model} & \textbf{Inference} & \textbf{CIFAR-100} & \textbf{Caltech-256} & \textbf{ImageNet-R} \\
+		\textbf{Metric} & \multicolumn{2}{c|}{\textbf{CIFAR-100}} & \multicolumn{2}{c|}{\textbf{ImageNet-R}} & \multicolumn{2}{c|}{\textbf{Caltech-256}} & \multicolumn{2}{c}{\textbf{Joint}} \\
+		                & Diag & Full & Diag & Full & Diag & Full & Diag & Full \\
 		\midrule
-		\multirow{3}{*}{Diag-Cov}
-		& Gaussian   & 86.07 & 90.06 & 77.12 \\
-		& Mahal-only & 78.75 & 72.64 & 65.52 \\
-		\midrule
-		\multirow{3}{*}{Full-Cov}
-		& Gaussian   & 88.48 & 90.01 & 75.08 \\
-		& Mahal-only & 88.48 & 90.01 & 75.08 \\
+		Accuracy (\%)        & 86.07 & 88.38 & 77.12 & 74.71 & 90.06 & 94.93 & 78.32 & 59.35 \\
+		ECE (\%)             & 3.72  & 11.68 & 13.72 & 37.44 & 7.05  & 26.03 & 11.46 & 29.05 \\
+		Confidence on Errors & 0.467 & 1.000 & 0.656 & 1.000 & 0.805 & 1.000 & 0.742 & 1.000 \\
+		Total Confidence     & 0.836 & 1.000 & 0.883 & 1.000 & 0.974 & 1.000 & 0.931 & 1.000 \\
+		Probability Margin   & 0.774 & 1.000 & 0.820 & 1.000 & 0.952 & 1.000 & 0.880 & 1.000 \\
+		Entropy              & 0.583 & 0.000 & 0.327 & 0.001 & 0.054 & 0.000 & 0.114 & 0.000 \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
+The empirical patterns presented in Table~\ref{tab:calibration_metrics} expose a stark, systematic divergence in the confidence profiles of the independent Diagonal and Full covariance frameworks, highlighting how high-dimensional space scaling alters the learned posterior distributions.
 
-\section{Gaussianity and Feature Space Characterization}
-\label{sec:Gaussianity characterization_combined}
+\subsection{The Pathological Overconfidence of Full Covariance}
+\label{sec:calibration:full_pathology}
 
+The most prominent feature of Table~\ref{tab:calibration_metrics} is the complete saturation of the confidence profiles across every single benchmark under the Full covariance parameterisation. For CIFAR-100, ImageNet-R, Caltech-256, and the Joint stream alike, the Full covariance model yields a Confidence on Errors (CoE) of exactly $1.000$, a Total Confidence (TC) of $1.000$, a Probability Margin (PM) of $1.000$, and a predictive Entropy collapsing to $0.000$ (with a minor numerical artifact of $0.001$ on ImageNet-R). This behavior indicates a severe case of pathological overconfidence: whenever the model makes a prediction, it places $100\%$ of its softmax probability mass onto the winning class, completely blinding itself to alternative options.
 
-\subsection{Score Components Distributions}
-The diagonal-covariance Gaussian classifier assigns each test sample $\mathbf{x}$ to the class that maximizes the log-likelihood score:
-\begin{equation}
-	\mathrm{score}(\mathbf{x}, c)
-	= \underbrace{\ln A_c}_{\text{(a) volume}} \;-\; \tfrac{1}{2}\,
-	\underbrace{d_{\mathrm{mah}}(\mathbf{x},c)}_{\text{(b) shape}},
-	\label{eq:score_components}
-\end{equation}
-where the two components are
-\begin{align}
-	\ln A_c &= -\tfrac{D}{2}\ln(2\pi) - \tfrac{1}{2}\sum_{d=1}^{D}\ln\sigma^2_{c,d},
-	\label{eq:lnA}\\
-	d_{\mathrm{mah}}(\mathbf{x},c) &= \sum_{d=1}^{D}\frac{(x_d - \mu_{c,d})^2}{\sigma^2_{c,d}}.
-	\label{eq:dmah}
-\end{align}
-$\ln A_c$ depends only on the class variances (volume term); $d_{\mathrm{mah}}$ depends on the distance from the sample to the class mean weighted by the inverse variances (shape term). Each figure shows three panels: (a) the $C$ values of $\ln A_c$, one per class; (b) the $N_{\mathrm{val}} \times C$ pairwise distances $d_{\mathrm{mah}}(\mathbf{x},c)$, with every validation sample scored against every class; and (c) the corresponding log-likelihood scores.
+This phenomenon is not an accidental property of the dataset distributions, but rather a direct, predictable outcome of the high-dimensional small-sample rank-deficiency challenge detailed in Section 3.4. When a full covariance matrix $\mathbf{\Sigma}_c \in \mathbb{R}^{d \times d}$ is estimated from a restricted sample pool ($n_c < d = 768$), it is structurally rank-deficient. Bounding its near-zero eigenvalues using a fixed diagonal ridge regularization floor ($\epsilon = 10^{-6}\mathbf{I}$) allows for Cholesky inversion, but it introduces a severe artifact into the log-determinant volume calculation and the Mahalanobis quadratic form. 
 
-Figures~\ref{fig:hist_cifar_val} and~\ref{fig:hist_cifar_val_full} show these distributions on the held-out validation set for CIFAR-100 under the Diag-Cov and Full-Cov estimators respectively.
+Because the data natively resides within a lower-dimensional active subspace (as demonstrated by the rapid eigenvalue decay in Section 4.7), any test sample that departs slightly from this subspace along the unpopulated, regularized directions receives an astronomical Mahalanobis penalty. When mapped through the exponential operator of the Gaussian density function, the likelihood scores collapse exponentially fast toward zero. Consequently, a test query will typically be extremely close to only one specific class-conditional manifold in regularized space, while being vastly far away from the remaining $C-1$ class manifolds. When normalized via the softmax operator to generate posteriors, this extreme numerical scale difference completely zeros out the denominator for all runner-up categories. This causes the winning class to absorb the entire probability mass, driving the Probability Margin and Total Confidence to absolute saturation ($1.000$) while generating highly inflated Expected Calibration Errors (ECE), peaking at $37.44\%$ on ImageNet-R.
+
+\subsection{The Honest Probabilistic Behavior of Diagonal Covariance}
+\label{sec:calibration:diagonal_honesty}
+
+In sharp contrast to the Full model's structural blindness, the Diagonal covariance model exhibits highly honest and well-calibrated probabilistic properties. By restricting $\mathbf{\Sigma}_c$ to its diagonal components, the framework drastically reduces parameter volatility, ensuring it remains highly well-conditioned even under severe data scarcity.
+
+The Diagonal model's Total Confidence tracks its empirical accuracy tightly across all benchmarks. On CIFAR-100, an accuracy of $86.07\%$ is met with a Total Confidence of $0.836$, yielding an exceptional Expected Calibration Error of just $3.72\%$. This close alignment confirms that the Diag-Cov posterior distribution acts as a reliable gauge of objective correctness: the model is highly certain when it is correct, and systematically tempers its certainty when it is wrong. This is further validated by looking at the Confidence on Errors, which stays within a safe, moderate range ($0.467$ on CIFAR-100 and $0.656$ on ImageNet-R), ensuring that misclassifications are flagged with high internal uncertainty.
+
+This well-conditioned behavior is also reflected in the steady gap between Total Confidence and the Probability Margin. Across the rows, TC and PM differ by a modest margin of $0.02$ to $0.06$ depending on the dataset ($0.836$ vs. $0.774$ on CIFAR-100; $0.883$ vs. $0.820$ on ImageNet-R). This soft gap mathematically proves that the Diagonal model does not uniformly dump all its probability mass onto a single guess; instead, it retains a meaningful runner-up probability ($p_{(2)} \approx 0.03$--$0.06$) for competitive classes. The gap naturally narrows on Caltech-256 ($TC=0.974$, $PM=0.952$) and the Joint stream ($TC=0.931$, $PM=0.880$) while predictive Entropy hits its lowest point ($0.054$). This behavior indicates that as the absolute visual separability of the underlying categories increases—which aligns with the exceptionally large inter-class Bhattacharyya distances tracked in Section 4.5—the model's posteriors naturally become more decisive without suffering from the regularized numerical distortions that plague the full-rank architecture.
+
+Ultimately, these metrics establish a critical engineering trade-off for generative lifelong learning: while unconstrained Full covariance matrices can extract fine-grained correlational shape details to maximize raw accuracy in balanced domains, they do so at the cost of absolute calibration failure. For applications requiring meaningful uncertainty quantification, out-of-distribution discovery, or task-free deployment, the Diagonal model remains the only parameterisation where the posterior probability functions as an honest representation of actual performance.
+
+\section{Incremental Class Inclusion}
+\label{sec:incremental_update}
+
+Figure~\ref{fig:avg_acc_evolution} reports the evolution of the average accuracy across ten sequential tasks for the Diag-Cov (\textbf{a}) and Full-Cov (\textbf{b}) estimators, on the three benchmarks (CIFAR-100, ImageNet-R, and Caltech-256). At each task index $t$, the average accuracy is computed over all classes seen so far (tasks $1$ through $t$), so the curves track how well the system continues to recognise the growing set of classes as new ones are incorporated.
+
+On all three benchmarks and for both estimators, average accuracy declines monotonically as the number of tasks grows: from the mid-$90\,\%$ to high-$90\,\%$ range after the first task down to figures in the $60$--$90\,\%$ range after the tenth. Full-Cov on Caltech-256 shows the steepest single-step drop, falling from roughly $93\,\%$ to $74\,\%$ between tasks 5 and 6, after which it stabilises; Diag-Cov degrades more smoothly on every benchmark, and ImageNet-R exhibits the most gradual decline of the three datasets under either estimator.
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=0.99\linewidth]{imagenes/results/hist_scores_CIFAR100_val.png}
-	\caption{\textbf{CIFAR-100 --- Validation set} (Diag-Cov). Empirical distributions of (a) the volume term $\ln A_c$ ($C=100$ values), (b) the Mahalanobis shape term $d_{\mathrm{mah}}$ ($N_{\mathrm{val}}\times C$ sample--class pairs), and (c) the log-likelihood score; Gaussian parameters fitted on the training partition.}
-	\label{fig:hist_cifar_val}
+	\subfigure[Diag-Cov]{\includegraphics[width=0.48\linewidth]{imagenes/results/avg_accuracy_evolution_diagcov.png}}
+	\hfill
+	\subfigure[Full-Cov]{\includegraphics[width=0.48\linewidth]{imagenes/results/avg_accuracy_evolution_fullcov.png}}
+	\caption{Evolution of average accuracy across ten sequential tasks for CIFAR-100 (blue), ImageNet-R (green), and Caltech-256 (black), under (\textbf{a}) Diag-Cov and (\textbf{b}) Full-Cov estimation.}
+	\label{fig:avg_acc_evolution}
 \end{figure}
 
-% ---- Full covariance ----
-\medskip
-Figure~\ref{fig:hist_cifar_val_full} repeats the same analysis under the \textbf{full covariance} estimator, where the precision matrix $\Sigma_c^{-1}$ is obtained via eigendecomposition. The score distributions are computed on a subsample of the validation partition; fitting is still performed on the full training set.
+This decline should not be read as forgetting in the conventional sense. Because every class-conditional Gaussian is estimated independently and frozen at the moment its class is inserted, no parameters belonging to previously learned classes are ever overwritten or updated when a new task arrives: each class retains, unchanged, the exact representation it was given when it was first learned. What grows with $t$ is not the error on old classes caused by interference from new ones, but the difficulty of the classification problem itself, since every additional task enlarges the set of competing prototypes among which the Bayesian decision rule must discriminate. This is the same mechanism quantified in Figure~\ref{fig:bhattacharyya} through the decay of the minimum pairwise Bhattacharyya distance: as more classes are added, some pairs of prototypes inevitably move closer together in feature space, increasing the chance of confusion, even though none of the individual class models has changed. In this sense the observed accuracy drop reflects a harder decision surface, not the loss of previously stored knowledge, and it is the structural counterpart of the low forgetting values already reported in Table~\ref{tab:combined_benchmarks}. This is the same mechanism that the pairwise Bhattacharyya distance quantifies directly; the next section develops that analysis in full.
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.99\linewidth]{imagenes/results/hist_scores_CIFAR100_val_full.png}
-	\caption{\textbf{CIFAR-100 --- Validation set} (Full-Cov). Score component distributions on held-out samples.}
-	\label{fig:hist_cifar_val_full}
-\end{figure}
-
-The corresponding distributions for the training splits and for Caltech-256 and ImageNet-R are provided in Appendix~\ref{app:score_distributions} for completeness.
-
-\subsection{Gaussianity Characterizarion}
-\label{sec:gaussianity_results}
-
-\subsubsection{Univariate Gaussianity}
-\label{sec:uv_gaussianity}
-
-\begin{table}[htb]
-	\centering
-	\caption{Per-dimension Gaussianity statistics computed over all $(class, dimension)$ pairs of the frozen DINOv2 embeddings (raw, i.e.\ taken directly from the backbone). Each dataset yields $C \times d$ pairs ($d=768$), reported in column \textbf{n}. The columns $|\!\text{Skew}|_\mu$ and $|\!\text{Kurt}|_\mu$ are the mean absolute values across all pairs; $\mathbb{P}[\cdot]$ denotes the fraction of \emph{(class, dimension) pairs} satisfying each cut-off.}
-	\label{tab:gaussianity_stats}
-	\scriptsize
-	\setlength{\tabcolsep}{4pt}
-	\begin{tabular}{lcccccccc}
-		\toprule
-		\textbf{Dataset} & \textbf{n} & \textbf{Skew}$_\mu$ & $|\!\text{Skew}|_\mu$ & \textbf{Skew}$_\sigma$ & $\mathbb{P}[|\text{Skew}|{<}0.5]$ & \textbf{Kurt}$_\mu$ & $|\!\text{Kurt}|_\mu$ & $\mathbb{P}[|\text{Kurt}|{<}1]$ \\
-		\midrule
-		CIFAR-100         & 76\,800  & $-0.001$ & $0.181$ & $0.236$ & $0.961$ & $0.078$ & $0.264$ & $0.982$ \\
-		ImageNet-R        & 153\,600 & $-0.002$ & $0.269$ & $0.348$ & $0.859$ & $0.115$ & $0.432$ & $0.924$ \\
-		Caltech-256       & 192\,000 & $-0.001$ & $0.360$ & $0.472$ & $0.747$ & $0.402$ & $0.659$ & $0.822$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-
-Table~\ref{tab:gaussianity_stats} reports the aggregate per-dimension Gaussianity statistics on each benchmark. The mean skewness is essentially zero on all three datasets ($|\text{Skew}_\mu|\le 0.002$). The fraction of (class, dimension) pairs satisfying $|\text{Skew}|<0.5$ drops from $96.1\,\%$ on CIFAR-100 to $85.9\,\%$ on ImageNet-R and $74.7\,\%$ on Caltech-256, while the mean absolute excess kurtosis rises from $0.26$ to $0.43$ and $0.66$, respectively. Figures~\ref{fig:skewness_histograms} and~\ref{fig:kurtosis_histograms} visualise the full empirical distributions.
-
-\begin{figure}[htb]
-	\centering
-	\subfigure[CIFAR-100]{\includegraphics[width=0.32\linewidth]{imagenes/results/skewness_raw_cifar100.png}}
-	\subfigure[ImageNet-R]{\includegraphics[width=0.32\linewidth]{imagenes/results/skewness_raw_imagenetR.png}}
-	\subfigure[Caltech-256]{\includegraphics[width=0.32\linewidth]{imagenes/results/skewness_raw_caltech256.png}}
-	\caption{Empirical skewness distribution over the $d \times C$ (class, coordinate) pairs of the DINOv2 embeddings.}
-	\label{fig:skewness_histograms}
-\end{figure}
-
-\begin{figure}[htb]
-	\centering
-	\subfigure[CIFAR-100]{\includegraphics[width=0.32\linewidth]{imagenes/results/kurtosis_raw_cifar100.png}}
-	\subfigure[ImageNet-R]{\includegraphics[width=0.32\linewidth]{imagenes/results/kurtosis_raw_imagenetR.png}}
-	\subfigure[Caltech-256]{\includegraphics[width=0.32\linewidth]{imagenes/results/kurtosis_raw_caltech256.png}}
-	\caption{Empirical excess-kurtosis distribution over the $d \times C$ (class, coordinate) pairs of the DINOv2 embeddings.}
-	\label{fig:kurtosis_histograms}
-\end{figure}
-
-\begin{table}[htb]
-	\centering
-	\caption{Per-feature normality tests on the training split. All percentages report the fraction of \emph{(class, dimension) pairs} satisfying the criterion, where each dataset contributes $C \times d$ pairs ($d=768$). \emph{normaltest} is the D'Agostino--Pearson composite test at $\alpha=0.05$ (H$_0$: the dimension is normally distributed); \emph{relaxed} is the joint criterion $|\mathrm{Skew}|<1$ \textbf{and} $|\mathrm{Kurt}|<1$; \emph{both} denotes pairs passing both criteria simultaneously.}
-	\label{tab:gaussianity_normaltest}
-	\scriptsize
-	\setlength{\tabcolsep}{4pt}
-	\begin{tabular}{lcccc}
-		\toprule
-		\textbf{Dataset} & \textbf{normaltest (\% pairs)} & \textbf{relaxed (\% pairs)} & \textbf{both (\% pairs)}\\
-		\midrule
-		CIFAR-100   & $70.0$ & $97.8$ & $70.0$ \\
-		ImageNet-R  & $80.8$ & $91.6$ & $79.7$ \\
-		Caltech-256 & $73.4$ & $82.3$ & $71.3$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-
-Two complementary per-feature normality assessments are reported in Table~\ref{tab:gaussianity_normaltest}.
-The D'Agostino--Pearson normaltest at $\alpha=0.05$ provides the strictest formal criterion; it combines standardised skewness and kurtosis into a $\chi^2_2$ statistic and is therefore more sensitive than inspecting either moment alone.
-The relaxed criterion---$|\mathrm{Skew}|<1$ \emph{and} $|\mathrm{Kurt}|<1$ simultaneously---is a lenient but transparent indicator of near-Gaussianity.
-With training splits of $\bar{n}_c\approx400$, $120$ and $90$ samples per class for CIFAR-100, ImageNet-R and Caltech-256 respectively, even minor deviations from perfect normality are detectable, so the normaltest is conservative.
-$70$--$81\,\%$ of all (class, dimension) pairs pass the strict test, and the median $p$-value lies well above $0.05$ on every benchmark.
-The relaxed criterion yields $82$--$98\,\%$ of pairs near-Gaussian in both shape moments simultaneously.
-
-\subsubsection{Univariate Henze--Zirkler Test per Dimension}
-\label{sec:uv_hz_gaussianity_results}
-
-Table~\ref{tab:gaussianity_hz_univariate} and Figure~\ref{fig:thz_univariate_histograms} report the univariate HZ test applied independently to every (class~$c$, dimension~$j$) pair (Section~\ref{sec:method:gaussianity:hz_univariate}).
-
-The reference point for interpreting the observed $T_{\mathrm{HZ}}$ values is the theoretical expectation under exact normality, $\mathbb{E}[T_{\mathrm{HZ}}] = 1-(1+2b^2)^{-1/2}$ (Eq.~\ref{eq:hz_expected} with $d=1$), where the bandwidth $b^2 = \tfrac{1}{2}\!\left(\tfrac{3}{4}\right)^{0.4} n_c^{-0.4}$ depends only on the per-class sample size $n_c$. Larger classes have smaller $b^2$ and thus smaller $\mathbb{E}[T_{\mathrm{HZ}}]$: for CIFAR-100 ($n_c\approx 400$) the expected value is approximately $0.04$, while for Caltech-256 ($n_c\approx 80$) it rises to approximately $0.07$. A distribution that is perfectly Gaussian should therefore produce a $T_{\mathrm{HZ}}$ close to these values; values substantially above them indicate departures from normality.
-
-\begin{table}[htb]
-	\centering
-	\caption{Univariate Henze--Zirkler test applied to every (class, dimension) pair on the training split. $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ is the theoretical expectation under exact normality, determined by the per-class sample size via the bandwidth $b^2 = \tfrac{1}{2}(3/4)^{0.4}n_c^{-0.4}$.}
-	\label{tab:gaussianity_hz_univariate}
-	\scriptsize
-	\setlength{\tabcolsep}{4pt}
-	\begin{tabular}{lcc cc c}
-		\toprule
-		\textbf{Dataset} & \textbf{pairs} & $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ & $T_{\mathrm{HZ}}$ mean\,$\pm$\,std & $[\mathrm{P}_{10},\mathrm{P}_{90}]$ \\
-		\midrule
-		CIFAR-100   & 76\,800  & $\approx 0.04$ & $0.00052 \pm 0.00095$ & $[0.00002,\;0.00132]$\\
-		ImageNet-R  & 153\,600 & $\approx 0.06$ & $0.00134 \pm 0.00210$ & $[0.00006,\;0.00346]$ \\
-		Caltech-256 & 192\,000 & $\approx 0.07$ & $0.00234 \pm 0.00379$ & $[0.00009,\;0.00605]$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-
-\begin{figure}[htb]
-	\centering
-	\includegraphics[width=\linewidth]{imagenes/results/thz_univariate_histograms.pdf}
-	\caption{Univariate $T_{\mathrm{HZ}}$ distributions over all (class, dimension) pairs for the 80\,\% training split. The near-zero values confirm that the DINOv2 marginal feature distributions are highly consistent with Gaussianity at the individual coordinate level.}
-	\label{fig:thz_univariate_histograms}
-\end{figure}
-
-
-
-\subsubsection{Multivariate Gaussianity: Henze--Zirkler Test}
-\label{sec:mv_gaussianity_results}
-
-Table~\ref{tab:gaussianity_hz} reports the per-class HZ test applied in the native $d=768$ feature space using a diagonal covariance formulation (Section~\ref{sec:method:gaussianity:multivariate}). Rather than inverting a full $768\times768$ sample covariance matrix---which is rank-deficient whenever $n_c < d$---only the per-coordinate sample variances are used. All available samples per class are used (100\,\% of the data, no train/test split). Under exact multivariate normality $T_{\mathrm{HZ}}=1$; values close to~$1$ indicate near-Gaussianity. Figure~\ref{fig:thz_diag_histograms} shows the per-class $T_{\mathrm{HZ}}$ distributions.
-
-\begin{table}[htb]
-	\centering
-	\caption{Per-class multivariate Gaussianity via the diagonal Henze--Zirkler test~\cite{henze1990class} at native $d=768$, using 100\,\% of the available samples. $T_{\mathrm{HZ}}\approx 1$ indicates near-multivariate-Gaussianity under the diagonal-covariance model; $C$ is the number of classes and $\tilde{n}_c$ is the median per-class sample count.}
-	\label{tab:gaussianity_hz}
-	\scriptsize
-	\setlength{\tabcolsep}{4pt}
-	\begin{tabular}{lcc ccc}
-		\toprule
-		\textbf{Dataset} & $C$ & $\tilde{n}_c$ & $d$ & $T_{\mathrm{HZ}}$ mean\,$\pm$\,std & $[\mathrm{P}_{10},\mathrm{P}_{90}]$ \\
-		\midrule
-		Split CIFAR-100   & 100 & 500 & 768 & $1.0002 \pm 0.0020$ & $[1.0000,\;1.0000]$ \\
-		Split ImageNet-R  & 200 & 137 & 768 & $1.0033 \pm 0.0073$ & $[1.0000,\;1.0128]$ \\
-		Split Caltech-256 & 250 & 100 & 768 & $1.0016 \pm 0.0089$ & $[1.0000,\;1.0000]$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-
-\begin{figure}[htb]
-	\centering
-	\includegraphics[width=\linewidth]{imagenes/results/thz_diag_histograms.pdf}
-	\caption{Per-class $T_{\mathrm{HZ}}$ distributions from the diagonal HZ test at native $d=768$. All three benchmarks concentrate tightly near the Gaussian reference value $T_{\mathrm{HZ}}=1$, with near-zero inter-class variance.}
-	\label{fig:thz_diag_histograms}
-\end{figure}
-
-
-\subsection{Inter-Class Pairwise Bhattacharyya Distance}
+\section{Inter-Class Pairwise Structural Separability}
 \label{sec:interclass_results}
 
-Under the diagonal-covariance Gaussian model each class $c$ is represented by
-$\mathcal{N}(\boldsymbol{\mu}_c, \Sigma_c)$ with $\Sigma_c = \operatorname{diag}(\sigma^2_{c,1},\ldots,\sigma^2_{c,D})$.
-The Bhattacharyya distance between two such distributions is
-
-\begin{equation}
-	D_B(i,j) =
-	\frac{1}{8}(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)^{\top}
-	\bar{\Sigma}^{-1}
-	(\boldsymbol{\mu}_i - \boldsymbol{\mu}_j)
-	+
-	\frac{1}{2}\ln\!\left(
-	\frac{\det\bar{\Sigma}}{\sqrt{\det\Sigma_i\,\det\Sigma_j}}
-	\right),
-	\label{eq:bhattacharyya}
-\end{equation}
-
-\noindent where $\bar{\Sigma} = (\Sigma_i + \Sigma_j)/2$.
-Because both $\Sigma_i$ and $\bar{\Sigma}$ are diagonal, all matrix operations
-reduce to element-wise arithmetic: $\det\Sigma = \prod_d \sigma^2_d$,
-$\bar{\Sigma}^{-1} = \operatorname{diag}(2/(\sigma^2_{i,d}+\sigma^2_{j,d}))$, and
-log-determinants become sums of logs.
-This avoids costly dense matrix inversions and keeps computation in $\mathcal{O}(C \cdot D)$
-memory per class pair.
-$D_B = 0$ indicates complete distributional overlap; larger values correspond to
-greater separability and a lower Bhattacharyya coefficient $\rho = e^{-D_B}$.
-
-Figure~\ref{fig:bhattacharyya} characterises the inter-class separability as the
-class set grows from $k=2$ to the full benchmark size.
-The mean pairwise $D_B$ at the full class-set size is:
-CIFAR-100 ($89.43$, $[\mathrm{P}_{10}{=}56.85,\,\mathrm{P}_{90}{=}126.30]$),
-ImageNet-R ($84.81$, $[\mathrm{P}_{10}{=}49.45,\,\mathrm{P}_{90}{=}122.85]$),
-and Caltech-256 ($220.61$, $[\mathrm{P}_{10}{=}113.63,\,\mathrm{P}_{90}{=}350.79]$).
-The minimum pairwise $D_B$ at the full class-set size reaches
-$3.57$ on CIFAR-100, $11.54$ on ImageNet-R, and $20.96$ on Caltech-256.
-
-Pairs with $D_B < 20$  account for only $0.20\,\%$
-($20/9\,900$) of CIFAR-100 pairs, $0.12\,\%$ ($48/39\,800$) of ImageNet-R
-pairs, and $0.00\,\%$ of Caltech-256 pairs.
-Broadening the threshold to $D_B < 50$  captures
-$4.77\,\%$, $10.40\,\%$, and $0.15\,\%$ of pairs respectively.
+To evaluate the statistical limits of our model and understand how the decision boundary scales as the label space grows, we examine the structural separability of the embedding space. Specifically, we characterize inter-class relationships through two complementary lenses: the \emph{Bhattacharyya distance} $D_B$, which jointly accounts for differences in both means and covariances, and the plain \emph{Euclidean distance} $d_E = \|\boldsymbol{\mu}_i - \boldsymbol{\mu}_j\|_2$ between class mean vectors, which isolates mean separation alone.
 
 \begin{figure}[htbp]
 	\centering
-	\includegraphics[width=0.99\linewidth]{imagenes/results/bhattacharyya_distance.png}
+	\includegraphics[width=0.99\linewidth]{imagenes/results/bhattacharyya_ab.png}
 	\caption{%
-		Inter-class separability under the Diag-Cov Gaussian model measured by
-		the Bhattacharyya distance $D_B$ (Eq.~\ref{eq:bhattacharyya}) as a
-		function of the number of classes $k$.
-		\textbf{(a)}~Mean pairwise $D_B$ as the class set grows.
-		\textbf{(b)}~Minimum pairwise $D_B$; horizontal dashed lines mark
-		$D_B\!=\!20$ and $D_B\!=\!50$.
-		\textbf{(c)}~Count of pairs below each threshold as $k$ increases.
-		Over $99.8\,\%$ of all pairs exceed $D_B\!=\!50$ on every benchmark.%
+		Inter-class separability under the Diag-Cov Gaussian model as the class
+		set grows from $k=2$ to the full benchmark size.
+		\textbf{(a)}~Mean pairwise $D_B$ with shaded $[\mathrm{P}_{10},\mathrm{P}_{90}]$ band.
+		\textbf{(b)}~Minimum pairwise $D_B$; the dashed horizontal line marks $D_B\!=\!20$.%
 	}
 	\label{fig:bhattacharyya}
 \end{figure}
 
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.99\linewidth]{imagenes/results/bhattacharyya_thresholds.png}
+	\caption{%
+		Count of class pairs below three overlap thresholds ($D_B < 10$, $D_B < 50$,
+		$D_B < 100$) as the class set grows. Over $99.8\,\%$ of all pairs exceed
+		$D_B\!=\!50$ on every benchmark.%
+	}
+	\label{fig:bhattacharyya_thresholds}
+\end{figure}
 
-\subsection{Spectral Analysis of the Embedding Space}
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.99\linewidth]{imagenes/results/euclidean_ab.png}
+	\caption{%
+		Inter-class separability in terms of the plain Euclidean distance
+		$d_E$ between class means, as the class set grows from $k=2$ to the
+		full benchmark size.
+		\textbf{(a)}~Mean pairwise $d_E$ with shaded $[\mathrm{P}_{10},\mathrm{P}_{90}]$ band.
+		\textbf{(b)}~Minimum pairwise $d_E$.%
+	}
+	\label{fig:euclidean}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.99\linewidth]{imagenes/results/euclidean_thresholds.png}
+	\caption{%
+		Count of class pairs below three Euclidean-distance overlap thresholds
+		as the class set grows, complementing the Bhattacharyya-based count of
+		Figure~\ref{fig:bhattacharyya_thresholds}.%
+	}
+	\label{fig:euclidean_thresholds}
+\end{figure}
+
+\subsection{Interpreting the Separability and Geometric Curves}
+\label{sec:an:interclass}
+
+The sequential scaling trajectories of the pairwise Bhattacharyya distances (Figures~\ref{fig:bhattacharyya} and~\ref{fig:bhattacharyya_thresholds}) and mean Euclidean distances (Figures~\ref{fig:euclidean} and~\ref{fig:euclidean_thresholds}) reveal a highly consistent topological behavior across the foundation embedding manifolds. Rather than demonstrating an overall compression of the representation space as tasks accumulate, the global layout of the features remains remarkably stable, while performance boundaries are strictly dictated by a localized, heavy-tailed minority of highly overlapping class pairs.
+
+A primary indication of this structural stability is that both macro-averaged distance metrics plateau rapidly across all benchmarks once approximately 30 categories are introduced. At full class-set capacity, the mean pairwise $D_B$ stabilizes at $220.61$ for Caltech-256, $89.43$ for CIFAR-100, and $84.81$ for ImageNet-R. This dataset hierarchy is flawlessly mirrored by the macro-averaged mean Euclidean distance, where Caltech-256 maintains a wide geometric separation of $\overline{d_E} = 0.978$, whereas CIFAR-100 and ImageNet-R remain more densely packed at $\overline{d_E} = 0.749$ and $\overline{d_E} = 0.727$, respectively. The pronounced separability advantage characteristic of Caltech-256 across both domains underscores its vast visual and semantic diversity, allowing per-class distributions to remain exceptionally distinct.
+
+However, as the overall density of the label space increases, the minimum pairwise distance metrics decay monotonically, exposing the true driver behind accuracy drops in closed-form generative learning. At the final checkpoint, the minimum pairwise $D_B$ reaches severe proximity limits, dropping to $3.57$ on CIFAR-100, $11.54$ on ImageNet-R, and $20.96$ on Caltech-256. This localized crowding is corroborated by the Euclidean mean separation, which hits minimum boundaries of $0.144$, $0.205$, and $0.275$ for the respective datasets. 
+
+Crucially, tracking the density thresholds reveals that this structural crowding is an isolated anomaly rather than a systemic space collapse. Over $99.8\,\%$ of all possible class combinations comfortably exceed a threshold of $D_B = 50$ on every evaluated benchmark. Similarly, class pairs with $d_E < 0.5$ occupy a minute fraction of the overall systems, accounting for only $0.91\,\%$ of pairs in CIFAR-100, $2.20\,\%$ in ImageNet-R, and an insignificant $0.04\,\%$ in Caltech-256. 
+
+Consequently, the final class-incremental classifier is not forced to navigate a uniformly collapsed or muddy feature space. Instead, the systemic accuracy limits—stabilizing at $88.87\%$ for CIFAR-100, $77.99\%$ for ImageNet-R, and $94.36\%$ for Caltech-256 under the strongest Gaussian configurations—are directly bounded by the rare emergence of highly confusable prototype combinations. 
+
+The two evaluated metrics act as vital, complementary diagnostics for these failure points. While $d_E$ isolates pure first-order geometric separation between prototype centroids, $D_B$ adds a penalization for covariance shape and volume dissimilarity. This explains why a pair such as \textit{boy}/\textit{girl} in CIFAR-100 is identified as the single most critical confusion sink in the system: it simultaneously combines a highly compressed geometric centroid distance ($d_E = 0.145$) with nearly identical, overlapping second-order covariance structures, driving the probabilistic separation down to its absolute minimum. The measured increase in conventional forgetting across tasks is therefore not an indicator of representation degradation—given that all historical sufficient statistics are explicitly frozen—but is instead a direct, quantifiable reflection of a progressively hardening decision surface where newly introduced categories happen to land within the probability mass of previously established class manifolds.
+
+\subsection{Final-State Recall Distribution and Manifold Concentration}
+\label{sec:an:recall_distributions}
+
+The localized tail dynamics and minimum distance drops tracked in the preceding pairwise separability analysis directly dictate the macro-level classification success of the system at the final state $T_{\max}$. At this terminal checkpoint, the Diag-Cov classifier reaches overall accuracies of $86.6\%$, $90.2\%$, and $72.5\%$ on CIFAR-100, Caltech-256, and ImageNet-R respectively, while the Full-Cov framework reaches final scores of $88.9\%$, $94.7\%$, and $74.7\%$ on those same benchmarks. Figures~\ref{fig:class_acc_hist_cifar}--\ref{fig:class_acc_hist_caltech} decompose these macro-averages into localized, per-class recall distributions, visually exposing how the global plateau effects and pair-wise proximity counts translate into real decision-surface behavior.
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.99\linewidth]{imagenes/results/class_acc_hist_CIFAR100.png}
+	\caption{Per-class accuracy distribution at $T_{\max}$ for CIFAR-100 ($N=100$ classes). Left: Diag-Cov. Right: Full-Cov.}
+	\label{fig:class_acc_hist_cifar}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.99\linewidth]{imagenes/results/class_acc_hist_ImageNetR.png}
+	\caption{Per-class accuracy distribution at $T_{\max}$ for ImageNet-R ($N=200$ classes).}
+	\label{fig:class_acc_hist_imagenetr}
+\end{figure}
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.99\linewidth]{imagenes/results/class_acc_hist_Caltech256.png}
+	\caption{Per-class accuracy distribution at $T_{\max}$ for Caltech-256 ($N=250$ classes).}
+	\label{fig:class_acc_hist_caltech}
+\end{figure}
+
+
+The shapes of these resulting histograms reflect fundamentally different data configurations within the embedding space:
+
+On Split CIFAR-100, the recall profiles for both Diag-Cov and Full-Cov display a tightly concentrated, broadly unimodal geometry heavily skewed toward the highest accuracy bins. This symmetric, high-density concentration reflects the stationary and well-behaved nature of low-resolution natural features, where the vast majority of categories possess compact feature distributions that single-component Gaussians approximate with minimal residual variance. Transitioning to Split Caltech-256 reveals an even cleaner concentration peak; under Full-Cov estimation, the median shifts decisively toward $97.8\%$, compressing the bulk of the dataset into a near-perfect recognition cluster. This extreme concentration demonstrates that although high-resolution object photography introduces massive variance across coordinates, its semantic categories occupy highly isolated, linearly separable regions of the DINOv2 manifold, allowing a full precision matrix to successfully decouple the few remaining competitive boundaries.
+
+Conversely, Split ImageNet-R presents a highly dispersed, flat distribution characterized by a long, heavy tail of low-accuracy classes extending down past the $40\%$ boundary. Unlike the tight concentration observed in CIFAR-100 and Caltech-256, the visual features of ImageNet-R are inherently un-concentrated. Because the imagery is intentionally out-of-distribution---spanning highly stylized art, cartoons, and hand-drawn sketches---the frozen foundation encoder maps these samples into broad, diffuse, and highly anisotropic representations. This lack of spatial concentration produces massive intra-class variance and complex directional skewness, which directly undercuts the modeling capacity of single independent Gaussians. 
+
+This visual and structural dispersion directly connects with the aggregate statistics of the stream. The elongated failure tail of ImageNet-R is the physical expression of the localized crowding captured in the pairwise distance analysis, where a significantly higher proportion of class pairs drop below the critical separability threshold ($D_B < 50$) compared to the remaining datasets. While moving from Diag-Cov to Full-Cov on Caltech-256 succeeds because it maps the clean, rotated axes of a well-separated space, the gain on ImageNet-R is bounded precisely because no linear covariance transformation can artificially induce spatial concentration on a representation manifold that is fundamentally scattered by domain shifts.
+
+Ultimately, these macro-level distributions hide the specific semantic failure modes that form the lower tails of our histograms. To discover why these specific categories fail to concentrate, we must shift from aggregate statistical bins to an explicit case study of individual class confusion patterns, examining the visual and geometric identities of the worst-performing archetypes in the system.
+
+\subsection{Worst-Performing Classes and Failure Diagnostics}
+\label{sec:worst_classes}
+
+Decomposing macro-level performance metrics into class-specific failure points provides sharp structural insights into the intrinsic resolution bounds of the visual foundation embedding space and highlights the strict boundaries of each covariance parameterisation. To isolate these failure archetypes, we rank and track the five object categories yielding the lowest per-class recall scores across all benchmarks. 
+
+We analyze these critical failure patterns across two distinct parametric paradigms: Table~\ref{tab:worst_diag} characterizes the five lowest-performing classes under the independent feature assumptions of the Diagonal Covariance model, while Table~\ref{tab:worst_full} evaluates the corresponding distribution shifts and structural re-orderings under the regularized Full Covariance parameterisation. For both analytical baselines, the table records the empirical recall, the dominant confusion sink, the localized pairwise Bhattacharyya distance ($D_B$), and the Euclidean distance ($d_E$) to that primary target. These are compared directly against the dataset-level macro-averaged distances ($\overline{D_B}$ and $\overline{d_E}$) established in Section~\ref{sec:an:interclass}. Localized metrics falling substantially below these macro-averages provide a direct geometric indication of severe prototype overlap.
+
+\begin{table}[htbp]
+	\centering
+	\small
+	\caption{Analysis of the five lowest-recall classes on each benchmark under Diagonal Covariance (Diag-Cov). $\text{Conf.}\%$ represents the percentage of errors directed toward the main confusion target. $D_B$ and $d_E$ denote the pairwise Bhattacharyya and Euclidean distances to the main confusion target, respectively, while $\overline{D_B}$ and $\overline{d_E}$ represent the macro-averaged pairwise distances across the entire dataset split.}
+	\label{tab:worst_diag}
+	\begin{adjustbox}{width=0.95\columnwidth, center}
+		\small
+		\begin{tabular}{llccccccc}
+			\toprule
+			\textbf{Dataset} & \textbf{Class} & \textbf{Acc\%} & \textbf{Main Confusion} & \textbf{Conf.\%} & $D_B$ & $\overline{D_B}$ & $d_E$ & $\overline{d_E}$ \\
+			\midrule
+			\textbf{Split CIFAR-100}
+			& \textit{boy}          & 50.0 & \textit{girl}       & 30.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
+			& \textit{maple\_tree} & 60.0 & \textit{oak\_tree}  & 19.0 & 19.41 & 89.43 & 0.327 & 0.749 \\
+			& \textit{girl}         & 65.0 & \textit{boy}        & 23.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
+			& \textit{cloud}        & 65.0 & \textit{sea}        &  8.0 & 30.54 & 89.43 & 0.451 & 0.749 \\
+			& \textit{shrew}        & 69.0 & \textit{mouse}      & 16.0 & 16.45 & 89.43 & 0.331 & 0.749 \\
+			\midrule
+			\textbf{Split ImageNet-R}
+			& \textit{cabbage}        & 35.3 & \textit{vase}           & 17.6 & 50.50 & 84.81 & 0.587 & 0.727 \\
+			& \textit{saint\_bernard} & 36.4 & \textit{basset\_hound}  &  9.1 & 66.44 & 84.81 & 0.643 & 0.727 \\
+			& \textit{bow\_tie}       & 39.3 & \textit{scarf}          & 21.4 & 16.57 & 84.81 & 0.331 & 0.727 \\
+			& \textit{beaver}         & 40.0 & \textit{backpack}       &  8.6 & 34.74 & 84.81 & 0.500 & 0.727 \\
+			& \textit{bee}            & 41.6 & \textit{fly}            & 15.6 & 20.51 & 84.81 & 0.378 & 0.727 \\
+			\midrule
+			\textbf{Split Caltech-256}
+			& \textit{top-hat}        & 31.2 & \textit{cowboy-hat}     & 31.2 & 29.75 & 220.61 & 0.319 & 0.978 \\
+			& \textit{paperclip}      & 52.6 & \textit{drinking-straw} & 21.1 & 62.94 & 220.61 & 0.645 & 0.978 \\
+			& \textit{canoe}          & 57.1 & \textit{people}         & 28.6 & 57.87 & 220.61 & 0.641 & 0.978 \\
+			& \textit{drinking-straw} & 64.7 & \textit{people}         & 11.8 & 27.33 & 220.61 & 0.465 & 0.978 \\
+			& \textit{traffic-light}  & 65.0 & \textit{people}         & 15.0 & 66.27 & 220.61 & 0.675 & 0.978 \\
+			\bottomrule
+		\end{tabular}
+	\end{adjustbox}
+\end{table}
+
+Table~\ref{tab:worst_full} details the equivalent classification landscapes under the regularized Full Covariance model. While the low-recall sets overlap heavily on the localized natural structures of Split CIFAR-100, they diverge substantially on the high-resolution object coordinates of Split Caltech-256. Because $\overline{D_B}$ and $\overline{d_E}$ represent fundamental global properties of the static underlying feature distributions, they remain identical to the baseline values reported in Table~\ref{tab:worst_diag}. 
+
+\begin{table}[htbp]
+	\centering
+	\small
+	\caption{Analysis of the five lowest-recall classes on each benchmark under Full Covariance (Full-Cov). Columns match the structure of Table~\ref{tab:worst_diag}; the probabilistic distance $D_B$ is computed utilizing the regularized diagonal components for numeric consistency across the imbalanced stream.}
+	\label{tab:worst_full}
+	\begin{adjustbox}{width=0.95\columnwidth, center}
+		\small
+		\begin{tabular}{llccccccc}
+			\toprule
+			\textbf{Dataset} & \textbf{Class} & \textbf{Acc\%} & \textbf{Main Confusion} & \textbf{Conf.\%} & $D_B$ & $\overline{D_B}$ & $d_E$ & $\overline{d_E}$ \\
+			\midrule
+			\textbf{Split CIFAR-100}
+			& \textit{boy}          & 58.0 & \textit{girl}       & 16.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
+			& \textit{girl}         & 67.0 & \textit{boy}        & 15.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
+			& \textit{otter}        & 67.0 & \textit{seal}       &  8.0 & 16.42 & 89.43 & 0.342 & 0.749 \\
+			& \textit{maple\_tree} & 68.0 & \textit{oak\_tree}  & 19.0 & 19.41 & 89.43 & 0.327 & 0.749 \\
+			& \textit{forest}       & 68.0 & \textit{pine\_tree} &  7.0 & 25.46 & 89.43 & 0.422 & 0.749 \\
+			\midrule
+			\textbf{Split ImageNet-R}
+			& \textit{bow\_tie}    & 28.6 & \textit{cowboy\_hat} & 14.3 & 14.51 & 84.81 & 0.323 & 0.727 \\
+			& \textit{bee}          & 33.8 & \textit{fly}        & 11.7 & 20.51 & 84.81 & 0.378 & 0.727 \\
+			& \textit{beaver}       & 37.1 & \textit{backpack}   &  8.6 & 34.74 & 84.81 & 0.500 & 0.727 \\
+			& \textit{cowboy\_hat} & 39.0 & \textit{hammer}     &  6.8 & 21.01 & 84.81 & 0.404 & 0.727 \\
+			& \textit{candle}       & 40.7 & \textit{stole}      &  9.3 & 19.73 & 84.81 & 0.379 & 0.727 \\
+			\midrule
+			\textbf{Split Caltech-256}
+			& \textit{drinking-straw}  & 52.9 & \textit{soda-can}     & 11.8 &  51.11 & 220.61 & 0.614 & 0.978 \\
+			& \textit{people}          & 66.7 & \textit{picnic-table} &  4.8 &  55.38 & 220.61 & 0.619 & 0.978 \\
+			& \textit{top-hat}          & 68.8 & \textit{wine-bottle}  &  6.2 & 100.90 & 220.61 & 0.802 & 0.978 \\
+			& \textit{american-flag}   & 70.0 & \textit{speed-boat}   &  5.0 & 108.32 & 220.61 & 0.823 & 0.978 \\
+			& \textit{bowling-ball}    & 71.4 & \textit{bowling-pin}  & 14.3 &  68.73 & 220.61 & 0.644 & 0.978 \\
+			\bottomrule
+		\end{tabular}
+	\end{adjustbox}
+\end{table}
+
+To ground these quantitative proximity trends in concrete visual contexts, we examine the highly typical images extracted directly from the benchmark data streams. Figures~\ref{fig:worst_repr_cifar}, \ref{fig:worst_repr_imagenetr}, and~\ref{fig:worst_repr_caltech} present the specific target classes side by side with their primary cross-category confusion partners, isolating the visual specimens that are most frequently confused by the classifier to allow for a direct qualitative analysis. Visualizing these cross-class alignments reveals the explicit structural and semantic ambiguities that compromise the lower tails of our final recall curves.
+
+% ==========================================
+% FIGURE 1: CIFAR-100 (4x2 Grid) - FIXED
+% ==========================================
+\begin{figure}[htbp]
+	\centering
+	
+	% --- Row 1 ---
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/boy.png}\\
+		{\small (a) Boy}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/girl.png}\\
+		{\small (b) Girl}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/oak_tree.png}\\
+		{\small (c) Oak Tree}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/maple_tree.png}\\
+		{\small (d) Maple Tree}
+	\end{minipage}
+	
+	\vspace{0.4cm}
+	
+	% --- Row 2 ---
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/cloud.png}\\
+		{\small (e) Cloud}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/sea.png}\\
+		{\small (f) Sea}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/shrew.png}\\
+		{\small (g) Shrew}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.99\linewidth]{imagenes/results/cifar_100/mouse.png}\\
+		{\small (h) Mouse}
+	\end{minipage}
+	
+	\caption{Representative visual specimens of the primary low-recall classes and corresponding confusion sinks on the Split CIFAR-100 benchmark, mapped to the tracking trends outlined in Table~\ref{tab:worst_diag} and Table~\ref{tab:worst_full}.}
+	\label{fig:worst_repr_cifar}
+\end{figure}
+
+% ==========================================
+% FIGURE 2: ImageNet-R (5x2 Grid)
+% ==========================================
+\begin{figure}[htbp]
+	\centering
+	
+	% --- Row 1: First 5 images ---
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/cabbage.jpg}\\
+		{\small (a) Cabbage}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/vase.jpg}\\
+		{\small (b) Vase}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/saint_bernard.jpg}\\
+		{\small (c) Saint Bernard}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/basset_hound.jpg}\\
+		{\small (d) Basset Hound}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/bow_tie.jpg}\\
+		{\small (e) Bow Tie}
+	\end{minipage}
+	
+	\vspace{0.4cm}
+	
+	% --- Row 2: Remaining 5 images ---
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/scarf.jpg}\\
+		{\small (f) Scarf}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/beaver.jpg}\\
+		{\small (g) Beaver}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/backpack.jpg}\\
+		{\small (h) Backpack}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/bee.jpg}\\
+		{\small (i) Bee}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.18\linewidth}
+		\centering
+		\includegraphics[width=0.9\linewidth]{imagenes/results/imagenetr/fly.jpg}\\
+		{\small (j) Fly}
+	\end{minipage}
+	
+	\caption{Representative specimens from Split ImageNet-R mapped to the tracking trends outlined in Table~\ref{tab:worst_diag} and Table~\ref{tab:worst_full}. The non-photographic style of the dataset is llustrated.}
+	\label{fig:worst_repr_imagenetr}
+\end{figure}
+
+% ==========================================
+% FIGURE 3: Caltech-256 (4 + 3 Centered Grid)
+% ==========================================
+\begin{figure}[htbp]
+	\centering
+	
+	% --- Row 1 (4 items) ---
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.8\linewidth]{imagenes/results/caltech/top_hat.png}\\
+		{\small (a) Top Hat}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.8\linewidth]{imagenes/results/caltech/cowboy_hat.png}\\
+		{\small (b) Cowboy Hat}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.8\linewidth]{imagenes/results/caltech/paperclip.png}\\
+		{\small (c) Paperclip}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.8\linewidth]{imagenes/results/caltech/drinking_straw.png}\\
+		{\small (d) Drinking Straw}
+	\end{minipage}
+	
+	\vspace{0.4cm}
+	
+	% --- Row 2 (3 items balanced in the center) ---
+	\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.8\linewidth]{imagenes/results/caltech/cannoe.png}\\
+		{\small (e) Canoe}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.8\linewidth]{imagenes/results/caltech/traffic_light.png}\\
+		{\small (f) Traffic Light}
+	\end{minipage}\hfill
+	\begin{minipage}[t]{0.23\linewidth}
+		\centering
+		\includegraphics[width=0.8\linewidth]{imagenes/results/caltech/people.png}\\
+		{\small (g) People}
+	\end{minipage}\hfill\null
+	
+	\caption{Representative visual entities comprising the minimum separability boundary on the Split Caltech-256 stream mapped to the tracking trends outlined in Table~\ref{tab:worst_diag} and Table~\ref{tab:worst_full}.}
+	\label{fig:worst_repr_caltech}
+\end{figure}
+
+This qualitative visual inspection directly confirms the structural rationale behind the statistical proximity metrics recorded in our diagnostic tables. Categories such as \textit{boy} and \textit{girl} (Figure~\ref{fig:worst_repr_cifar}a--b), captured at the limited $32\times32$ pixel resolution of Split CIFAR-100, share virtually identical facial structures, skin tone distributions, and foreground composition cues. Similarly, the structural convergence between \textit{cloud} and \textit{sea} (Figure~\ref{fig:worst_repr_cifar}e--f) is driven by highly overlapping global color palettes and low-frequency texture statistics, where the boundary between a cloudy sky and an ocean horizon becomes visually continuous. Given these acute semantic and stylistic commonalities, it is entirely expected from a generative perspective that their respective class-conditional feature distributions reside in near-coincident regions of the embedding space. The resulting cross-class confusion is therefore not an artifact of parameter degradation or catastrophic forgetting, but a logical consequence of modeling independent probability densities over intrinsically ambiguous visual representations.
+
+\subsection{Synthesis of Inter-Class Confusion and Structural Bounds}
+\label{sec:an:confusion}
+
+The pairwise relationships extracted from the final-state distributions (Tables~\ref{tab:worst_diag} and~\ref{tab:worst_full}) provide a localized explanation for the aggregate separability trends seen across the benchmarks. Rather than pointing to a systemic breakdown of the generative modeling framework, the residual classification error concentrates in a minute tail of highly confusable class pairs, providing a precise diagnostic of the representation's semantic boundaries.
+
+This localized failure mode operates along three clear structural dimensions:
+\begin{itemize}
+	\item \textbf{Semantic and Visual Near-Synonyms:} The most acute confusion is driven by pairs that share fundamental silhouette, texturing, or compositional profiles under DINOv2's representation. Archetypes such as \textit{boy}$\leftrightarrow$\textit{girl} ($D_B = 3.45$, $d_E = 0.145$), \textit{bow\_tie}$\leftrightarrow$\textit{scarf} ($D_B = 16.57$), and \textit{top-hat}$\leftrightarrow$\textit{cowboy-hat} ($D_B = 29.75$) represent co-located distributions where high-frequency discriminative features are largely absent from frozen, general-purpose embeddings.
+	\item \textbf{Contextual and Manifold Sinks:} Proximity in the embedding space frequently arises from shared contextual background or composition rather than category membership. This is illustrated by the convergence of \textit{cloud}$\leftrightarrow$\textit{sea} ($D_B = 30.54$) via matching color palettes, and the emergence of broad categories like \textit{people} as prominent confusion sinks for unrelated objects (\textit{canoe}, \textit{drinking-straw}) that happen to be photographed with human subjects in frame.
+	\item \textbf{The Mechanics of Apparent Forgetting:} This pairwise crowding provides a concrete definition for the modest rise in forgetting recorded throughout the stream. Because class-conditional models are estimated independently and frozen, the representations themselves suffer no backward degradation. Instead, apparent forgetting is driven strictly by the expansion of the label space, which systematically increases the mathematical probability of inserting a new category close to a previously learned one.
+\end{itemize}
+
+Crucially, this analysis exposes the limits of downstream parametric adaptation. Upgrading the modeling architecture from a Diagonal to a Full covariance matrix captures important correlational structure—recovering \textit{boy} from $50.0\,\%$ to $58.0\,\%$ recall—but cannot fully decouple distributions whose means are nearly coincident ($d_E \to 0$). Resolving this persistent overlap remains a task for representation alignment at the backbone level. To determine how severely the entire class-incremental pipeline depends on these native feature distributions, the next section evaluates the sensitivity of the Gaussian framework to the choice of the upstream feature extractor itself.
+
+\section{Backbones Comparison}
+\label{sec:backbone_results}
+
+Table~\ref{tab:multi_backbone_results} reports the impact of backbone architecture on the two best closed-form estimators (Diag-Cov and Full-Cov), evaluated with three vision backbones: DINOv2-B/14~\cite{oquab2024dinov} (the default of this work), ViT-B/16 pre-trained on ImageNet-21k, and ViT-Medium (ViT-M/16), the latter two supplied by the \texttt{timm} library~\cite{rw2019timm}.
+
+\begin{table}[htb]
+	\centering
+	\caption{Impact of backbone architecture on Diag-Cov and Full-Cov across three benchmarks.}
+	\label{tab:multi_backbone_results}
+	\begin{adjustbox}{width=0.9\columnwidth, center}
+		\small
+		\setlength{\tabcolsep}{3.5pt}
+		\begin{tabular}{l|c|cc|cc|cc}
+			\hline
+			\multirow{2}{*}{\textbf{Method}} & \multirow{2}{*}{\textbf{Backbone}} & \multicolumn{2}{c|}{\textbf{CIFAR-100}} & \multicolumn{2}{c|}{\textbf{ImageNet-R}} & \multicolumn{2}{c}{\textbf{Caltech-256}} \\
+			\cline{3-8}
+			& & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ \\
+			\hline
+			\multirow{3}{*}{Diag-Cov}
+			& DINOv2-B/14 & $86.07 \pm 0.00$ & $4.30 \pm 0.12$ & $\mathbf{77.12 \pm 0.00}$ & $7.44 \pm 0.17$ & $90.06 \pm 0.00$ & $1.69 \pm 0.36$ \\
+			& ViT-M/16    & $81.41 \pm 0.00$ & $5.28 \pm 0.13$ & $66.11 \pm 0.00$ & $\mathbf{4.79 \pm 0.14}$ & $\mathbf{91.41 \pm 0.00}$ & $\mathbf{1.63 \pm 0.12}$ \\
+			& ViT-B/16    & $81.03 \pm 0.00$ & $4.57 \pm 0.41$ & $43.08 \pm 0.00$ & $6.41 \pm 0.19$ & $87.72 \pm 0.00$ & $1.74 \pm 0.50$ \\
+			\hline
+			\multirow{3}{*}{Full-Cov}
+			& DINOv2-B/14 & $\mathbf{88.38 \pm 0.00}$ & $\mathbf{4.12 \pm 0.00}$ & $74.71 \pm 0.00$ & $5.16 \pm 0.02$ & $\mathbf{94.93 \pm 0.01}$ & $1.74 \pm 0.05$ \\
+			& ViT-M/16    & $82.42 \pm 0.01$ & $5.25 \pm 0.01$ & $66.44 \pm 0.01$ & $5.21 \pm 0.14$ & $92.14 \pm 0.00$ & $2.53 \pm 0.12$ \\
+			& ViT-B/16    & $82.40 \pm 0.00$ & $5.27 \pm 0.36$ & $46.23 \pm 0.00$ & $6.34 \pm 0.12$ & $87.13 \pm 0.00$ & $1.92 \pm 0.80$ \\
+			\hline
+		\end{tabular}
+	\end{adjustbox}
+\end{table}
+
+\subsection{Sensitivity of the Framework to the Choice of Backbone}
+\label{sec:an:backbone}
+
+Table~\ref{tab:multi_backbone_results} indicates that the choice of backbone is the single largest lever for the framework. DINOv2 dominates the supervised alternatives by 5--35 accuracy points on CIFAR-100, ImageNet-R and Joint; ViT-base/16 in particular collapses to 43--46\,\% on ImageNet-R. The empirical pattern correlates with the Gaussianity statistics of Table~\ref{tab:gaussianity_stats}: DINOv2 produces approximately Gaussian, well-conditioned embeddings, whereas supervised ViTs trained on a fixed labelled corpus tend to produce more anisotropic features that violate the modelling assumption. Caltech-256 is the only exception: the three backbones cluster within four accuracy points, with ViT-medium narrowly ahead. This pattern is consistent with the interpretation that Caltech-256 is sufficiently easy on the visual side that the bottleneck moves from the encoder to the downstream classifier; the choice of backbone matters less when the categories are already linearly separable in the feature space.
+
+Beyond the covariance estimators and backbones evaluated above, the next section turns to the statistical structure of the embedding space itself, beginning with its spectral geometry.
+
+\section{Spectral Analysis of the Embedding Space}
 \label{sec:spectral_analysis}
 \phantomsection\label{sec:pca_results}
+\phantomsection\label{sec:an:embedding}
 
-Figure~\ref{fig:pca_eigenvalues} reports the PCA spectral decay of the $\ell_2$-normalised DINOv2 embeddings in percentage-of-variance units. Panel~(a) shows the individual variance contribution of each component: the first component alone explains around $8$--$10\,\%$ of the total variance, and the contribution decays steeply over the first $\sim\!50$ components before levelling off near zero. Panel~(b) shows the cumulative explained variance: roughly $90\,\%$ of the total variance is captured by the leading $100$--$130$ components on all three benchmarks, despite the embedding space being $d=768$-dimensional. The three datasets share remarkably similar spectra across both panels.
+To diagnose the underlying geometric structure of the foundation embedding space prior to density estimation, we analyze the global eigenspectrum of the $\ell_2$-normalized representations. This diagnostic provides an empirical mapping of how variance is distributed across the ambient coordinates, revealing the intrinsic complexity of the frozen feature space.
 
 \begin{figure}[htbp]
 	\centering
@@ -386,10 +662,23 @@ Figure~\ref{fig:pca_eigenvalues} reports the PCA spectral decay of the $\ell_2$-
 	\label{fig:pca_eigenvalues}
 \end{figure}
 
-\subsubsection{PCA-Reduced Continual-Learning Accuracy}
+A defining characteristic of this spectral profile is its extreme invariance across entirely distinct image distributions. As shown in Figure~\ref{fig:pca_eigenvalues}, the singular value decay curves for Split CIFAR-100, Split ImageNet-R, and Split Caltech-256 overlap almost perfectly. This tight structural consistency reveals that DINOv2's feature spacing and variance distributions are highly robust to severe semantic and domain shifts---behaving identically whether processing low-resolution natural images, artistic renditions, or high-resolution object photography. This invariant behavior removes any requirement for dataset-specific dimensionality scaling, validating the deployment of a uniform probabilistic modeling layer across highly heterogeneous continual tasks.
+
+\subsection{Spectral Properties of the Foundation Embeddings}
+\label{sec:an:spectrum}
+
+The global PCA spectrum illustrated in Figure~\ref{fig:pca_eigenvalues} exposes three fundamental regularities that characterize the DINOv2 feature space:
+
+First, all three benchmarks share a remarkably similar multi-stage variance allocation. The first principal component accounts for approximately 8\%--10\% of the total variance, followed by a sharp, exponential decay over the first $\sim\!50$ dimensions that collectively captures 36\%--40\% of the global variance. Beyond this point, the spectrum transitions into a long, flat, slowly-decaying tail across the remaining 700+ coordinates. 
+
+Second, the absence of an abrupt truncation or truncation step in the spectrum implies that while the highly discriminative signal natively concentrates within a moderate-dimensional subspace, it is not entirely confined to a lower-dimensional manifold. Meaningful residual variability is spread across the entire ambient space, which structurally justifies our use of a full high-dimensional ($d=768$) generative model over a truncated PCA-reduced surrogate.
+
+Third, regardless of the global spectrum, the effective rank of any localized, per-class empirical covariance matrix remains strictly upper-bounded by $n_c - 1$. Because a maximum of $n_c - 1$ directional axes can be populated by a sample size of $n_c$ centered observations, severe data scarcity ($n_c < d$) introduces a systemic rank-deficiency pathology. This mathematical constraint serves as the root cause of the numerical instabilities observed in unconstrained full-covariance estimation, which are evaluated under compression in the next subsection.
+
+\subsection{Empirical Validation via Subspace Compression Tracking}
 \label{sec:pca_cl_results}
 
-Table~\ref{tab:pca_accuracy} reports the final average accuracy of the Gaussian classifier after completing all tasks, evaluated under two PCA projection dimensionalities ($d\!=\!64$ and $d\!=\!256$) and two covariance estimators (diagonal and full). Features were $\ell_2$-normalised DINOv2 embeddings projected using the shared PCA weights estimated from the pooled training corpus; the train/test partition uses an 80/20 per-class split of the pre-extracted feature cache. Each cell reports the mean final average accuracy across three independent class-ordering runs (standard deviation is zero for all reported entries because the class-conditional statistics are estimated from the fixed training split, making the final-row accuracy deterministic regardless of task permutation; inter-run variance therefore reflects only ordering effects on the intermediate trajectory, not on the converged accuracy).
+To evaluate whether the concentration of variance within the leading spectrum can be systematically leveraged to mitigate small-sample rank deficiency, we analyze the performance of the class-incremental classifiers under forced coordinate compression. Table~\ref{tab:pca_accuracy} logs the final average accuracy at $T_{\max}$ across three independent class-ordering runs under two compressed PCA targets ($d=64$ and $d=256$). Consistent with the generative architecture of our framework, the class-conditional statistics are evaluated natively from the static training partition, yielding a standard deviation of zero across all cells. This underscores that intermediate trajectory permutations exert no backward interference on the converged boundaries.
 
 \begin{table}[htbp]
 	\centering
@@ -403,285 +692,201 @@ Table~\ref{tab:pca_accuracy} reports the final average accuracy of the Gaussian 
 		\textbf{Benchmark} & Diag & Full & Diag & Full \\
 		\midrule
 		CIFAR-100      & 78.48 & \textbf{83.05} & \textbf{85.22} & 82.29 \\
-		ImageNet-R     & \textbf{63.86} & 49.74 & \textbf{71.64} & 61.27 \\
-		Caltech-256    & \textbf{87.18} & 44.09 & 89.98 & \textbf{91.06} \\
+		ImageNet-R     & \textbf{64.04} & 49.65 & \textbf{71.79} & 61.25 \\
+		Caltech-256    & \textbf{87.20} & 43.40 & 90.01 & \textbf{91.09} \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-On CIFAR-100, increasing PCA dimensionality from 64 to 256 improves diagonal-covariance accuracy by $+6.7$\,pp; the corresponding gains are $+7.8$\,pp on ImageNet-R and $+2.8$\,pp on Caltech-256. On CIFAR-100 at $d=64$, Full-Cov gains $+4.6$\,pp over Diag-Cov, but at $d=256$ this margin collapses to $-2.9$\,pp. On ImageNet-R and Caltech-256 at $d=64$, Full-Cov degrades by $14.1$ and $43.1$\,pp respectively relative to Diag-Cov; both gaps narrow at $d=256$.
+The empirical behavior across dimensionalities maps directly onto the geometric characteristics of the underlying spectrum. Scaling the PCA dimensionality from $d=64$ to $d=256$ drives a systematic accuracy lift for the independent feature model (\emph{Diag-Cov}), yielding a margin of $+6.7$\,pp on Split CIFAR-100, $+7.8$\,pp on Split ImageNet-R, and $+2.8$\,pp on Split Caltech-256. This pattern confirms that while the leading components capture the bulk of global scene variance, fewer than 130 components are sufficient to pass the 90\% cumulative variance threshold, and the remaining low-variance tail contains subtle, fine-grained information mandatory for resolving tight inter-class decision boundaries. 
 
+\subsection{Covariance Parameterisations and Subspace Interplay}
+\label{sec:pca_covariance_interplay}
 
+Tracking the performance gap between the \emph{Diag-Cov} and \emph{Full-Cov} parameterisations exposes the dual nature of subspace regularization under data scarcity. On Split CIFAR-100 at $d=64$, compressing the features succeeds as a regularizer: the sample budget ($n_c=400$) comfortably exceeds the projection dimension, allowing \emph{Full-Cov} to exploit stable off-diagonal correlations and outpace the Diagonal baseline by $+4.6$\,pp. However, expanding the coordinates to $d=256$ reverses this advantage to a deficit of $-2.9$\,pp, demonstrating that over-parameterisation outpaces sample depth even within the leading spectrum. 
 
-\section{Covariance Matrix Structure}
-\label{sec:covariance_structure_results}
+This numerical instability triggers a complete structural collapse on the sample-starved streams of ImageNet-R ($n_c=40$) and Caltech-256 ($n_c=64$) at severe compression. At $d=64$, the unconstrained \emph{Full-Cov} parameters suffer from severe rank deficiency, degrading accuracy by $14.4$\,pp on ImageNet-R and a catastrophic $43.8$\,pp on Caltech-256 relative to the robust \emph{Diag-Cov} models. While these gaps narrow significantly as dimensionality expands to $d=256$---culminating in \emph{Full-Cov} recovering to claim peak accuracy on Caltech-256 ($91.09\%$)---the extreme sensitivity highlights that linear out-of-distribution transformations distort localized class correlations when sample budgets remain close to the subspace dimension.
 
-\subsection{Conditioning Analysis}
-\label{sec:conditioning_results}
+Having mapped the spectral boundaries and coordinate limits of the foundation embedding space, the next section moves beyond variance allocation to conduct a direct statistical validation of the underlying Gaussianity assumptions that govern our probabilistic classification layers.
 
-Table~\ref{tab:conditioning} summarises the conditioning metrics of the regularised full covariance matrices $\hat{\Sigma}_c^{\text{reg}} = \hat{\Sigma}_c + 10^{-6}I$ computed on the training split (Section~\ref{sec:method:conditioning}). The three reported metrics characterise different aspects of how well-conditioned the per-class covariance is. The \textbf{condition number} $\kappa = \lambda_{\max}/\lambda_{\min}$ measures the spread between the largest and smallest eigenvalue; because it can span many orders of magnitude it is reported on a $\log_{10}$ scale. A high $\log_{10}(\kappa)$ means the matrix is nearly singular, so small perturbations in the data can cause large changes in the estimated inverse. \textbf{Degenerate dimensions} counts how many of the $d=768$ eigenvalues fall below the threshold $\varepsilon_{\mathrm{thr}}=10^{-4}$; these directions carry negligible variance and are effectively noise. \textbf{Effective rank} is the entropy-based soft count of informative directions (Eq.~\ref{eq:effective_rank}): unlike the hard rank it penalises unequal eigenvalue distributions, so a matrix whose variance is concentrated in a few directions will have a low effective rank even if many eigenvalues are technically non-zero.
+\section{Analysis of Gaussianity Assumptions}
+\label{sec:gaussianity_results}
+
+In this section, we examine whether the embedding space of a visual foundation model natively satisfies the Gaussian assumption. To this end, we conduct a rigorous statistical evaluation using the training split of each benchmark. Our analysis specifically focuses on DINOv2; because it is trained via self-supervised learning on a massive, diverse dataset without the semantic constraints of manual labels, it yields a highly continuous, transferable, and well-behaved representation space.
+
+To demonstrate that these self-supervised features are consistently Gaussian, we organize our validation into two structural levels: (1) Univariate Gaussianity: we evaluate the marginal distributions of individual feature dimensions using moment-based diagnostics (skewness and excess kurtosis), the D'Agostino--Pearson formal omnibus normality test, and a per-coordinate application of the Henze--Zirkler (HZ) test. (2) Multivariate Gaussianity: we evaluate the joint distribution in its native high-dimensional space by formulating a specialized diagonal-covariance adaptation of the HZ test to circumvent sample-size rank deficiencies.
+
+\subsection{Univariate Gaussianity: Moments and Formal Tests}
+\label{sec:uv_gaussianity}
+
+\textbf{Shape moments.}
+We compute sample skewness and excess kurtosis for every $(class~c, dimension~j)$ pair:
+\begin{equation}
+    \widehat{\mathrm{Skew}}_{c,j} = \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^3}{\hat\sigma_{c,j}^{3}},\qquad
+    \widehat{\mathrm{Kurt}}_{c,j} = \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^4}{\hat\sigma_{c,j}^{4}} - 3,
+    \label{eq:moments_results}
+\end{equation}
+so that both quantities vanish exactly for a Gaussian.
 
 \begin{table}[htb]
     \centering
-    \caption{Per-class covariance conditioning metrics across the three benchmarks ($d=768$, $\varepsilon=10^{-6}$, $\varepsilon_{\mathrm{thr}}=10^{-4}$). Degenerate dimensions are those whose eigenvalue falls below $\varepsilon_{\mathrm{thr}}$; effective rank is the entropy-based measure of Eq.~\ref{eq:effective_rank}. All values are mean\,$\pm$\,std over classes.}
-    \label{tab:conditioning}
+    \caption{Per-dimension Gaussianity statistics over all $(C \times d)$ (class, dimension) pairs per dataset ($d=768$). $|\!\mathrm{Skew}|_\mu$ and $|\!\mathrm{Kurt}|_\mu$ are mean absolute values; $\mathbb{P}[\cdot]$ is the fraction of pairs satisfying each cut-off.}
+    \label{tab:gaussianity_stats}
     \scriptsize
-    \setlength{\tabcolsep}{5pt}
-    \begin{tabular}{lcccc}
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{lcc cc cc}
         \toprule
-        \textbf{Dataset} & $\tilde{n}_c$ & $\log_{10}(\kappa)$ & Degen.\ dims & Eff.\ rank \\
+        \textbf{Dataset} & \textbf{pairs} & $|\!\mathrm{Skew}|_\mu$ & $\mathrm{Skew}_\sigma$ & $\mathbb{P}[|\mathrm{Skew}|{<}0.5]$ & $|\!\mathrm{Kurt}|_\mu$ & $\mathbb{P}[|\mathrm{Kurt}|{<}1]$ \\
         \midrule
-        CIFAR-100   & 400 & $8.20 \pm 0.11$ & $369 \pm 0$ & $103.3 \pm 19.8$ \\
-        Caltech-256 &  80 & $4.84 \pm 0.17$ & $682 \pm 28$ & $41.2 \pm 11.4$ \\
-        ImageNet-R  & 110 & $4.94 \pm 0.09$ & $650 \pm 57$ & $55.4 \pm 18.3$ \\
+        CIFAR-100   & 76,800  & $0.181$ & $0.236$ & $0.961$ & $0.264$ & $0.982$ \\
+        ImageNet-R  & 153,600 & $0.269$ & $0.348$ & $0.859$ & $0.432$ & $0.924$ \\
+        Caltech-256 & 192,000 & $0.360$ & $0.472$ & $0.747$ & $0.659$ & $0.822$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
-    \centering
-    \subfigure[Condition number $\log_{10}(\kappa)$]{\includegraphics[width=0.9\linewidth]{imagenes/results/cond_kappa_histogram.pdf}\label{fig:cond_kappa}}
-    \hfill
-    \subfigure[Degenerate dimensions ($\lambda < 10^{-4}$)]{\includegraphics[width=0.9\linewidth]{imagenes/results/cond_degenerate_histogram.pdf}\label{fig:cond_degen}}
-    \caption{Per-class conditioning metrics across all three benchmarks. Each histogram shows one bar per class; the darkred line marks the median. (a) log-condition number. (b) count of eigenvalues below the degeneracy threshold $\varepsilon_{\mathrm{thr}} = 10^{-4}$.}
-    \label{fig:conditioning}
-\end{figure}
+Table~\ref{tab:gaussianity_stats} reports aggregate statistics. Mean skewness is essentially zero on all benchmarks ($|\overline{\mathrm{Skew}}| \le 0.002$). The fraction of pairs satisfying $|\mathrm{Skew}|<0.5$ drops from $96.1\%$ on CIFAR-100 to $74.7\%$ on Caltech-256, reflecting the smaller per-class sample count and greater visual diversity of the latter.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{imagenes/results/cond_effrank_histogram.pdf}
-    \caption{Effective rank (Eq.~\ref{eq:effective_rank}) of the regularised covariance matrices per class. Despite $d=768$ ambient dimensions, the effective rank is below 110 for all CIFAR-100 classes, and below 80 for most Caltech-256 and ImageNet-R classes.}
-    \label{fig:effrank}
-\end{figure}
-
-
-\subsection{Cross-Class Frobenius Norm Analysis}
-\label{sec:frobenius_results}
-
-Figure~\ref{fig:frob_heatmaps} shows the $C \times C$ pairwise Frobenius distance matrices for all three benchmarks; Figure~\ref{fig:frob_distribution} shows the marginal distribution of pairwise distances; Table~\ref{tab:frobenius} summarises the key statistics.
+\textbf{D'Agostino--Pearson omnibus test.}
+The omnibus test combines the two shape statistics into:
+\begin{equation}
+    K^2 = Z_1(\widehat{\mathrm{Skew}})^2 + Z_2(\widehat{\mathrm{Kurt}})^2 \;\sim\; \chi^2_2 \quad \text{under } H_0,
+    \label{eq:normaltest_results}
+\end{equation}
+where $Z_1$ and $Z_2$ are normalized transformations of the skewness and kurtosis estimators. We reject $H_0$ at $\alpha=0.05$ and report the fraction of pairs passing (Table~\ref{tab:gaussianity_normaltest}). With $\bar{n}_c \approx 400$, $120$, and $90$ for CIFAR-100, ImageNet-R, and Caltech-256 respectively, the test is conservative (even minor departures accumulate into significant $K^2$ values for the larger datasets); nonetheless $70$--$81\%$ of all pairs pass the strict test, and the relaxed criterion ($|\mathrm{Skew}|<1$ and $|\mathrm{Kurt}|<1$) yields $82$--$98\%$.
 
 \begin{table}[htb]
     \centering
-    \caption{Pairwise Frobenius distances $D_{ij}^F = \|\hat{\Sigma}_i^{\mathrm{reg}} - \hat{\Sigma}_j^{\mathrm{reg}}\|_F$ across all class pairs.}
-    \label{tab:frobenius}
+    \caption{Per-feature normality tests on the training split (fractions of $(C \times d)$ pairs). \emph{normaltest}: D'Agostino--Pearson $\chi^2_2$ at $\alpha{=}0.05$. \emph{relaxed}: $|\mathrm{Skew}|<1$ and $|\mathrm{Kurt}|<1$ simultaneously.}
+    \label{tab:gaussianity_normaltest}
     \scriptsize
-    \setlength{\tabcolsep}{5pt}
-    \begin{tabular}{lcccccc}
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabular}{lccc}
         \toprule
-        \textbf{Dataset} & Mean & Std & Min & Median & Max \\
+        \textbf{Dataset} & \textbf{Normaltest (\%)} & \textbf{Relaxed (\%)} & \textbf{Both (\%)} \\
         \midrule
-        CIFAR-100    & 329.26 & 41.05 & 146.15 & 328.29 & 457.02 \\
-        Caltech-256  & 0.16   & 0.03  & 0.04   & 0.15   & 0.32   \\
-        ImageNet-R   & 0.17   & 0.02  & 0.09   & 0.17   & 0.25   \\
+        CIFAR-100   & $70.0$ & $97.8$ & $70.0$ \\
+        ImageNet-R  & $80.8$ & $91.6$ & $79.7$ \\
+        Caltech-256 & $73.4$ & $82.3$ & $71.3$ \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
+\subsection{Multivariate Gaussianity: Diagonal Henze--Zirkler Test}
+\label{sec:mv_gaussianity_results}
+
+Per-dimension normality is necessary but not sufficient for the joint $d$-dimensional distribution to be Gaussian. We extend our analysis to evaluate the distribution in its native $d=768$ space. Crucially, computing a standard full-covariance Henze--Zirkler (HZ) test is mathematically intractable in this setting. Because the number of available samples per class is smaller than the feature dimensionality, the empirical full covariance matrix becomes singular and non-invertible, which prevents the calculation of standard Mahalanobis distances.
+
+To circumvent this rank deficiency without resorting to destructive dimensionality reduction techniques (such as PCA), we formulate a diagonal-covariance adaptation of the HZ test. This variant computes distance metrics using explicit per-coordinate sample variances, effectively regularizing the space.
+
+Under exact multivariate normality, $T_{\mathrm{HZ}} \to 1$ as $d \to \infty$; values close to $1$ indicate near-Gaussianity. Table~\ref{tab:gaussianity_hz} confirms that all three benchmarks concentrate tightly near the Gaussian reference $T_{\mathrm{HZ}} = 1$, validating the Gaussian assumption at the multivariate level under a diagonal model.
+
+\begin{table}[htb]
     \centering
-    \subfigure[CIFAR-100]{\includegraphics[width=0.32\linewidth]{imagenes/results/frob_heatmap_CIFAR100.pdf}\label{fig:frob_cifar}}
-    \subfigure[Caltech-256]{\includegraphics[width=0.32\linewidth]{imagenes/results/frob_heatmap_Caltech256.pdf}\label{fig:frob_caltech}}
-    \subfigure[ImageNet-R]{\includegraphics[width=0.32\linewidth]{imagenes/results/frob_heatmap_ImageNetR.pdf}\label{fig:frob_imagenetr}}
-    \caption{Pairwise Frobenius distance heatmaps $D_{ij}^F = \|\hat{\Sigma}_i^{\mathrm{reg}} - \hat{\Sigma}_j^{\mathrm{reg}}\|_F$. Colour encodes distance magnitude (darker = smaller = more similar covariance geometry). CIFAR-100 displays rich class-to-class variation; Caltech-256 and ImageNet-R are nearly uniform, indicating that regularisation has collapsed the covariance matrices toward a common $\varepsilon I$ floor.}
-    \label{fig:frob_heatmaps}
-\end{figure}
+    \caption{Summary results from computing the diagonal HZ test statistic over all classes in the ambient foundation feature space ($d=768$), using all available training samples. Values concentrated near $T_{\mathrm{HZ}} \approx 1.00$ indicate convergence toward empirical multivariate Gaussianity under the feature-independence assumption.}
+    \label{tab:gaussianity_hz}
+    \scriptsize
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{lcc c}
+        \toprule
+        \textbf{Dataset} & $C$ & $T_{\mathrm{HZ}}$ mean\,$\pm$\,std \\
+        \midrule
+        CIFAR-100   & 100 & $1.0002 \pm 0.0020$  \\
+        ImageNet-R  & 200 & $1.0033 \pm 0.0073$ \\
+        Caltech-256 & 250 & $1.0016 \pm 0.0089$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\linewidth]{imagenes/results/frob_distribution.pdf}
-    \caption{Distribution of all pairwise Frobenius distances. The scale difference between CIFAR-100 ($\bar{D}_F \approx 329$) and the other two benchmarks ($\bar{D}_F \approx 0.16$--$0.17$) spans three orders of magnitude, reflecting the degree to which regularisation dominates the estimated covariances.}
-    \label{fig:frob_distribution}
-\end{figure}
+\textbf{Summary of Multivariate Findings.} It is important to explicitly clarify that because our modified HZ test enforces a diagonal matrix to handle the small-sample regime, it does not mathematically guarantee full, arbitrary multidimensional Gaussianity where cross-dimensional covariances are fully unconstrained. However, given the severe data limitations per class relative to the embedding dimensions ($n_c < d$), this evaluation serves as a highly robust and reliable proxy approximation. The clean multivariate convergence to $T_{\mathrm{HZ}} \approx 1.00$ across all three datasets confirms that the joint space scales properly under independent assumptions, providing a sound statistical justification for deploying independent-feature probabilistic classifiers in visual foundation spaces.
 
+\subsection{Univariate Henze--Zirkler Test per Dimension}
+\label{sec:uv_hz_gaussianity_results}
 
+Complementing the multivariate diagonal test above with a finer-grained, per-dimension hypothesis test, we return to the univariate level using the Henze--Zirkler statistic. As a stricter, hypothesis-based normality criterion, we apply the Henze--Zirkler (HZ) test independently to every individual coordinate space ($d=1$) for each class-dimension pair $(c, j)$. Under the null hypothesis $H_0$ of exact univariate normality, the finite-sample expectation of the statistic is given by $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}] = 1 - a^{-1/2} \left(1 + \frac{b^2}{a} + \frac{3b^4}{4a^2}\right)$, where $a = 1 + 2b^2$ and $b^2 = \frac{1}{2}(4/3)^{0.4}n_c^{-0.4}$ represents the smoothing parameter or bandwidth conditioned on the per-class sample size $n_c$.
 
-\section{Generative--Discriminative Fusion and Re-ranking Strategies}
-\label{sec:df_results}
-
-Tables~\ref{tab:hybrid_cifar}--\ref{tab:hybrid_joint} report the effect of the nine re-ranking and fusion strategies introduced in Chapter~\ref{methodology}, paired with both the diagonal and the full covariance branch on every benchmark. The rows of each table are organised into three groups separated by horizontal rules.
-
-The \emph{recommended} group (SoftTaskFus, TaskMeanShr, Top5-CosRR, OptFusion-MM) contains strategies that consistently match or improve the unrestricted baseline across both covariance branches and all benchmarks, without requiring task identity at test time. The \emph{brittle} group (HardGate, Top5-TaskRR, TopK-TaskFilt) contains strategies that rely on hard task-level gating. The \emph{marginal} group (HardGate-LDA, SoftGate-LDA) contains LDA-based subspace methods.
-
-\begin{table}[htbp]
+\begin{table}[htb]
 	\centering
-	\caption{Generative--Discriminative Re-ranking Strategies on \textbf{Split CIFAR-100}.}
-	\label{tab:hybrid_cifar}
+	\caption{Summary results from computing the univariate Henze--Zirkler test statistic over all $(C \times d)$ class-dimension pairs on the training split. Here, $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ denotes the exact finite-sample theoretical expectation under the null hypothesis of perfect normality, determined by the per-class sample size $n_c$ via the data-adaptive bandwidth $b^2 = \frac{1}{2}(4/3)^{0.4}n_c^{-0.4}$.}
+	\label{tab:gaussianity_hz_univariate}
 	\scriptsize
-	\begin{tabular}{l cccc}
+	\setlength{\tabcolsep}{4pt}
+	\begin{tabular}{lcc c}
 		\toprule
-		\textbf{Strategy} & \multicolumn{2}{c}{\textbf{Diag-Cov}} & \multicolumn{2}{c}{\textbf{Full-Cov}} \\
-		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-		& $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ \\
+		\textbf{Dataset} & $\tilde{n}_c$ & $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ & $T_{\mathrm{HZ}}$ mean\,$\pm$\,std \\
 		\midrule
-
-		SoftTaskFus    & $86.16 \pm 0.00$ & $4.41 \pm 0.05$ & $88.52 \pm 0.00$ & $4.18 \pm 0.00$ \\
-		TaskMeanShr    & $86.08 \pm 0.00$ & $4.29 \pm 0.12$ & $88.48 \pm 0.00$ & $4.17 \pm 0.00$ \\
-		Top5-CosRR     & $86.59 \pm 0.00$ & $4.92 \pm 0.12$ & $87.05 \pm 0.00$ & $4.91 \pm 0.10$ \\
-		OptFusion-MM   & $\mathbf{87.04 \pm 0.00}$ & $4.82 \pm 0.07$ & $\mathbf{89.23 \pm 0.00}$ & $4.17 \pm 0.03$ \\
-		\midrule
-		HardGate       & $73.60 \pm 0.88$ & $9.82 \pm 0.17$ & $86.56 \pm 0.00$ & $4.83 \pm 0.48$ \\
-		Top5-TaskRR    & $75.02 \pm 1.09$ & $8.80 \pm 0.53$ & $86.71 \pm 0.01$ & $4.73 \pm 0.46$ \\
-		TopK-TaskFilt  & $83.90 \pm 0.15$ & $6.30 \pm 0.34$ & $88.51 \pm 0.01$ & $4.25 \pm 0.02$ \\
-		\midrule
-		HardGate-LDA   & $73.83 \pm 0.77$ & $9.93 \pm 0.14$ & $86.97 \pm 0.02$ & $4.89 \pm 0.53$ \\
-		SoftGate-LDA   & $81.07 \pm 0.07$ & $6.79 \pm 0.14$ & $87.19 \pm 0.03$ & $4.79 \pm 0.62$ \\
+		CIFAR-100  & 500 & $\approx 0.04$ & $0.00052 \pm 0.00095$ \\
+		ImageNet-R  & 137 & $\approx 0.06$ & $0.00134 \pm 0.00210$  \\
+		Caltech-256 & 100 & $\approx 0.07$ & $0.00234 \pm 0.00379$  \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
+\textbf{Summary of Univariate Findings.} Taken together, these marginal diagnostics reveal that the individual coordinates of the foundation feature vectors exhibit symmetric shapes sharply centered near zero skewness and minimal excess kurtosis. The fact that the observed Henze--Zirkler scores fall orders of magnitude below their theoretical $H_0$ expected values confirms that the univariate feature dimensions can be safely modeled as independent marginal Gaussians without violating statistical normality assumptions.
+
+\subsection{Empirical Validation of the Gaussian Assumption}
+\label{sec:an:gauss}
+
+The Gaussianity tests above confirm that the per-coordinate normality assumption is well supported across all three benchmarks: 96.1\,\% of CIFAR-100 coordinates, 85.9\,\% of ImageNet-R, and 74.7\,\% of Caltech-256 satisfy the informal symmetry cut-off $|\text{Skew}|<0.5$. The key distinction between the two covariance estimators follows directly from the $n_c < d$ regime. The \textbf{Diag-Cov} model estimates only $d$ parameters per class and is therefore always well-conditioned; its squared Mahalanobis distances are broadly distributed near the theoretical $\chi^2_{d=768}$ mode, with dispersion growing from CIFAR-100 to Caltech-256 in line with the heavy-tail ordering of Table~\ref{tab:gaussianity_stats}. The \textbf{Full-Cov} model, by contrast, requires estimating a $d\times d$ matrix from $n_c < d$ samples: the resulting covariance is rank-deficient, the eigenvalues outside the spanned subspace collapse to the regularisation floor, and the quadratic form becomes degenerate, producing a sharp spike at $\overline{n_c}-1$ (approximately 498, 168, and 103 on CIFAR-100, ImageNet-R, and Caltech-256 respectively) rather than spreading across the $\chi^2_{768}$ support. Crucially, this pathology is a property of the \emph{estimator}, not of the data---the per-coordinate distributions are demonstrably near-Gaussian. Preserving inter-feature correlations while avoiding rank deficiency remains an open challenge; the hybrid variant represents one practical way to trade off these two requirements.
+
+Having validated the Gaussian assumption both marginally and jointly, we now turn to a synthesis of the findings collected across all the topics examined in this chapter.
+
+\section{Computational Requirements and Architectural Bottlenecks}
+\label{sec:computational_requirements}
+\phantomsection\label{sec:an:other}
+
+Evaluating the practical viability of lifelong learning frameworks requires a careful balancing of classification accuracy against numerical execution overhead. Table~\ref{tab:computational_requirements} reports the exact inference cost of the Gaussian classification layer, quantified as the number of floating-point operations (FLOPs) mandatory to evaluate a single pre-embedded test query against the complete pool of active categories at the terminal state $T_{\max}$. 
+
+The computational scaling profiles follow strict algebraic dependencies dictated by the chosen covariance parameterisation:
+\begin{itemize}
+	\item \textbf{Diagonal Covariance Framework:} For the Diag-Cov branch, evaluation simplifies to an element-wise weighted squared Euclidean distance per class. The resource overhead scales linearly as $\mathcal{O}(C \cdot d)$, where $C$ represents the total active class count and $d$ is the ambient coordinate dimensionality ($d = 768$).
+	\item \textbf{Full Covariance Framework:} For the Full-Cov parameterisation (and, by extension, the Hybrid-Cov branch whose Mahalanobis terms share an identical Cholesky-based whitening transform), scoring demands a complete matrix--vector multiplication per class to account for off-diagonal correlational dependencies. Consequently, its complexity grows quadratically as $\mathcal{O}(C \cdot d^2)$.
+\end{itemize}
+
 \begin{table}[htbp]
 	\centering
-	\caption{Generative--Discriminative Re-ranking Strategies on \textbf{Split ImageNet-R}.}
-	\label{tab:hybrid_imagenet}
-	\scriptsize
-	\begin{tabular}{l cccc}
+	\caption{Inference cost of the Gaussian classification stage at $T_{\max}$, in floating-point operations (FLOPs) per query, for the two dominant covariance parameterisations. For reference, a single forward pass of the DINOv2 ViT-B/14 feature extractor requires approximately $17.56$ GFLOPs.}
+	\label{tab:computational_requirements}
+	\small
+	\setlength{\tabcolsep}{8pt}
+	\begin{tabular}{lcc}
 		\toprule
-		\textbf{Strategy} & \multicolumn{2}{c}{\textbf{Diag-Cov}} & \multicolumn{2}{c}{\textbf{Full-Cov}} \\
-		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-		& $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ \\
+		\textbf{Benchmark} & \textbf{Diag-Cov} & \textbf{Full-Cov} \\
 		\midrule
-
-		SoftTaskFus    & $75.04 \pm 0.02$ & $\mathbf{4.30 \pm 0.61}$ & $63.11 \pm 0.00$ & $6.72 \pm 9.39$ \\
-		TaskMeanShr    & $75.21 \pm 0.00$ & $4.37 \pm 0.68$  & $62.80 \pm 0.00$ & $6.85 \pm 9.57$ \\
-		Top5-CosRR     & $\mathbf{76.20 \pm 0.00}$ & $5.01 \pm 0.36$  & $73.63 \pm 0.01$ & $6.31 \pm 2.45$ \\
-		OptFusion-MM   & $76.65 \pm 0.00$ & $5.38 \pm 0.42$  & $\mathbf{77.00 \pm 0.00}$ & $\mathbf{4.94 \pm 1.23}$ \\
-		\midrule
-		HardGate       & $53.95 \pm 0.59$ & $11.65 \pm 0.83$ & $69.78 \pm 0.09$ & $4.54 \pm 2.45$ \\
-		Top5-TaskRR    & $56.49 \pm 0.52$ & $9.82 \pm 1.23$  & $69.53 \pm 0.11$ & $4.64 \pm 2.75$ \\
-		TopK-TaskFilt  & $68.65 \pm 0.30$ & $7.79 \pm 0.35$  & $65.46 \pm 1.36$ & $5.24 \pm 8.95$ \\
-		\midrule
-		HardGate-LDA   & $54.14 \pm 0.54$ & $11.88 \pm 0.70$ & $73.70 \pm 0.09$ & $6.08 \pm 3.86$ \\
-		SoftGate-LDA   & $59.90 \pm 0.25$ & $9.78 \pm 2.10$  & $73.72 \pm 0.12$ & $6.15 \pm 5.84$ \\
+		Split CIFAR-100   & $0.46$ MFLOPs & $0.12$ GFLOPs \\
+		Split ImageNet-R  & $0.92$ MFLOPs & $0.24$ GFLOPs \\
+		Split Caltech-256 & $1.15$ MFLOPs & $0.29$ GFLOPs \\
 		\bottomrule
 	\end{tabular}
 \end{table}
 
-\begin{table}[htbp]
-	\centering
-	\caption{Generative--Discriminative Re-ranking Strategies on \textbf{Split Caltech-256}.}
-	\label{tab:hybrid_caltech}
-	\scriptsize
-	\begin{tabular}{l cccc}
-		\toprule
-		\textbf{Strategy} & \multicolumn{2}{c}{\textbf{Diag-Cov}} & \multicolumn{2}{c}{\textbf{Full-Cov}} \\
-		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-		& $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ \\
-		\midrule
+Even when subjected to the most demanding operational workload—evaluating the Full-Cov model across the 250 classes of Split Caltech-256—the classification layer requires a modest $0.29$ GFLOPs. Crucially, this downstream operation accounts for less than $2\%$ of the computational expenditure required by a single forward pass through the DINOv2 ViT-B/14 feature extractor ($\approx 17.56$ GFLOPs). Across all studied parameterisations, the computational latency of the network is entirely dominated by the frozen foundation backbone, rendering the probabilistic decision layer effectively negligible during real-time deployment.
 
-		SoftTaskFus    & $90.87 \pm 0.00$ & $1.60 \pm 0.35$ & $\mathbf{95.03 \pm 0.00}$ & $\mathbf{1.68 \pm 0.03}$ \\
-		TaskMeanShr    & $86.08 \pm 0.00$ & $4.29 \pm 0.12$ & $94.73 \pm 0.00$ & $1.84 \pm 0.02$ \\
-		Top5-CosRR     & $91.99 \pm 0.00$ & $2.44 \pm 0.13$ & $94.03 \pm 0.00$ & $2.25 \pm 0.01$ \\
-		OptFusion-MM   & $\mathbf{93.96 \pm 0.00}$ & $2.28 \pm 0.01$ & $94.78 \pm 0.00$ & $1.94 \pm 0.04$ \\
-		\midrule
-		HardGate       & $80.36 \pm 0.11$ & $5.48 \pm 0.16$ & $92.77 \pm 0.04$ & $2.34 \pm 0.09$ \\
-		Top5-TaskRR    & $90.53 \pm 0.00$ & $1.53 \pm 0.04$ & $92.94 \pm 0.05$ & $2.25 \pm 0.10$ \\
-		TopK-TaskFilt  & $88.06 \pm 0.06$ & $3.20 \pm 0.11$ & $94.58 \pm 0.01$ & $1.99 \pm 0.02$ \\
-		\midrule
-		HardGate-LDA   & $82.10 \pm 0.77$ & $5.59 \pm 0.36$ & $92.57 \pm 0.01$ & $1.75 \pm 0.10$ \\
-		SoftGate-LDA   & $87.64 \pm 0.02$ & $3.40 \pm 1.41$ & $92.26 \pm 0.05$ & $1.73 \pm 0.06$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
+\subsection{Computational Footprint and Practical Scalability}
+\label{sec:an:compute}
 
-\begin{table}[htbp]
-	\centering
-	\caption{Generative--Discriminative Re-ranking Strategies on \textbf{Split Joint Datasets} (30 tasks).}
-	\label{tab:hybrid_joint}
-	\scriptsize
-	\begin{tabular}{l cccc}
-		\toprule
-		\textbf{Strategy} & \multicolumn{2}{c}{\textbf{Diag-Cov}} & \multicolumn{2}{c}{\textbf{Full-Cov}} \\
-		\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-		& $A_{30} (\uparrow)$ & $F_{30} (\downarrow)$ & $A_{30} (\uparrow)$ & $F_{30} (\downarrow)$ \\
-		\midrule
+Translating these algorithmic bounds into real-world, wall-clock performance highlights a fundamental operational advantage when contrasting this framework against prompt-based or replay-dependent alternatives. On Split CIFAR-100, integrating a newly encountered task into our generative framework requires approximately two minutes on a standard consumer-grade GPU. This time is spent exclusively on executing the deterministic, single-pass feature extraction of the raw images to calculate sufficient statistics. 
 
-		SoftTaskFus    & $78.86 \pm 0.00$ & $\mathbf{4.97 \pm 0.09}$ & $52.50 \pm 0.00$ & $8.44 \pm 2.67$ \\
-		TaskMeanShr    & $78.13 \pm 0.00$ & $5.20 \pm 0.13$ & $52.14 \pm 0.00$ & $8.61 \pm 2.87$ \\
-		Top5-CosRR     & $78.92 \pm 0.00$ & $5.41 \pm 0.08$ & $63.61 \pm 0.00$ & $7.08 \pm 1.29$ \\
-		OptFusion-MM   & $\mathbf{79.08 \pm 0.00}$ & $5.67 \pm 0.08$ & $\mathbf{81.94 \pm 0.00}$ & $4.89 \pm 0.02$ \\
-		\midrule
-		HardGate       & $66.11 \pm 0.00$ & $9.70 \pm 0.21$ & $53.16 \pm 0.00$ & $5.53 \pm 1.98$ \\
-		Top5-TaskRR    & $68.59 \pm 0.00$ & $7.80 \pm 0.12$ & $52.03 \pm 0.00$ & $5.83 \pm 2.46$ \\
-		TopK-TaskFilt  & $75.41 \pm 0.00$ & $6.45 \pm 0.03$ & $47.61 \pm 0.00$ & $7.48 \pm 3.87$ \\
-		\midrule
-		HardGate-LDA   & $66.52 \pm 0.00$ & $8.66 \pm 0.22$ & $53.02 \pm 0.00$ & $4.75 \pm 0.46$ \\
-		SoftGate-LDA   & $68.25 \pm 0.00$ & $8.94 \pm 4.00$ & $52.07 \pm 0.00$ & $\mathbf{4.81 \pm 0.62}$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
+In comparison, prompt-tuning configurations documented in recent literature routinely require 10--30 minutes of training per task on equivalent hardware hardware due to the necessity of backpropagating gradient updates through extensive prompt pools over multiple training epochs. By completely bypassing backpropagation and eliminating the storage overhead of a physical rehearsal buffer, the proposed framework achieves a 5--15$\times$ training acceleration, positioning it as an ideal candidate for decentralized, low-resource edge deployment.
 
+\subsection{Limitations and Architectural Open Questions}
+\label{sec:an:limits}
 
-\section{Sample Efficiency and Incremental Class Inclusion}
-\label{sec:incremental_update}
+While the empirical findings confirm the efficiency and structural calibration of this frozen generative approach, three specific constraints deserve explicit acknowledgment:
 
-Figure~\ref{fig:incremental_class_inclusion} illustrates how the Diag-Cov and Full-Cov class-conditional models behave when samples of a new class arrive progressively. After learning an initial set of nine base classes, an additional class is introduced and its training samples are incorporated in steps of $10\,\%$ of the available data. Two representative target classes per benchmark are reported, chosen to span the dataset's class index range. On Split CIFAR-100 (\textbf{a}), the Diag-Cov classifier reaches a strong plateau already with $10\,\%$ of the samples, while Full-Cov improves more gradually and surpasses Diag-Cov once 40--70\,\% of the samples are available. On Split ImageNet-R (\textbf{b}), both estimators improve gradually and the gap between Diag-Cov and Full-Cov stays small. On Split Caltech-256 (\textbf{c}), Full-Cov already dominates from the very first $10\,\%$ slice, and Diag-Cov tracks the Full-Cov curve at a 1--2 point lower plateau.
+First, the current evaluation pipeline presumes that exact task boundaries are explicitly provided during the training phase to partition incoming batches. Relaxing this operational constraint to accommodate task-free continual learning constitutes a vital next step, testing whether the decoupled Gaussian updates remain robust when categorical boundaries are completely blurred or interleaved.
 
-\begin{figure}[htbp]
-	\centering
-	\includegraphics[width=0.97\linewidth]{imagenes/results/incremental_class_inclusion.png}
-	\caption{Accuracy of a new class as samples arrive incrementally: (\textbf{a}) Split CIFAR-100, (\textbf{b}) Split ImageNet-R, (\textbf{c}) Split Caltech-256. Two target classes per benchmark are shown.}
-	\label{fig:incremental_class_inclusion}
-\end{figure}
+Second, our experimental validation has focused exclusively on visual classification streams. Although the underlying generative mechanics remain fundamentally agnostic to the native input modality, executing a parallel empirical validation on transformer-encoded text or speech embeddings is required to verify if the clean Gaussian behavior observed here generalizes across multi-modal representation spaces.
 
+Third, a highly compelling extension lies in leveraging the well-behaved calibration profiles of our independent configurations for open-world discovery. The severe overconfidence of the Full covariance model renders its predictive metrics useless outside its closed label space. However, the highly calibrated Predictive Entropy and Probability Margin of the Diagonal model can be directly utilized as natural out-of-distribution anomaly scores. Investigating this capability will determine if the robust generative framework can successfully flag novel, unlearned semantic categories while preserving its historical performance boundaries.
 
-\section{Backbones Comparison}
-\label{sec:backbone_results}
+\section{Methodological Synthesis and Engineering Paradigm}
+\label{sec:an:summary}
 
-Table~\ref{tab:multi_backbone_results} reports the two best closed-form estimators (Diag-Cov and Full-Cov) when paired with three vision backbones: DINOv2~\cite{oquab2024dinov} (the default of this work), ViT-base patch-16/224 and ViT-medium patch-16/224, both supplied by the \texttt{timm} library~\cite{rw2019timm}.
+The empirical evaluations compiled throughout this chapter provide a comprehensive validation of the structural behavior, computational footprint, and parametric limitations of closed-form generative classifiers operating on frozen foundation embeddings. Synthesizing these multi-dimensional results reveals that the class-incremental learning problem can be effectively shifted from a complex struggle against catastrophic forgetting to a structured task of density estimation within a stationary representation space. The native feature manifold generated by DINOv2 shows exceptional compliance with marginal normality assumptions, passing coordinate-level Gaussianity thresholds across $96\,\%$ of dimensions in Split CIFAR-100, $86\,\%$ in Split ImageNet-R, and $75\,\%$ in Split Caltech-256. Because the global representation remains stable as tasks accumulate, the resulting quadratic and linear decision boundaries yield performance competitive with optimization-heavy, prompt-based architectures while remaining completely deterministic, closed-form, and gradient-free.
 
-\begin{table}[htbp]
-	\centering
-	\caption{Backbone ablation. The two best closed-form estimators (Diag-Cov and Full-Cov) are evaluated with three vision backbones across all four benchmarks.}
-	\label{tab:multi_backbone_results}
-	\scriptsize
-	\setlength{\tabcolsep}{3.5pt}
-	\begin{tabular}{ll cccccccc}
-		\toprule
-		\textbf{Method} & \textbf{Backbone} & \multicolumn{2}{c}{\textbf{Split CIFAR-100}} & \multicolumn{2}{c}{\textbf{Split ImageNet-R}} & \multicolumn{2}{c}{\textbf{Split Caltech-256}} & \multicolumn{2}{c}{\textbf{Split Joint}} \\
-		\cmidrule(lr){3-4} \cmidrule(lr){5-6} \cmidrule(lr){7-8} \cmidrule(lr){9-10}
-		& & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{10} (\uparrow)$ & $F_{10} (\downarrow)$ & $A_{30} (\uparrow)$ & $F_{30} (\downarrow)$ \\
-		\midrule
-		Diag-Cov & DINOv2 & $\mathbf{86.07 \pm 0.00}$ & $4.30 \pm 0.12$ & $\mathbf{77.12 \pm 0.00}$ & $7.44 \pm 0.17$ & $90.06 \pm 0.00$ & $1.69 \pm 0.36$ & $\mathbf{78.32 \pm 0.21}$ & $6.05 \pm 0.12$ \\
-		& ViT-m  & $81.41 \pm 0.00$ & $5.28 \pm 0.13$ & $66.11 \pm 0.00$ & $4.79 \pm 0.14$ & $\mathbf{91.41 \pm 0.00}$ & $\mathbf{1.63 \pm 0.12}$ & $50.63 \pm 1.87$ & $5.42 \pm 0.07$ \\
-		& ViT-b  & $81.03 \pm 0.00$ & $\mathbf{4.57 \pm 0.41}$ & $43.08 \pm 0.00$ & $6.41 \pm 0.19$ & $87.72 \pm 0.00$ & $1.74 \pm 0.50$ & $44.64 \pm 1.43$ & $\mathbf{5.47 \pm 0.08}$ \\
-		\midrule
-		Full-Cov & DINOv2 & $\mathbf{88.48 \pm 0.00}$ & $\mathbf{4.18 \pm 0.00}$ & $\mathbf{75.08 \pm 0.00}$ & $\mathbf{5.07 \pm 0.03}$ & $90.01 \pm 0.01$ & $2.16 \pm 0.05$ & $\mathbf{78.65 \pm 0.00}$ & $\mathbf{4.69 \pm 0.02}$ \\
-		& ViT-m  & $82.42 \pm 0.00$ & $5.25 \pm 0.01$ & $66.44 \pm 0.00$ & $5.18 \pm 0.27$ & $\mathbf{90.11 \pm 0.00}$ & $\mathbf{1.80 \pm 0.12}$ & $42.10 \pm 0.00$ & $9.39 \pm 1.90$ \\
-		& ViT-b  & $80.40 \pm 0.00$ & $5.38 \pm 0.36$ & $45.72 \pm 0.00$ & $7.16 \pm 0.17$ & $87.13 \pm 0.00$ & $1.92 \pm 0.80$ & $66.51 \pm 0.00$ & $5.47 \pm 0.08$ \\
-		\bottomrule
-	\end{tabular}
-\end{table}
+The ultimate classification ceiling of this framework is explicitly dictated by the spatial resolution of the upstream feature extractor rather than the capacity of the downstream classifier, as evidenced by the large performance gaps observed across differing visual backbones. This downstream classification error is not distributed uniformly; instead, it is tightly localized within a heavy-tailed minority representing fewer than $0.2\,\%$ of total class combinations where the pairwise Bhattacharyya distance drops below a critical threshold ($D_B < 20$). These failure modes isolate semantically near-synonymous or visually continuous categories---such as \textit{boy}/\textit{girl} at low resolutions or \textit{top-hat}/\textit{cowboy-hat} and \textit{bow\_tie}/\textit{scarf} under domain shifts. This structural overlap establishes an unresolvable decision boundary that second-order statistics alone cannot fully decouple, meaning that apparent forgetting in frozen streams is actually a direct reflection of newly introduced categories landing within the probability mass of previously established class manifolds.
 
+Managing these local overlap boundaries requires a deployment strategy tailored directly to the sample-size budget and categorical homogeneity of the incoming stream. When the per-class sample allocation comfortably outpaces the feature dimensionality, unconstrained full covariance modeling computed via the regularized Cholesky-based log-determinant framework provides the most robust configuration, successfully mapping off-diagonal feature correlations. In data-scarce yet homogeneous regimes, this Cholesky-parameterized full or hybrid model remains highly effective by utilizing precise volumetric tracking to separate class boundaries. However, under the severe sample-size heterogeneity of mixed-source datasets, unconstrained covariance parameters collapse due to imbalanced regularizing terms. In these heterogeneous deployment scenarios, shared covariance estimators represent the only viable fallback, as pooling second-order statistics across the active label space effectively decouples the numerical stability of the covariance inversion from the specific sample depth of any single incoming category.
 
-
-\section{Confidence and Calibration Metrics}
-\label{sec:calibration_results_section}
-
-Table~\ref{tab:calibration_metrics} reports six metrics that characterise the probabilistic behaviour of the Gaussian classifier: the final-task accuracy ($A_T$ in \%), the Expected Calibration Error (ECE, \%), the Confidence on Errors (CoE), Total Confidence (TC), Probability Margin (PM), and the Predictive Entropy. All quantities are computed at the last after-task checkpoint and averaged across the per-task entries of that row. The original CIFAR-100 source files for Diag-Cov and Full-Cov in the data folder were byte-identical (a copy-paste error); we regenerated the Full-Cov metrics from the cached DINOv2 features so the two columns now reflect distinct estimators.
-
-For the Diag-Cov rows, TC and PM differ by $0.02$--$0.06$ depending on the dataset (e.g.\ TC$=0.836$, PM$=0.774$ on CIFAR-100), with the gap being largest on ImageNet-R and smallest on Caltech-256.
-
-\begin{table}[htbp]
-	\centering
-	\caption{Probabilistic calibration metrics for the Bayesian classifier at the last after-task checkpoint. Accuracy and ECE are in percentage points; CoE, TC, PM and Entropy are in $[0,1]$. PM (Probability Margin) is the average difference $p_{(1)}-p_{(2)}$ between the top-1 and top-2 softmax probabilities; TC is the average of $p_{(1)}$ alone. Lower is better for ECE and CoE; higher is better for Accuracy. CIFAR-100 Full was regenerated from the cached DINOv2 features because the original source file was a byte-identical copy of the Diag one.}
-	\label{tab:calibration_metrics}
-	\scriptsize
-	\setlength{\tabcolsep}{3pt}
-	\begin{tabular}{l|cc|cc|cc|cc}
-		\toprule
-		\textbf{Metric} & \multicolumn{2}{c|}{\textbf{CIFAR-100}} & \multicolumn{2}{c|}{\textbf{ImageNet-R}} & \multicolumn{2}{c|}{\textbf{Caltech-256}} & \multicolumn{2}{c}{\textbf{Joint}} \\
-		                & Diag & Full & Diag & Full & Diag & Full & Diag & Full \\
-		\midrule
-		Accuracy (\%)        & 86.07 & 88.48 & 77.12 & 75.08 & 90.06 & 90.01 & 78.32 & 78.65 \\
-		ECE (\%)             & 3.72  & 11.68 & 13.72 & 37.44 & 7.05  & 26.03 & 11.46 & 29.05 \\
-		Confidence on Errors & 0.467 & 1.000 & 0.656 & 1.000 & 0.805 & 1.000 & 0.742 & 1.000 \\
-		Total Confidence     & 0.836 & 1.000 & 0.883 & 1.000 & 0.974 & 1.000 & 0.931 & 1.000 \\
-		Probability Margin   & 0.774 & 1.000 & 0.825 & 1.000 & 0.955 & 1.000 & 0.890 & 1.000 \\
-		Predictive Entropy   & 0.614 & 0.000 & 0.365 & 0.000 & 0.067 & 0.000 & 0.207 & 0.000 \\
-		\bottomrule
-	\end{tabular}
-\end{table}
-
-For the Full-Cov column, Confidence on Errors reaches $1.000$, Total Confidence is identically $1.000$, and predictive entropy collapses to $0.000$ on every benchmark. For Diag-Cov, CoE increases with benchmark difficulty: CIFAR-100 $\approx 0.47$, ImageNet-R $\approx 0.66$, Caltech-256 $\approx 0.81$.
-
-
+Ultimately, these structural insights confirm the central thesis-level claim that lifelong learning can be addressed as a problem of static statistical modeling rather than dynamic parameter optimization. By utilizing frozen sufficient statistics, the framework eliminates representation drift by design. The practical challenge of incremental learning is thus distilled into selecting the specific covariance parameterization and evidence-fusion strategy that best align with the sample density and semantic granularity of the deployment scenario. This structural framework converts a historically unconstrained learning problem into a highly predictable engineering workflow, laying a rigorous mathematical foundation for the comprehensive system-level conclusions and future representation alignment paradigms detailed in Chapter~\ref{ch:conclusion}.

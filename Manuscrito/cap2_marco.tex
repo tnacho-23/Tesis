@@ -1,7 +1,7 @@
-\chapter{Theoretical Framework}
+\chapter{Theoretical Framework and Related Work}
 \label{ch:framework}
 
-This chapter establishes the conceptual and mathematical foundations required to contextualize this research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG) and Gaussian Analysis. Furthermore, we detail advanced covariance estimation methods such as OAS and Ledoit-Wolf, which are critical for stability in high-dimensional feature spaces. Finally, we address the challenge of ``catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating the state-of-the-art mitigation strategies that provide a performance baseline for the proposed work.
+This chapter establishes the conceptual and mathematical foundations required to contextualize this research, transitioning from broad paradigms in Artificial Intelligence to the specific statistical mechanics and adaptive learning strategies underpinning our methodology. We begin by reviewing the fundamental principles of Machine Learning, specifically within the realms of image processing and object classification, before providing a rigorous mathematical treatment of Bayesian Inference, Mixture of Gaussians (MoG) and Gaussian Analysis, including the moment-based and hypothesis-testing tools used throughout this thesis to assess Gaussianity. We then examine the theoretical foundations of covariance estimation in high-dimensional, small-sample regimes---the curse of dimensionality, covariance degeneracy, and the two families of regularisation strategies, spectral conditioning and structured shrinkage, that motivate the specific estimators (diagonal, full, hybrid, shared, OAS, and Ledoit--Wolf) developed in full in Chapter~\ref{methodology}. Finally, we address the challenge of ``catastrophic forgetting" by introducing the Continual Learning (CL) paradigm, describing the datasets utilized and evaluating the state-of-the-art mitigation strategies that provide a performance baseline for the proposed work.
 
 \section{Artificial Intelligence and Machine Learning}
 
@@ -49,6 +49,29 @@ Vision Transformers (ViT) adapt this architecture by treating an image as a sequ
 \subsubsection{Object Classification and Representative Power}
 The primary objective of the original ViT was \textit{Object Classification}: the fundamental task of assigning a single categorical label to an entire input image. This task serves as the primary benchmark for evaluating the representative power of visual models \cite{Krizhevsky2012}. By processing the global sequence of patches, ViTs have demonstrated an ability to meet or exceed CNN performance, particularly when pre-trained on the large-scale datasets described below.
 
+\subsubsection{Self-Supervised Advancements: DINOv2}
+
+While most datasets rely on explicit human annotations, recent advancements have shifted toward foundational models trained via self-supervised learning (SSL). A prominent representative of this paradigm is \textbf{DINOv2} \cite{oquab2024dinov}, which produces highly robust, multipurpose visual features that exhibit exceptional ``out-of-the-box'' performance across both image-level and pixel-level tasks.
+
+The underlying architecture of DINOv2 relies on a joint \textbf{Student-Teacher self-distillation} framework, building upon DINO \cite{DINO} and iBOT \cite{ibot}. It operates with two parallel networks of identical configuration: a \textit{Student} network $g_{\theta_s}$ and a \textit{Teacher} network $g_{\theta_t}$, whose weights $\theta_t$ are updated as an Exponential Moving Average (EMA) of the student's weights:
+
+\begin{equation}
+	\theta_t \leftarrow \lambda \theta_t + (1 - \lambda) \theta_s
+\end{equation}
+
+where $\lambda \in [0, 1]$ is a smoothing parameter. During training, the framework optimizes two complementary objectives to learn both global and fine-grained spatial representations:
+
+\begin{itemize}
+	\item \textbf{Image-Level Loss (DINO):} The student is fed with both global and local image crops, while the teacher processes only global views. The student is trained to match the teacher's output distribution over a set of virtual prototype vectors, stabilized using an online \textit{Sinkhorn-Knopp centering} algorithm to prevent representation collapse.
+	\item \textbf{Patch-Level Loss (iBOT):} To force the model to capture dense, localized features, random patches of the student's global views are masked out. The student must reconstruct the corresponding local patch features produced by the teacher, which receives the fully unmasked global view.
+	\item \textbf{KoLeo Regularization:} To ensure that the resulting embeddings are distributed uniformly across the feature space and do not collapse into a narrow cone, DINOv2 incorporates the Kozachenko-Leonenko (KoLeo) differential entropy estimator:
+	\begin{equation}
+		\mathcal{L}_{\text{KoLeo}} = -\frac{1}{n}\sum_{i=1}^{n} \log \left( \min_{j \neq i} \| \vec{x}_i - \vec{x}_j \|_2 \right)
+	\end{equation}
+	where $\vec{x}_i$ represents the $\ell_2$-normalized feature vector of the $i$-th image sample in a batch of size $n$.
+\end{itemize}	
+
+
 \subsection{Image Datasets and Benchmarks} 
 To rigorously test the robustness and generalization of architectures like ViT, this work utilizes several standardized datasets that vary in scale, stylistic diversity, and granularity.
 
@@ -67,8 +90,6 @@ Beyond large-scale pre-training, fine-grained classification is evaluated using:
 	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalisation. In this thesis we use the first 250 categories (approximately 28,100 images) so that the resulting class-incremental protocol can be divided into 10 balanced tasks of 25 classes each (see Chapter~\ref{methodology}).
 \end{itemize}
 
-\subsubsection{Self-Supervised Advancements: DINOv2}
-While the aforementioned datasets provide explicit labels for supervision, recent advancements have led to foundation models such as \textbf{DINOv2} \cite{oquab2024dinov}. Unlike earlier iterations, DINOv2 utilizes a discriminative self-supervised approach that combines contrastive learning with image-level and patch-level objectives. By training on massive, curated datasets without human labels, DINOv2 produces multipurpose visual features that exhibit strong ``out-of-the-box'' properties, often surpassing models trained with explicit supervision on tasks like semantic segmentation \cite{oquab2024dinov}.	
 
 \section{Foundations of Probabilistic Modeling}
 
@@ -76,18 +97,18 @@ The convergence of statistical learning theory and high-dimensional data analysi
 
 \subsection{Bayes Classification}
 
-At its core, Bayes classification is rooted in \textbf{Bayes' Theorem}, which provides a mathematical framework for updating the probability of a hypothesis based on observed evidence. For a classification task, we seek the posterior probability $p(y=c \mid \mathbf{x})$—the probability that an observation belongs to class $c$ given its observed feature vector $\mathbf{x}$.
+At its core, Bayes classification is rooted in \textbf{Bayes' Theorem}, which provides a mathematical framework for updating the probability of a hypothesis based on observed evidence. For a classification task, we seek the posterior probability $p(y=c \mid \vec{x})$—the probability that an observation belongs to class $c$ given its observed feature vector $\vec{x}$.
 
 Bayes' Theorem is defined as:
 \begin{equation}
-	p(y=c \mid \mathbf{x}) = \frac{p(\mathbf{x} \mid y=c) \, p(y=c)}{p(\mathbf{x})}
+	p(y=c \mid \vec{x}) = \frac{p(\vec{x} \mid y=c) \, p(y=c)}{p(\vec{x})}
 \end{equation}
 where:
 \begin{itemize}
-	\item $p(y=c \mid \mathbf{x})$ is the \textbf{posterior} probability.
-	\item $p(\mathbf{x} \mid y=c)$ is the \textbf{likelihood} of the data given the class.
+	\item $p(y=c \mid \vec{x})$ is the \textbf{posterior} probability.
+	\item $p(\vec{x} \mid y=c)$ is the \textbf{likelihood} of the data given the class.
 	\item $p(y=c)$ is the \textbf{prior} probability of the class.
-	\item $p(\mathbf{x})$ is the \textbf{evidence} or marginal likelihood, acting as a normalization constant.
+	\item $p(\vec{x})$ is the \textbf{evidence} or marginal likelihood, acting as a normalization constant.
 \end{itemize}
 
 The objective of a Bayes classifier is to minimize the Bayes risk; in the simplest case, this corresponds to assigning the observation to the class that maximizes the posterior probability.
@@ -96,18 +117,18 @@ The objective of a Bayes classifier is to minimize the Bayes risk; in the simple
 
 Likelihood inference provides a coherent framework for updating the probability of a hypothesis as more evidence or information becomes available. In contrast to frequentist approaches that treat parameters as fixed but unknown constants, the Bayesian paradigm treats parameters as random variables characterized by probability distributions.
 
-The connection between Bayes' Theorem and likelihood-based classification lies in the \textbf{Maximum A Posteriori (MAP)} decision rule. Since the evidence $p(\mathbf{x})$ is constant across all classes for a given observation, the classification decision depends solely on the product of the likelihood and the prior:
+The connection between Bayes' Theorem and likelihood-based classification lies in the \textbf{Maximum A Posteriori (MAP)} decision rule. Since the evidence $p(\vec{x})$ is constant across all classes for a given observation, the classification decision depends solely on the product of the likelihood and the prior:
 \begin{equation}
-	p(y=c \mid \mathbf{x}) \propto p(\mathbf{x} \mid y=c) \, p(y=c).
+	p(y=c \mid \vec{x}) \propto p(\vec{x} \mid y=c) \, p(y=c).
 \end{equation}
 
 A generative modeling framework can be adopted and class-conditional Gaussian feature distributions can be assumed:
 \begin{equation}
-	p(\mathbf{x} \mid y=c)
+	p(\vec{x} \mid y=c)
 	=
-	\mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c),
+	\mathcal{N}(\vec{x} \mid \boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c),
 \end{equation}
-where $\mathbf{x} \in \mathbb{R}^d$ represents the feature vector, $\boldsymbol{\mu}_c$ is the class mean vector, and $\boldsymbol{\Sigma}_c \succ 0$ is the covariance matrix.
+where $\vec{x} \in \mathbb{R}^d$ represents the feature vector, $\boldsymbol{\mu}_c$ is the class mean vector, and $\boldsymbol{\Sigma}_c \succ 0$ is the covariance matrix.
 
 Classification can be performed via MAP inference by maximizing the log-posterior:
 \begin{equation}
@@ -115,7 +136,7 @@ Classification can be performed via MAP inference by maximizing the log-posterio
 	=
 	\arg\max_{c \in \mathcal{Y}}
 	\left[
-	\log p(\mathbf{x} \mid y=c) + \log \pi_c
+	\log p(\vec{x} \mid y=c) + \log \pi_c
 	\right],
 \end{equation}
 where $\pi_c = p(y=c)$ denotes the class prior.
@@ -126,9 +147,9 @@ Substituting the multivariate Gaussian density into the MAP rule, the decision r
 	=
 	\arg\min_{c}
 	\left[
-	(\mathbf{x}-\boldsymbol{\mu}_c)^T
+	(\vec{x}-\boldsymbol{\mu}_c)^T
 	\boldsymbol{\Sigma}_c^{-1}
-	(\mathbf{x}-\boldsymbol{\mu}_c)
+	(\vec{x}-\boldsymbol{\mu}_c)
 	+
 	\log |\boldsymbol{\Sigma}_c|
 	-
@@ -141,11 +162,11 @@ Substituting the multivariate Gaussian density into the MAP rule, the decision r
 A Mixture of Gaussians models a complex probability density as a convex combination of $K$ distinct Gaussian components. This approach is fundamental for clustering and density estimation in multi-modal distributions. Therefore, to capture multimodal feature distributions, the class-conditional model can be extended to a mixture:
 
 \begin{equation}
-	p(\mathbf{x} \mid y=c)
+	p(\vec{x} \mid y=c)
 	=
 	\sum_{k=1}^{K_c}
 	\alpha_{c,k}
-	\mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}),
+	\mathcal{N}(\vec{x} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}),
 \end{equation}
 where $\alpha_{c,k} \ge 0$ and $\sum_k \alpha_{c,k} = 1$.
 
@@ -159,7 +180,7 @@ The MAP decision rule becomes
 	\left(
 	\sum_{k=1}^{K_c}
 	\alpha_{c,k}
-	\mathcal{N}(\mathbf{x} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})
+	\mathcal{N}(\vec{x} \mid \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})
 	\right)
 	+
 	\log \pi_c
@@ -181,14 +202,14 @@ Principal Component Analysis (PCA) is a linear dimensionality-reduction techniqu
 Its eigendecomposition $\mathbf{S} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^{T}$ yields orthonormal eigenvectors $\mathbf{P} = [\mathbf{p}_1, \ldots, \mathbf{p}_d]$ sorted so that the corresponding eigenvalues satisfy $\lambda_1 \ge \lambda_2 \ge \cdots \ge \lambda_d \ge 0$. Each eigenvector $\mathbf{p}_i$ is a \emph{principal component} (PC), and $\lambda_i$ equals the variance of the data projected onto $\mathbf{p}_i$.
 
 \paragraph{Dimensionality reduction.}
-Retaining only the leading $k$ eigenvectors defines the projection matrix $\mathbf{P}_k = [\mathbf{p}_1, \ldots, \mathbf{p}_k] \in \mathbb{R}^{d \times k}$. A new observation $\mathbf{x} \in \mathbb{R}^d$ is mapped to a $k$-dimensional representation via
+Retaining only the leading $k$ eigenvectors defines the projection matrix $\mathbf{P}_k = [\mathbf{p}_1, \ldots, \mathbf{p}_k] \in \mathbb{R}^{d \times k}$. A new observation $\vec{x} \in \mathbb{R}^d$ is mapped to a $k$-dimensional representation via
 
 \begin{equation}
-\tilde{\mathbf{x}} = \mathbf{P}_k^{T}(\mathbf{x} - \boldsymbol{\mu}),
+\tilde{\vec{x}} = \mathbf{P}_k^{T}(\vec{x} - \boldsymbol{\mu}),
 \label{eq:pca_project}
 \end{equation}
 
-where $\boldsymbol{\mu}$ is the global mean estimated from the training corpus. The resulting coordinates $\tilde{\mathbf{x}}$ are decorrelated: $\operatorname{Cov}(\tilde{\mathbf{x}}) = \operatorname{diag}(\lambda_1, \ldots, \lambda_k)$. The fraction of total variance preserved by the projection is
+where $\boldsymbol{\mu}$ is the global mean estimated from the training corpus. The resulting coordinates $\tilde{\vec{x}}$ are decorrelated: $\operatorname{Cov}(\tilde{\vec{x}}) = \operatorname{diag}(\lambda_1, \ldots, \lambda_k)$. The fraction of total variance preserved by the projection is
 
 \begin{equation}
 R(k) = \frac{\sum_{i=1}^{k}\lambda_i}{\sum_{i=1}^{d}\lambda_i}.
@@ -237,13 +258,13 @@ A second layer of theoretical justification involves examining the univariate pr
 
 Per-dimension normality is necessary but not sufficient for the joint $d$-dimensional distribution to be Gaussian. The Henze--Zirkler (HZ) test~\cite{henze1990class} is an omnibus multivariate diagnostic that addresses this gap by comparing the empirical characteristic function of the data against the theoretical characteristic function of a multivariate normal distribution.
 
-Given $n$ centred samples $\mathbf{z}_i = \mathbf{x}_i - \hat{\boldsymbol{\mu}}_c$ and a smoothing bandwidth $b > 0$, the test statistic is built from three terms evaluated using the squared Mahalanobis distances $d_M^2(\cdot,\cdot)$ induced by the class covariance $\boldsymbol{\Sigma}_c$:
+Given $n$ centred samples $\vec{z}_i = \vec{x}_i - \hat{\boldsymbol{\mu}}_c$ and a smoothing bandwidth $b > 0$, the test statistic is built from three terms evaluated using the squared Mahalanobis distances $d_M^2(\cdot,\cdot)$ induced by the class covariance $\boldsymbol{\Sigma}_c$:
 
 \begin{equation}
-	A = \frac{1}{n^2} \sum_{j=1}^{n} \sum_{k=1}^{n} e^{-\frac{b^2}{2}d_M^2(\mathbf{z}_j, \mathbf{z}_k)},
+	A = \frac{1}{n^2} \sum_{j=1}^{n} \sum_{k=1}^{n} e^{-\frac{b^2}{2}d_M^2(\vec{z}_j, \vec{z}_k)},
 \end{equation}
 \begin{equation}
-	B = \frac{2}{n}(1+b^2)^{-d/2} \sum_{j=1}^{n} e^{-\frac{b^2}{2(1+b^2)}d_M^2(\mathbf{z}_j, \mathbf{0})},
+	B = \frac{2}{n}(1+b^2)^{-d/2} \sum_{j=1}^{n} e^{-\frac{b^2}{2(1+b^2)}d_M^2(\vec{z}_j, \vec{0})},
 \end{equation}
 \begin{equation}
 	C = (1+2b^2)^{-d/2}.
@@ -254,105 +275,37 @@ Term $A$ measures the average pairwise kernel similarity of the observed samples
 	T_{n,b} = n \cdot \left[ A - B + C \right].
 \end{equation}
 
-Under the null hypothesis of multivariate normality, $T_{n,b}$ converges to a fixed value close to $1$; departures above $1$ indicate that the data is more structured (tighter clusters or heavier tails) than a Gaussian. The bandwidth $b$ controls the resolution of the characteristic function comparison and is set optimally as a function of $n$ and $d$ (see Section~\ref{sec:method:gaussianity}).
+Under the null hypothesis of multivariate normality, $T_{n,b}$ converges to a fixed value close to $1$; departures above $1$ indicate that the data is more structured (tighter clusters or heavier tails) than a Gaussian. The bandwidth $b$ controls the resolution of the characteristic function comparison and is set optimally as a function of $n$ and $d$.
 
-\subsection{Advanced Covariance Estimation in High Dimensions}
-In many modern applications, such as image feature analysis using DINOv2, the dimensionality $d$ (often in the hundreds or thousands) often exceeds the sample size $n$. In this ``large $d$, small $n$" regime, the empirical sample covariance matrix (SCM) $S$ is a poor estimator: its eigenvalues are biased, and the matrix is singular if $n < d$. This singularity prevents the inversion of the matrix required for the quadratic form in classification and density estimation.
+\subsection{Covariance Estimation in High-Dimensional Spaces}
 
-\subsubsection{Regularization and Numerical Stability}
+A fundamental challenge in multivariate statistical analysis and pattern recognition is the estimation of the covariance matrix $\boldsymbol{\Sigma} \in \mathbb{R}^{d \times d}$ from a finite set of $n$ observations. In classical low-dimensional regimes, where the sample size $n$ is much larger than the feature dimension $d$ ($n \gg d$), the empirical Sample Covariance Matrix (SCM) acts as a reliable, unbiased estimator. However, modern engineering applications—such as analyzing high-dimensional deep feature representations—frequently operate in the ``high-dimension, small-sample-size'' (HDSS) regime, where $d$ is of the order of hundreds or thousands, while $n$ remains strictly limited.
 
-To stabilize the inversion of the covariance matrix $\boldsymbol{\Sigma}_c$ for each class, regularization techniques are employed. A primary method is diagonal loading, which adds a small constant $\epsilon$ (e.g., $10^{-6}$) to the diagonal elements:
-\begin{equation}
-	\boldsymbol{\Sigma}_{reg} = \boldsymbol{\Sigma}_c + \epsilon I
-\end{equation}
+Under these conditions, classical multivariate analysis suffers severely from the \textit{curse of dimensionality}, leading to critical theoretical and numerical breakdowns in statistical modeling.
 
-This adjustment ensures that the matrix remains strictly positive definite. However, for higher numerical precision in calculating the inverse (precision matrix) and the log-determinant, we utilize Spectral Filtering via eigendecomposition.
+\subsubsection{The Curse of Dimensionality and Covariance Degeneracy}
 
-\subsubsection{Spectral Filtering and Precision Matrix Inversion}
+When the dimensionality $d$ scales while the sample size $n$ remains fixed or grows at a slower rate, several geometric and algebraic anomalies emerge:
 
-For each class, the system computes the eigenvectors $P$ and eigenvalues $\lambda$ such that $\boldsymbol{\Sigma}_{reg} = P \Lambda P^T$. To ensure stability against near-zero eigenvalues that survive initial regularization, we apply a floor: $\hat{\lambda} = \max(\lambda, \epsilon)$. The precision matrix (inverse covariance) is then reconstructed as:
+\begin{itemize}
+	\item \textbf{Singularity and Rank Deficiency:} Structurally, the SCM is calculated as the sum of $n$ outer products of centered data vectors. Consequently, the maximum rank of the SCM is bounded by $\min(n-1, d)$. In the typical HDSS scenario where $n < d$, the SCM has at least $d - n + 1$ zero eigenvalues. The resulting matrix is singular (rank-deficient) and cannot be inverted.
+	
+	\item \textbf{Loss of Negative Log-Likelihood and Distance Metrics:} Many fundamental statistical classifiers and density estimators—such as Gaussian Discriminant Analysis (GDA) or Mahalanobis distance formulations—depend heavily on the precision matrix (the inverse covariance, $\boldsymbol{\Sigma}^{-1}$) and the log-determinant $\ln|\boldsymbol{\Sigma}|$. When the estimated covariance is singular, the log-determinant diverges to $-\infty$, and the precision matrix is undefined, rendering density estimation mathematically impossible.
+	
+	\item \textbf{Eigenvalue Distortion (Spreading Phenomenon):} Even in moderately high dimensions where $n \ge d$ and the SCM is technically invertible, the sample eigenvalues do not converge to their true counterparts. As proved in random matrix theory (e.g., the Marčenko-Pastur law \cite{MarPas67}), high-dimensional sample eigenvalues exhibit severe bias: the largest eigenvalues are systematically overestimated, while the smallest eigenvalues are underestimated. This artificial dispersion distorts the perceived geometric structure of the data.
+\end{itemize}
 
-\begin{equation}
-	\boldsymbol{\Sigma}_c^{-1} = P \text{diag}\left(\frac{1}{\hat{\lambda}_1}, \dots, \frac{1}{\hat{\lambda}_d}\right) P^T
-\end{equation}
+\subsubsection{Theoretical Foundations of Regularization}
 
-The log-determinant, required for the Gaussian log-likelihood, is computed directly from these filtered eigenvalues to avoid underflow:
+To overcome the numerical and structural instability of the empirical SCM in high dimensions, the theoretical framework must transition from pure maximum likelihood estimation toward \textit{regularization}. The conceptual objective is to trade a manageable amount of bias for a drastic reduction in estimator variance.
 
-\begin{equation}
-	\ln |\boldsymbol{\Sigma}_c| = \sum_{j=1}^{d} \ln(\hat{\lambda}_j)
-\end{equation}
+Conceptually, these regularized estimation strategies fall into two primary paradigms:
 
-Finally, the normalization constant $\ln A_c$ (representing the constant term of the multivariate Gaussian log-density) is stored:
-
-\begin{equation}
-	\ln A_c = -\frac{1}{2} \left( d \ln(2\pi) + \ln |\boldsymbol{\Sigma}_c| \right)
-\end{equation}
-
-This approach eliminates ``noise floor" issues that would otherwise cause the matrix to become singular or produce infinite values during log-likelihood estimation.
-
-\subsubsection{Linear Shrinkage Estimators}
-
-Linear shrinkage methods propose a compromise between the SCM $S$ and a highly structured target matrix $F$, such as the identity matrix or a diagonal matrix of sample variances.
-
-\paragraph{Ledoit-Wolf Estimator}
-
-The Ledoit-Wolf estimator \cite{Ledoit2004} determines an optimal shrinkage intensity $\rho$ to minimize the expected Frobenius norm between the estimate and the true covariance matrix $\boldsymbol{\Sigma}$. It is defined as:
-\begin{equation}
-	\hat{\boldsymbol{\Sigma}}_{LW} = (1 - \rho)S + \rho F	
-\end{equation}
-Ledoit-Wolf is computationally efficient and provides an asymptotically optimal estimate without assuming a specific data distribution.
-
-\paragraph{Oracle Approximating Shrinkage (OAS)}
-
-The OAS estimator \cite{Chen2010} refines the Ledoit-Wolf approach by assuming the data follows a Gaussian distribution. This assumption allows for a more precise estimation of the shrinkage intensity, particularly for small sample sizes. The OAS shrinkage parameter $\rho_{OAS}$ is given by:
-
-\begin{equation}
-	\rho_{OAS} = \min \left( 1, \frac{(1 - \frac{2}{d})\text{tr}(S^2) + \text{tr}^2(S)}{(n + 1 - \frac{2}{d})(\text{tr}(S^2) - \frac{\text{tr}^2(S)}{d})} \right)
-\end{equation}
-
-OAS is specifically designed to minimize Mean Squared Error (MSE) under Gaussianity and often outperforms standard shrinkage when the data distribution is approximately normal.
-
-\subsubsection{Frobenius Norm and Matrix Distance}
-\label{sec:marco:frobenius}
-
-The \textbf{Frobenius norm} of a matrix $\mathbf{A} \in \mathbb{R}^{m \times n}$ is defined as the square root of the sum of its squared entries:
-\begin{equation}
-    \|\mathbf{A}\|_F = \sqrt{\sum_{i=1}^{m}\sum_{j=1}^{n} a_{ij}^2}
-                     = \sqrt{\operatorname{tr}(\mathbf{A}^T\mathbf{A})}.
-    \label{eq:frobenius_norm}
-\end{equation}
-It is the natural extension of the Euclidean vector norm to matrices and satisfies all norm axioms (non-negativity, homogeneity, triangle inequality). For symmetric positive semi-definite matrices such as covariance matrices, it has two useful equivalent forms. Writing the eigendecomposition $\mathbf{A} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^T$,
-\begin{equation}
-    \|\mathbf{A}\|_F = \sqrt{\sum_{i=1}^{d}\lambda_i^2},
-\end{equation}
-so the Frobenius norm measures the $\ell_2$ norm of the eigenvalue vector.
-
-\paragraph{Frobenius distance between covariance matrices.}
-Given two regularised covariance matrices $\hat{\boldsymbol{\Sigma}}_i, \hat{\boldsymbol{\Sigma}}_j \in \mathbb{R}^{d \times d}$, their \emph{Frobenius distance} is:
-\begin{equation}
-    D^F_{ij} = \|\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j\|_F
-             = \sqrt{\operatorname{tr}\!\left[(\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j)^2\right]}.
-    \label{eq:frobenius_distance_theory}
-\end{equation}
-This quantity measures how geometrically similar the two class-conditional distributions are in their second-order structure, independently of mean displacement.
-A small $D^F_{ij}$ indicates that the two classes share nearly the same spread and correlation structure; a large value indicates that one class occupies a substantially different region of the feature covariance landscape.
-
-\paragraph{Relationship to Ledoit-Wolf optimality.}
-The Ledoit-Wolf shrinkage estimator~\cite{Ledoit2004} is derived precisely by minimising the \emph{expected} Frobenius loss between the estimated and the true covariance:
-\begin{equation}
-    \hat{\rho}^* = \arg\min_\rho\; \mathbb{E}\!\left[\|\hat{\boldsymbol{\Sigma}}_{LW}(\rho) - \boldsymbol{\Sigma}\|_F^2\right],
-\end{equation}
-which makes $D^F$ the natural loss criterion for evaluating covariance estimator quality. In the HDLSS regime ($n_c \ll d$), the sample covariance deviates substantially from the truth in Frobenius sense, and shrinkage reduces this deviation by pulling outlying eigenvalues toward a structured target.
-
-\paragraph{Sensitivity to regularisation.}
-When diagonal loading $\hat{\boldsymbol{\Sigma}}_c^{\text{reg}} = \hat{\boldsymbol{\Sigma}}_c + \varepsilon I$ is applied uniformly across classes, any class-to-class difference in $\hat{\boldsymbol{\Sigma}}_c$ is preserved exactly in $D^F_{ij}$, since the $\varepsilon I$ terms cancel:
-\begin{equation}
-    D^F_{ij}
-    = \|\hat{\boldsymbol{\Sigma}}_i^{\text{reg}} - \hat{\boldsymbol{\Sigma}}_j^{\text{reg}}\|_F
-    = \|\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j\|_F.
-\end{equation}
-However, when $n_c \ll d$ and the majority of eigenvalues of $\hat{\boldsymbol{\Sigma}}_c$ are near zero, $\hat{\boldsymbol{\Sigma}}_c \approx \mathbf{0}$ for most directions, so $\hat{\boldsymbol{\Sigma}}_i - \hat{\boldsymbol{\Sigma}}_j \approx \mathbf{0}$ and $D^F_{ij} \to 0$ regardless of class identity.
-This regularisation-collapse effect---analysed empirically in Section~\ref{sec:frobenius_results}---provides a diagnostic for whether full covariance estimation can provide meaningful discriminative structure beyond the diagonal approximation.
+\begin{enumerate}
+	\item \textbf{Spectral Regularization and Conditioning:} These approaches directly manipulate the empirical eigenspectrum. By placing a lower bound on near-zero eigenvalues or adding a perturbation matrix (e.g., diagonal loading), they artificially bound the condition number of the matrix. This guarantees strict positive definiteness ($\boldsymbol{\Sigma} \succ 0$), ensuring that the precision matrix remains numerically stable during inversion.
+	
+	\item \textbf{Structured Shrinkage:} Shrinkage theory, pioneered by Stein's loss formulations, constructs an estimator as a convex combination of the high-variance SCM and a low-variance structured ``target'' matrix (such as the identity matrix or a diagonal variance matrix). By shrinking the empirical estimator toward a well-behaved target, these methods systematically pull the distorted, spread-out eigenvalues back toward their true mean, minimizing the expected mean squared error.
+\end{enumerate}
 
 
 \section{Continual Learning}
@@ -397,14 +350,14 @@ As shown in Figure \ref{fig:task_vs_class}, two principal paradigms define how c
 \end{figure}
 
 \subsection{Mitigation Strategies}
-To address the stability-plasticity dilemma, CL strategies are generally categorized into four main families: rehearsal-based, regularization-based, architecture-based, and representation-based (specifically prompt-based) methods.
+To address the stability-plasticity dilemma, we categorize existing CL strategies into four main families: rehearsal-based, regularization-based, architecture-based, and representation-based (specifically prompt-based) methods. Additionally, emerging paradigms focus on classifier adaptation over frozen backbones.
 
 \subsubsection{Rehearsal Methods}
 To preserve past performance, these methods reuse samples from previously learned tasks while training on the current task.
 \begin{itemize}
 	\item \textbf{Experience Replay (ER)} \cite{Chaudhry2019ContinualLW}: Maintains a small episodic memory buffer containing a sample of old, representative examples to be interleaved with new data.
 	\item \textbf{Average Gradient Episodic Memory (A-GEM)} \cite{agem}: Improves efficiency by using the buffer to constrain the direction of parameter updates, ensuring they do not interfere with past tasks.
-	\item \textbf{Dark Experience Replay (DER)} \cite{buzzega2020darkexperiencegeneralcontinual}: Enhances ER by incorporating knowledge distillation on the logits of replayed examples to preserve the ``dark knowledge" of the model.
+	\item \textbf{Dark Experience Replay (DER)} \cite{buzzega2020darkexperiencegeneralcontinual}: Enhances ER by incorporating knowledge distillation on the logits of replayed examples to preserve the ``dark knowledge'' of the model.
 	\item \textbf{Generative Replay} \cite{generative_features}: A non-data-storing method where a generator is trained to produce synthetic features or samples of previously learned classes, avoiding the privacy concerns of raw data storage.
 \end{itemize}
 
@@ -420,20 +373,43 @@ These methods limit updates to parameters identified as important for prior lear
 \subsubsection{Architecture-based Methods}
 These methods mitigate forgetting by modifying the network architecture to increase or reorganize its capacity.
 \begin{itemize}
-	\item \textbf{Parameter Isolation}: Identifies and freezes parameters important for previous tasks –often through pruning or gradient masking– so only a subset of weights is updated for the current task \cite{10.5555/3454287.3455512}.
-	\item \textbf{Dynamic Expansion}: The architecture grows as new tasks arrive. For instance, \cite{Yan2021DERDE} uses an expandable super-feature extractor followed by pruning, while \cite{Yoon2017LifelongLW} expands the network only when the current capacity is insufficient.
+	\item \textbf{Parameter Isolation} \cite{10.5555/3454287.3455512}: Identifies and freezes parameters important for previous tasks---often through pruning or gradient masking---so only a subset of weights is updated for the current task.
+	\item \textbf{Dynamic Expansion}: Expands the model architecture as new tasks arrive. For instance, DER~\cite{Yan2021DERDE} uses an expandable super-feature extractor followed by pruning, while DEN~\cite{Yoon2017LifelongLW} expands the network dynamically only when the current capacity is insufficient.
 \end{itemize}
 
 \subsubsection{Representation and Prompt-based Methods}
-The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient fine-tuning (PEFT) where the backbone remains frozen and learning is contained within small ``prompts".
+The emergence of foundation models (e.g., ViTs) has enabled parameter-efficient fine-tuning (PEFT) where the backbone remains frozen and learning is contained within small, task-specific parameters (``prompts'').
 \begin{itemize}
-	\item \textbf{Learning to Prompt (L2P)} \cite{wang2022learning}: Uses a prompt pool where prompts are selected based on the similarity between input embeddings and learned keys.
-	\item \textbf{Dual Prompt} \cite{wang2022dualprompt}: Refines L2P by separating representations into fixed G-prompts (General) and task-specific E-prompts (Expert).
-	\item \textbf{CODA-Prompt} \cite{Smith_2023_CVPR}: Introduces a fully differentiable method where the prompt is a weighted sum of components dynamically calculated via attention mechanisms.
-	\item \textbf{Advanced Prompting}: Recent methods like \textbf{InFLoRA} \cite{liang2024inflora} and \textbf{DOLFIN} \cite{dolfin} apply low-rank adaptation and distributed learning, while \textbf{APT} \cite{Chen_2025_ICCV} injects key-value tokens directly into transformer layers to reduce inference overhead.
+	\item \textbf{Learning to Prompt (L2P)} \cite{wang2022learning}: Uses a query-based prompt pool where prompts are selected based on the similarity between input embeddings and learned keys.
+	\item \textbf{Dual Prompt} \cite{wang2022dualprompt}: Refines L2P by separating prompt-based representations into complementary components: fixed G-prompts (General) and task-specific E-prompts (Expert).
+	\item \textbf{CODA-Prompt} \cite{Smith_2023_CVPR}: Introduces a fully differentiable scheme where the prompt is a weighted sum of components dynamically calculated via attention mechanisms.
+	\item \textbf{Advanced Prompting}: Recent extensions adapt prompt engineering to parameter-efficient and distributed settings. Specifically, \textbf{InFLoRA} \cite{liang2024inflora} and \textbf{DOLFIN} \cite{dolfin} apply low-rank adaptation and distributed learning, while \textbf{APT} \cite{Chen_2025_ICCV} injects key-value tokens directly into transformer layers to minimize inference overhead.
 \end{itemize}
 
 \subsubsection{Classifier Adaptation on Frozen Representations}
-A complementary line of work investigates classifier adaptation on top of frozen feature extractors, remaining fundamentally discriminative or metric-based. \textbf{SLCA}~\cite{zhang2023slca} proposes a slow learner with classifier alignment for continual learning on pre-trained models, enabling efficient incremental learning without backpropagation through the backbone. \textbf{ACIL}~\cite{zhuang2022acil} introduces analytic class-incremental learning with closed-form updates for linear classifiers, providing absolute memorisation and privacy protection without exemplar storage. \textbf{FeCAM}~\cite{goswami2024fecam} exploits the heterogeneity of class distributions in exemplar-free continual learning by performing classification using a Mahalanobis distance metric, highlighting the importance of modelling heterogeneous feature distributions. In contrast to these approaches, which remain fundamentally discriminative or metric-based, the framework proposed in this thesis adopts a fully probabilistic perspective and formulates class-incremental learning as recursive estimation of class-conditional densities in a stationary embedding space.
+A complementary line of work investigates classifier adaptation on top of frozen feature extractors, remaining fundamentally discriminative or metric-based without backpropagating through the backbone.
+\begin{itemize}
+	\item \textbf{SLCA} \cite{zhang2023slca}: Proposes a slow learner with classifier alignment for continual learning on pre-trained models, enabling efficient incremental learning without full-network fine-tuning.
+	\item \textbf{ACIL} \cite{zhuang2022acil}: Introduces analytic class-incremental learning with closed-form updates for linear classifiers, providing absolute memorisation and privacy protection without requiring exemplar storage.
+	\item \textbf{FeCAM} \cite{goswami2024fecam}: Exploits the heterogeneity of class distributions in exemplar-free continual learning by performing classification using a Mahalanobis distance metric to capture complex feature distributions.
+\end{itemize}
+
+\subsubsection{Class Prototype and Analytic Classifier Methods}
+\label{sec:marco:prototype_methods}
+A closely related family of methods represents each class through distances to class prototypes (first-order information), sometimes complemented by second-order statistics.
+\begin{itemize}
+	\item \textbf{SimpleCIL} \cite{janson2022simple}: Performs first-session adaptation by applying PEFT to the backbone only during the initial task, after which class prototypes are computed as the mean embedding of the samples belonging to each class and kept fixed for the remainder of the stream.
+	\item \textbf{RanPAC} \cite{mcdonnell2023ranpac}: Improves upon prototype-based schemes by applying a random projection followed by a non-linear activation. This lifts features into a higher-dimensional space where classes are more linearly separable, accumulating second-order information through a shared, incrementally updated Gram matrix.
+	\item \textbf{FeTrIL} \cite{petit2023fetril}: Stores only the centroid representation of each past class. When a new task arrives, these centroids are used to translate the new class's features into pseudo-features that emulate past distributions, which are then used to train a linear classifier incrementally.
+	\item \textbf{FeCAM} \cite{goswami2024fecam}: Explores Mahalanobis distances instead of typical Euclidean distances. It applies a Tukey power-ladder transformation to correct feature skewness before normalising each class covariance so that its diagonal entries equal one, making Mahalanobis distances comparable across classes.
+\end{itemize}
+
+\paragraph{Limitations of Existing Approaches and Thesis Motivation.}
+Despite their empirical strength, current approaches suffer from several key limitations:
+\begin{enumerate}
+	\item \textbf{Lack of Rigor in Metric Frameworks}: The covariance normalisation used by FeCAM is heuristic, and the Gaussian log-normalisation factor---the log-determinant term required by a proper multivariate Gaussian log-likelihood---is entirely omitted from its scoring function, preventing it from being interpreted as a fully probabilistic classifier.
+	\item \textbf{Loss of Generative Interpretability}: RanPAC's random projection introduces additional hyperparameters and breaks the direct correspondence between accumulated class statistics and an explicit probability density, since the projected space no longer admits a simple generative interpretation.
+	\item \textbf{Unverified Assumptions}: Broadly, none of the methods reviewed in this section rigorously validates whether the Gaussian assumption is statistically justified in foundation-model embedding spaces, nor do they provide a direct theoretical link between inter-class separability and achievable accuracy.
+\end{enumerate}
 
 

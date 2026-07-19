@@ -25,7 +25,7 @@
 
 %\comision{Nombre Completo Uno,Nombre Completo Dos,Nombre Completo Tres}
 
-%\auspicio{Nombre Institución} % incluir en caso de recibir financiamiento
+\auspicio{el proyecto FONDECYT 1251823} % incluir en caso de recibir financiamiento
 
 % tiene que ser el año en que se da el examen de título/grado (defensa)
 \anho{2026} % incluir solo para reemplazar el año actual
@@ -39,6 +39,8 @@
 \usepackage{tabularx}
 \usepackage[table]{xcolor} % Required for row coloring
 \usepackage{subfigure}
+\usepackage{adjustbox}
+
 
 \begin{document}
 
@@ -51,12 +53,12 @@
 \input{0_preliminar.tex}
 
 \begin{dedicatoria}
-La aventura nos aguarda
+A los completos con coca zero
 \end{dedicatoria}
 
 \begin{thanks}
 
-%\input{agradecimientos.tex}
+\input{agradecimientos.tex}
 
 \end{thanks}
 
@@ -66,12 +68,11 @@ La aventura nos aguarda
 
 \mainmatter
 
-\input{cap1_intro.tex}
+.\input{cap1_intro.tex}
 \input{cap2_marco.tex}
 \input{cap3_metodologia.tex}
 \input{cap4_resultados.tex}
-%\input{cap5_analisis.tex}
-%\input{cap6_conclusion.tex}
+\input{cap6_conclusion.tex}
 
 
 % ver https://www.overleaf.com/learn/latex/Glossaries
@@ -84,7 +85,7 @@ La aventura nos aguarda
 
 
 % opcional ...
-\appendix
-\input{anexoA.tex}
+%\appendix
+%\input{anexoA.tex}
 
 \end{document}
