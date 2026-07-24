@@ -222,9 +222,9 @@ On all three benchmarks and for both estimators, average accuracy declines monot
 
 \begin{figure}[htbp]
 	\centering
-	\subfigure[Diag-Cov]{\includegraphics[width=0.48\linewidth]{imagenes/results/avg_accuracy_evolution_diagcov.png}}
+	\subcaptionbox{Diag-Cov}{\includegraphics[width=0.48\linewidth]{imagenes/results/avg_accuracy_evolution_diagcov.png}}
 	\hfill
-	\subfigure[Full-Cov]{\includegraphics[width=0.48\linewidth]{imagenes/results/avg_accuracy_evolution_fullcov.png}}
+	\subcaptionbox{Full-Cov}{\includegraphics[width=0.48\linewidth]{imagenes/results/avg_accuracy_evolution_fullcov.png}}
 	\caption{Evolution of average accuracy across ten sequential tasks for CIFAR-100 (blue), ImageNet-R (green), and Caltech-256 (black), under (\textbf{a}) Diag-Cov and (\textbf{b}) Full-Cov estimation.}
 	\label{fig:avg_acc_evolution}
 \end{figure}

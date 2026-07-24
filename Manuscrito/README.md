@@ -1,27 +1,22 @@
-\chapter{Conclusión}
+# Template de Tesis de Postgrado — DIE FCFM Universidad de Chile
 
-\lipsum[130-132]
-\begin{figure}
-	\centering
-	\includegraphics[scale=.2]{imagenes/fcfm.pdf}
-	\caption{Logo de la Facultad}
-	\label{logofcfm}
-\end{figure}
+Este repositorio contiene una adaptación del template LaTeX `umemoria` 
+de la FCFM Universidad de Chile (https://github.com/dccuchile/memoria-tesis-latex), 
+ajustada a los requerimientos de postgrado del Departamento de Ingeniería 
+Eléctrica (DIE).
 
-\lipsum[133-134]
+## Descripción
 
-\begin{table}
-	\centering
-	\caption{Tabla 1}
-	\label{tabla:1}
-	\begin{tabular}{|c|c|r|}
-		\hline
-		\textbf{Campo 1} & \textbf{Campo 2} & \textbf{Num} \\\hline
-		Valor 1a & Valor 2a & 3\\
-		Valor 1b & Valor 2b & 3\\
-		\hline
-	\end{tabular}
+El template incluye una guía integrada con ejemplos y recomendaciones para 
+la confección de cada sección del documento, basada en las reglas y experiencia 
+del comité de postgrado del departamento.
 
-\end{table}
+Por defecto, el template está configurado para una doble titulación de 
+Ingeniería Eléctrica con Magíster. Las líneas necesarias para adaptarlo 
+a un programa de Doctorado o un programa exlusivamente de magíster se encuentran comentadas en el código y están 
+disponibles para su activación.
 
-\lipsum[135]
+## Licencia
+
+Este proyecto se distribuye bajo la licencia MIT, en concordancia con la 
+licencia del template original `umemoria`.

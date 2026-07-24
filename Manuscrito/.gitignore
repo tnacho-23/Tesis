@@ -35,6 +35,8 @@ temp/
 *.out
 *.toc
 *.bak
+*.acn
+*.ist
 
 # --- IDE Configs ---
 .vscode/

@@ -1,20 +1,22 @@
 % se puede agregar la opción [english] para 
-%  memorias o tesis en inglés (borrando el archivo .aux)
-\documentclass[english]{umemoria} 
+% memorias o tesis en inglés (borrando el archivo .aux)
+\documentclass[english]{umemoria}
+%\documentclass{umemoria}
+\pdfminorversion=7 % permite incluir PDFs versión 1.7 (evita el warning de PDF inclusion)
 
 \depto{Departamento de Ingeniería Eléctrica}
 \author{Ignacio Romero Aravena}
-\title{Mitigating Catastrophic Forgetting in Object Classification via Gaussian Class Representations}
+\title{Mitigating Catastrophic Forgetting in Object Classification Via Gaussian Class Representations}
 
 % incluir ambos comandos para una doble titulación
 %  o quitar el comando que no aplica
-\memoria{Ingeniero Civil Eléctrico}
-\tesis{Magíster en Ciencias de la Ingeniería Mención Eléctrica}
-%\tesis{Doctor en ???} % incluir solo este comando para doctorados
+\memoria{Ingeniero Civil Eléctrico} % en caso de doble grado
+\tesis{Magíster en CIENCIAS DE LA INGENIERÍA, MENCIÓN ELÉCTRICA} % en caso de magíster
+%\tesis{DOCTOR[A] EN INGENIERÍA ELÉCTRICA} % incluir solo este comando para doctorados
 
 % puede haber varios profesores guía seperados por coma;
 % pero si es una memoria, solo puede haber un profesor guía
-\guia{Javier Ruiz del Solar} 
+\guia{Javier Ruiz Del Solar} 
 
 % puede haber varios profesores co-guía seperados por coma;
 % pero si es una memoria, el profesor co-guía será el primer
@@ -23,69 +25,92 @@
 
 %\cotutela{Nombre Institución} % incluir en caso de cotutela
 
-%\comision{Nombre Completo Uno,Nombre Completo Dos,Nombre Completo Tres}
+\comision{Rodrigo Verschae}
 
-\auspicio{el proyecto FONDECYT 1251823} % incluir en caso de recibir financiamiento
+\auspicio{FONDECYT 1251823} % incluir en caso de recibir financiamiento
 
 % tiene que ser el año en que se da el examen de título/grado (defensa)
 \anho{2026} % incluir solo para reemplazar el año actual
 
-\usepackage{lipsum}
-\usepackage{changepage} % para ajustar márgenes localmente
-\usepackage{booktabs}
-\usepackage{multirow}
-%\usepackage{algorithm}  % used for algorithms (commented: not installed in build env)
-%\usepackage{algpseudocode}  % used for algorithms
-\usepackage{tabularx}
-\usepackage[table]{xcolor} % Required for row coloring
-\usepackage{subfigure}
-\usepackage{adjustbox}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Paquetes extra:
 
+% Glosario 
+\usepackage[acronym,nomain,nonumberlist]{glossaries}
+\makeglossaries
+\renewcommand*{\glsgroupskip}{}
+
+% Para las captions con diferente título en texto y en índice
+\newcommand{\mycaption}[2]{\caption[{#1}]{#2}}
+
+% Figuras TikZ
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\usepackage{tikz}
+
+% Algoritmos
+\usepackage{algorithm2e}
+\iflanguage{spanish}{
+    \renewcommand{\algorithmcfname}{Algoritmo}
+}{
+    \renewcommand{\algorithmcfname}{Algorithm}
+}
+
+% Subfiguras
+\usepackage{subcaption}
+
+% Logo de Github
+\usepackage{fontawesome5}
+
+% Tablas: \toprule/\midrule/\bottomrule, tabularx, multirow,
+% \rowcolor y \begin{adjustbox} usados en los capítulos de resultados
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage[export]{adjustbox}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{document}
-
-
 
 \frontmatter
 \maketitle
 
-
-\input{0_preliminar.tex}
+\input{Capitulos/00_Resumen}
 
 \begin{dedicatoria}
-A los completos con coca zero
+A los completos con Coca Zero
 \end{dedicatoria}
 
 \begin{thanks}
-
-\input{agradecimientos.tex}
-
+\input{Capitulos/00_agradecimientos}
 \end{thanks}
+
+\input{Capitulos/00_IA_decl}
 
 \tableofcontents
 \listoftables % opcional
 \listoffigures % opcional
 
+%\input{Capitulos/Glosario} % opcional
+
 \mainmatter
-
-.\input{cap1_intro.tex}
-\input{cap2_marco.tex}
-\input{cap3_metodologia.tex}
-\input{cap4_resultados.tex}
-\input{cap6_conclusion.tex}
-
-
-% ver https://www.overleaf.com/learn/latex/Glossaries
-% \input{glosario.tex} % opcional
+\input{Capitulos/01_introduction}
+\input{Capitulos/02_theoretical_framework}
+\input{Capitulos/03_proposed_framework}
+\input{Capitulos/04_gaussian_Space}
+\input{Capitulos/05_results_and_analysis}
+\input{Capitulos/06_conclusion}
 
 \nocite{*}
-\bibliographystyle{IEEEtran}
-
+\bibliographystyle{ieeetr}
 \bibliography{bibliografia}
 
-
 % opcional ...
-%\appendix
-%\input{anexoA.tex}
-
+%\begin{appendices}
+%\input{Capitulos/AnexoA} % opcional
+%\input{Capitulos/AnexoB} % opcional
+%\end{appendices}
 \end{document}
