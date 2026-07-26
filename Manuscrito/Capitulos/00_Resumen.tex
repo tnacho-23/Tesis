@@ -1,44 +1,48 @@
+  \noindent\hfill
+ \begin{minipage}[t]{0.6\textwidth}
+ 	%RESUMEN DE LA TESIS PARA OPTAR AL \\
+ 	%GRADO DE DOCTOR[A] EN INGENIERÍA \\
+ 	%ELÉCTRICA, \\
+ 	RESUMEN DE LA TESIS PARA OPTAR AL \\
+ 	GRADO DE MAGÍSTER EN CIENCIAS DE LA \\ INGENIERÍA, MENCIÓN ELÉCTRICA, \\
+ 	MEMORIA PARA OPTAR AL TÍTULO DE \\ INGENIERO CIVIL ELÉCTRICO \\
+ 	{POR: IGNACIO ROMERO ARAVENA} \\
+ 	{FECHA: \the\year} \\
+ 	{PROF. GUÍA: JAVIER RUIZ DEL SOLAR} \\
+ 	{PROF. CO-GUÍA: PATRICIO LONCOMILLA}
+ \end{minipage}
+ 
+ \begin{center}
+ 	MITIGACIÓN DEL OLVIDO CATASTRÓFICO EN LA CLASIFICACIÓN DE OBJETOS MEDIANTE REPRESENTACIONES GAUSSIANAS DE CLASES
+ \end{center}
+ 
+ \noindent xxx to do xxx
+ 
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ % SÓLO PARA TESIS EN INGLÉS 
+ % BORRAR EN CASO DE ESCRITURA EN ESPAÑOL
+ \newpage
+ 
  \noindent\hfill
-\begin{minipage}[t]{0.6\textwidth}
-    %RESUMEN DE LA TESIS PARA OPTAR AL \\
-    %GRADO DE DOCTOR[A] EN INGENIERÍA \\
-    %ELÉCTRICA, \\
-    RESUMEN DE LA TESIS PARA OPTAR AL \\
-    GRADO DE MAGÍSTER EN CIENCIAS DE LA \\ INGENIERÍA, MENCIÓN ELÉCTRICA, \\
-    MEMORIA PARA OPTAR AL TÍTULO DE \\ INGENIER[O/A] CIVIL ELÉCTRIC[O/A] \\
-    {POR: NOMBRE APELLIDO1 APELLIDO2} \\
-    {FECHA: \the\year} \\
-    {PROF. GUÍA: NOMBRE APELLIDO1 APELLIDO2} \\
-    %{PROF. CO-GUÍA: NOMBRE COMPLETO CO-GUÍA}
-\end{minipage}
+ \begin{minipage}[t]{0.6\textwidth}
+ 	%RESUMEN DE LA TESIS PARA OPTAR AL \\
+ 	%GRADO DE DOCTOR[A] EN INGENIERÍA \\
+ 	%ELÉCTRICA, \\
+ 	RESUMEN DE LA TESIS PARA OPTAR AL \\
+ 	GRADO DE MAGÍSTER EN CIENCIAS DE LA \\ INGENIERÍA, MENCIÓN ELÉCTRICA, \\
+ 	MEMORIA PARA OPTAR AL TÍTULO DE \\ INGENIERO CIVIL ELÉCTRICO \\
+ 	{POR: IGNACIO ROMERO ARAVENA} \\
+ 	{FECHA: \the\year} \\
+ 	{PROF. GUÍA: JAVIER RUIZ DEL SOLAR} \\
+ 	{PROF. CO-GUÍA: PATRICIO LONCOMILLA}
+ \end{minipage}
+ 
+ \begin{center}
+ 	MITIGATING CATASTROPHIC FORGETTING IN  OBJECT CLASSIFICATION VIA GAUSSIAN CLASS REPRESENTATIONS
+ \end{center}
+ 
+ \noindent Traditional deep learning architectures collapse under non-stationary data streams, where incorporating novel categories demands computationally exhaustive retraining or triggers catastrophic forgetting. This thesis presents a gradient-free Class-Incremental Learning (CIL) framework that reframes lifelong visual recognition as a problem of closed-form density estimation rather than dynamic parameter optimization. By pairing a frozen DINOv2 foundation encoder with localized per-class multivariate Gaussian models estimated recursively via their sufficient statistics, new categories are integrated instantaneously without backpropagation, samples storage, or parameters optimization. Because historical class parameters are explicitly frozen, the framework eliminates representation drift and achieves zero catastrophic forgetting by construction. Evaluated across Split CIFAR-100, Split ImageNet-R, Split Caltech-256, and a highly heterogeneous 30-task Joint benchmark, this deterministic approach achieves classification accuracies competitive with or outperforming optimization-heavy, prompt-based state-of-the-art architectures, while adding negligible downstream computational overhead ($<0.3$ GFLOPs). Furthermore, a comprehensive statistical characterization of the foundation embedding space---utilizing formal univariate and multivariate normality tests, global spectral analysis, and inter-class Bhattacharyya distance diagnostics---empirically validates the core modeling assumptions. This geometric analysis reveals that the choice of optimal covariance parameterization is strictly governed by the interplay between localized sample density and the ambient feature dimensionality. While robust diagonal estimators excel under severe data scarcity by mitigating rank deficiency, a hybrid parameterization that decouples the shape and volume terms of the log-likelihood function yields a superior accuracy--calibration balance as the class sample budget expands.
+ 
 
-\begin{center}
-    TÍTULO DE LA TESIS
-\end{center}
 
-\noindent En esta sección se debe incluir un resumen de máximo doscientas (200) palabras de la tesis en un solo párrafo. Es posible incluir adicionalmente un resumen extendido en la sección de anexos si es que fuera necesario. En general, para construir esta sección se recomienda incluir una breve motivación que indique por qué el tópico es relevante; una definición clara y concisa del problema; una breve descripción del método para resolver el problema; uno o unos pocos resultados relevantes, incluyendo idealmente una métrica numérica verificable (por ejemplo, ``la eficiencia energética aumentó un 19\%''); y finalmente una conclusión que indique claramente los hallazgos de la investigación y el impacto de estos en el área. Para cumplir con el límite de palabras, se recomienda que cada uno de los elementos mencionados no supere las dos oraciones. Dado que al momento de leer el manuscrito la tesis ya está concluida, no se debe redactar en tiempo futuro (por ejemplo, ``en este trabajo se analizará''). Esta sección debe ser autocontenida; por ello, es importante asegurar la cohesión entre oraciones y no incluir referencias bibliográficas. Tampoco se deben incluir tablas ni figuras. En caso de utilizar una cantidad considerable de símbolos o acrónimos, se recomienda incluir una lista de nomenclatura al inicio del documento.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SÓLO PARA TESIS EN INGLÉS 
-% BORRAR EN CASO DE ESCRITURA EN ESPAÑOL
-\newpage
-
-\noindent\hfill
-\begin{minipage}[t]{0.6\textwidth}
-    %RESUMEN DE LA TESIS PARA OPTAR AL \\
-    %GRADO DE DOCTOR[A] EN INGENIERÍA \\
-    %ELÉCTRICA, \\
-    RESUMEN DE LA TESIS PARA OPTAR AL \\
-    GRADO DE MAGÍSTER EN CIENCIAS DE LA \\ INGENIERÍA, MENCIÓN ELÉCTRICA, \\
-    MEMORIA PARA OPTAR AL TÍTULO DE \\ INGENIER[O/A] CIVIL ELÉCTRIC[O/A] \\
-    {POR: NOMBRE APELLIDO1 APELLIDO2} \\
-    {FECHA: \the\year} \\
-    {PROF. GUÍA: NOMBRE APELLIDO1 APELLIDO2} \\
-    %{PROF. CO-GUÍA: NOMBRE COMPLETO CO-GUÍA}
-\end{minipage}
-
-\begin{center}
-    TÍTULO DE LA TESIS (INGLÉS)
-\end{center}
-
-\noindent En el caso de redactar la tesis en inglés, se debe incluir un resumen adicional en dicho idioma con su título en inglés, ya que el resumen en español (con título en español) es obligatorio independientemente del idioma de la tesis. Ambos resúmenes deben reflejar el mismo contenido. Sin embargo, dado que cada uno debe cumplir independientemente con el límite de doscientas (200) palabras, no es necesario que sean una traducción textual el uno del otro. Las mismas recomendaciones estructurales indicadas en el resumen anterior aplican para ambos.
+ En el caso de redactar la tesis en inglés, se debe incluir un resumen adicional en dicho idioma con su título en inglés, ya que el resumen en español (con título en español) es obligatorio independientemente del idioma de la tesis. Ambos resúmenes deben reflejar el mismo contenido. Sin embargo, dado que cada uno debe cumplir independientemente con el límite de doscientas (200) palabras, no es necesario que sean una traducción textual el uno del otro. Las mismas recomendaciones estructurales indicadas en el resumen anterior aplican para ambos.

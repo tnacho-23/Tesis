@@ -2,15 +2,52 @@
 \label{ch:results}
 \label{ch:analysis}
 
-This chapter presents the quantitative results of the experimental campaign together with their interpretation, topic by topic. Each section below first reports the relevant measurements and then, immediately afterwards, discusses the structural reasons behind the observed behaviour, so that evidence and analysis can be read side by side. The order of the sections mirrors the order in which the corresponding topics are introduced in the methodology (Chapter~\ref{methodology}). Section~\ref{sec:an:datasets} characterises the four benchmarks used throughout the thesis, including the empirical Gaussianity statistics that later sections validate formally. Section~\ref{sec:covariance_results} reports continual-learning metrics for the covariance estimators and mixture-of-Gaussian variants against prompt-based and analytic state-of-the-art baselines, together with the volume--shape trade-off that explains their relative ordering, the numerical correction of the Full-Cov and Hybrid-Cov estimators and its empirical consequences, the effect of the log-normalisation constant, the score-component distributions, linear shrinkage, mixture models, and the framework's positioning against prompt-based baselines. Section~\ref{sec:calibration_results_section} reports the probabilistic confidence and calibration metrics and interprets them as a further quality of the volume term. Section~\ref{sec:incremental_update} examines how average accuracy evolves as the pool of active classes is incrementally expanded. Section~\ref{sec:interclass_results} quantifies inter-class separability via the pairwise Bhattacharyya distance and interprets the resulting separability curves. Section~\ref{sec:backbone_results} ablates the choice of feature extractor and discusses the framework's sensitivity to this choice. Section~\ref{sec:spectral_analysis} characterises the PCA spectral decay of the DINOv2 embedding space and its consequence for PCA-reduced continual-learning accuracy. Section~\ref{sec:gaussianity_results} reports the statistical validation of the Gaussianity assumption, combining moment-based diagnostics with the formal D'Agostino--Pearson and Henze--Zirkler hypothesis tests, and interprets what this validation implies for the modelling choices made throughout. Section~\ref{sec:an:summary} closes the chapter by synthesising the principal findings into practical recommendations.
+This chapter presents the quantitative results of the experimental campaign together with their interpretation, topic by topic. Each section below first reports the relevant measurements and then, immediately afterwards, discusses the structural reasons behind the observed behaviour, so that evidence and analysis can be read side by side. Section~\ref{sec:an:datasets} opens the chapter by presenting the four benchmarks used throughout the thesis---their source datasets, the class-incremental splitting protocol applied to each, and the resulting statistical properties---Section~\ref{sec:an:metrics} formally defines the average accuracy and forgetting metrics computed over them, and Section~\ref{sec:an:calibration_metrics_def} formally defines the complementary confidence and calibration metrics used later in the chapter. The remaining sections then follow the order in which the corresponding topics are introduced in the methodology (Chapter~\ref{methodology}). Section~\ref{sec:covariance_results} reports continual-learning metrics for the covariance estimators and mixture-of-Gaussian variants against prompt-based and analytic state-of-the-art baselines, together with the volume--shape trade-off that explains their relative ordering, the numerical correction of the Full-Cov and Hybrid-Cov estimators and its empirical consequences, the effect of the log-normalisation constant, the score-component distributions, linear shrinkage, mixture models, and the framework's positioning against prompt-based baselines. Section~\ref{sec:calibration_results_section} reports the probabilistic confidence and calibration metrics and interprets them as a further quality of the volume term. Section~\ref{sec:incremental_update} examines how average accuracy evolves as the pool of active classes is incrementally expanded. Section~\ref{sec:interclass_results} quantifies inter-class separability via the pairwise Bhattacharyya distance and interprets the resulting separability curves. Section~\ref{sec:backbone_results} ablates the choice of feature extractor and discusses the framework's sensitivity to this choice. Section~\ref{sec:spectral_analysis} characterises the PCA spectral decay of the DINOv2 embedding space and its consequence for PCA-reduced continual-learning accuracy. Section~\ref{sec:gaussianity_results} reports the statistical validation of the Gaussianity assumption, combining moment-based diagnostics with the formal D'Agostino--Pearson and Henze--Zirkler hypothesis tests, and interprets what this validation implies for the modelling choices made throughout. Section~\ref{sec:an:summary} closes the chapter by synthesising the principal findings into practical recommendations.
 
-For every benchmark we report the average accuracy after the last task, $A_{T}$, and the forgetting score $F_{T}$ as defined in Chapter~\ref{methodology}. Whenever possible we report mean and variance over three independent runs (different task-order seeds). Since the proposed Gaussian classifiers maintain only sufficient statistics $(\boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c)$ and do not involve parameter optimisation during incremental updates, the resulting classifier is independent of the specific class-presentation order; this explains the $\pm 0.00$ standard deviation reported for our methods throughout. State-of-the-art prompt-based competitors are reproduced from the published values reported in their respective papers. Methods proposed in this thesis are highlighted in grey. The best result per column is shown in bold.
+For every benchmark we report the average accuracy after the last task, $A_{T}$, and the forgetting score $F_{T}$, both formally defined below. Whenever possible we report mean and variance over three independent runs (different task-order seeds). Since the proposed Gaussian classifiers maintain only sufficient statistics $(\boldsymbol{\mu}_c, \boldsymbol{\Sigma}_c)$ and do not involve parameter optimisation during incremental updates, the resulting classifier is independent of the specific class-presentation order; this explains the $\pm 0.00$ standard deviation reported for our methods throughout. State-of-the-art prompt-based competitors are reproduced from the published values reported in their respective papers. Methods proposed in this thesis are highlighted in grey. The best result per column is shown in bold.
 
-
-\section{Benchmark Properties}
+\section{Image Datasets and Benchmarks}
 \label{sec:an:datasets}
 
-The four benchmarks evaluated in this thesis span a wide spectrum of statistical difficulty for a Gaussian classifier. Their salient properties are summarised in Table~\ref{tab:dataset_summary}.
+Before reporting any empirical result, this section presents the four benchmarks evaluated throughout this thesis: their source datasets, the class-incremental splitting protocol applied to each, and the resulting statistical properties that determine how difficult they are for a Gaussian classifier. To rigorously test the robustness and generalization of architectures like ViT, this work utilizes several standardized datasets that vary in scale, stylistic diversity, and granularity.
+
+\subsection{Source Datasets}
+\label{sec:an:source_datasets}
+
+\subsubsection{The ImageNet Family}
+\textbf{ImageNet} \cite{imagenet} is a cornerstone of computer vision, providing over 1.2 million images across 1,000 classes. Its hierarchical structure, based on WordNet, makes it the standard for large-scale classification. To further push the boundaries of model performance, two variants are often employed:
+\begin{itemize}
+	\item \textbf{ImageNet-21K (and ImageNet-21k-P):} An expansive version containing 14 million images across 21,000 classes \cite{imagenet21k}. The ``P'' version is a cleaned subset designed to make pre-training for models like ViT more accessible.
+	\item \textbf{ImageNet-R (Renditions):} A dataset of 30,000 images covering 200 classes in non-photographic styles (e.g., art, sketches). It tests a model's robustness to out-of-distribution data \cite{imagenetR}.
+\end{itemize}
+
+\subsubsection{Fine-Grained and Diverse Benchmarks}
+Beyond large-scale pre-training, fine-grained classification is evaluated using:
+
+\begin{itemize}
+	\item \textbf{CIFAR-100:} Consists of 60,000 low-resolution ($32\times32$) images \cite{cifar100}. It is unique for its two-level hierarchy, where 100 ``fine'' classes are nested within 20 ``coarse'' superclasses, allowing for the evaluation of both specific and broad categorization.
+	\item \textbf{Caltech-256:} Provides 30,607 images across 256 categories \cite{caltech256}. It offers greater category diversity and a higher minimum number of images per class than its predecessors, serving as a robust benchmark for generalisation. In this thesis we use the first 250 categories (approximately 28,100 images) so that the resulting class-incremental protocol can be divided into 10 balanced tasks of 25 classes each, as detailed below.
+\end{itemize}
+
+\subsection{Continual Learning Splits and Protocol}
+\label{sec:an:cl_splits}
+
+Building on these source datasets, we follow the standard Continual Learning (CL) protocol introduced in Chapter~\ref{methodology}, where the model learns a sequence of disjoint tasks and we calculate the average accuracy and the forgetting, both formally defined in Section~\ref{sec:an:metrics}. The specific configurations for the datasets are as follows:
+
+\begin{itemize}
+	\item \textbf{Split CIFAR-100:} This dataset is a widely utilized benchmark in the continual learning literature. It partitions the original CIFAR-100 \cite{cifar100} dataset into 10 disjoint tasks, with each task containing 10 distinct classes.
+
+	\item \textbf{Split ImageNet-R:} This benchmark is constructed from ImageNet-R \cite{imagenetR}, a dataset containing renditions of ImageNet classes such as art, cartoons, and sketches. We randomly divide the 200 classes into 10 sequential tasks, with 20 classes per task, introducing a significant domain shift challenge.
+
+	\item \textbf{Split Caltech-256:} Designed to evaluate the model on higher-resolution images with greater object variability, this benchmark utilises the Caltech-256 \cite{caltech256} dataset. The first 250 of the original 256 categories are used and sequentially divided into 10 disjoint tasks of 25 classes each; the remaining six categories are discarded so that the benchmark has a fixed, balanced number of classes per task. The resulting protocol contains approximately 28\,100 images with an average of $\overline{n_c}\!\approx\!112$ training samples per class, which makes the per-class budget the smallest of the three constituent datasets and stresses the high-dimensional covariance estimators introduced in Section~\ref{sec:covariance_estimation}.
+
+	\item \textbf{Split Joint Dataset:} This benchmark serves as a comprehensive stress test by aggregating the 30 tasks from the three aforementioned datasets into a single, heterogeneous stream. The tasks are presented to the system in a randomized order, forcing the model to navigate extreme distribution shifts between natural, artistic, and high-resolution images. This long-horizon sequence is specifically designed to evaluate the model's resilience against catastrophic forgetting over an extended period of diverse learning objectives.
+\end{itemize}
+
+\subsection{Benchmark Properties Summary}
+\label{sec:an:benchmark_summary}
+
+The four resulting benchmarks span a wide spectrum of statistical difficulty for a Gaussian classifier. Their salient properties are summarised in Table~\ref{tab:dataset_summary}.
 
 \begin{table}[htbp]
 	\centering
@@ -30,7 +67,107 @@ The four benchmarks evaluated in this thesis span a wide spectrum of statistical
 	\end{tabular}
 \end{table}
 
-The three primary datasets differ along two largely orthogonal axes: visual complexity (which determines how heavy-tailed the embedding coordinates are) and sample budget (which determines how reliably the per-class covariance can be estimated). CIFAR-100 occupies the favourable corner of both axes, ImageNet-R adds a deliberate input-distribution shift, and Caltech-256 combines heavy tails with a small per-class budget. The Joint benchmark inherits the worst feature of each of the three constituent datasets and is therefore the most informative regime for separating method behaviour.
+The three primary datasets differ along two largely orthogonal axes: visual complexity (which determines how heavy-tailed the embedding coordinates are) and sample budget (which determines how reliably the per-class covariance can be estimated). CIFAR-100 occupies the favourable corner of both axes, ImageNet-R adds a deliberate input-distribution shift, and Caltech-256 combines heavy tails with a small per-class budget. The Joint benchmark inherits the worst feature of each of the three constituent datasets and is therefore the most informative regime for separating method behaviour. With the benchmarks now fully characterised, we turn to the evaluation metrics computed over them.
+
+\section{Evaluation Metrics: Average Accuracy and Forgetting}
+\label{sec:an:metrics}
+
+Before reporting the empirical results, we formally define the two standard performance metrics used throughout this chapter. As is common in the continual learning literature \cite{wang2022learning}, we quantify performance using two standard metrics derived from the test accuracy scores obtained after each task: the average accuracy and the average forgetting.
+
+On the one hand, \textbf{Average Accuracy ($A_t$)}, presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point.
+
+\begin{equation}
+	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}
+	\label{eq_AA}
+\end{equation}
+
+On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops.
+
+\begin{equation}
+	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right)
+	\label{eq_AF}
+\end{equation}
+
+Regarding forgetting, the proposed framework does not exhibit forgetting in the conventional sense, as previously learned class statistics are never modified when new classes are introduced. The measured forgetting values therefore primarily reflect the increased classification difficulty as the number of competing classes grows, rather than degradation of previously learned representations.
+
+\section{Confidence and Calibration Metrics}
+\label{sec:an:calibration_metrics_def}
+
+Accuracy and forgetting measure whether the model's predictions are correct, but they say nothing about whether the model's own confidence in those predictions can be trusted---a distinction that matters in particular for Class-Incremental Learning, where a classifier can look accurate while still being systematically over- or under-confident. To capture this, we introduce five complementary metrics that jointly characterise the probabilistic behaviour of the classifier: the Expected Calibration Error (ECE) measures the global alignment between confidence and accuracy; the Confidence on Errors (CoE) quantifies how dangerously overconfident the model is when it fails; Total Confidence (TC) and Probability Margin (PM) both capture the decisiveness of the posterior distribution from two complementary angles; and the Average Predictive Entropy ($H$) measures the spread of probability mass across all classes. These definitions are used directly in Section~\ref{sec:calibration_results_section}, where the resulting values are reported and interpreted.
+
+\subsection{Expected Calibration Error (ECE)}
+This metric quantifies the mismatch between predictive confidence and empirical accuracy. We partition the predictions into $M$ equally spaced bins based on their confidence scores. The ECE is defined as the weighted average of the absolute difference between the accuracy and confidence of each bin:
+
+\begin{equation}
+	ECE_t = \sum_{m=1}^{M} \frac{|B_m|}{N} \left| acc(B_m) - conf(B_m) \right|\label{eq_ECE}
+\end{equation}
+
+where $N$ is the total number of samples, $B_m$ is the set of indices of samples whose prediction confidence falls into the $m$-th interval, and $acc(B_m)$ and $conf(B_m)$ represent the mean accuracy and mean confidence within that bin, respectively.
+
+\subsection{Confidence on Errors (CoE)}
+To specifically analyze the model's behavior when it fails, we measure the average confidence assigned to the winning (but incorrect) class. High CoE indicates a model that is ``dangerously wrong'', which is a critical factor in safety-oriented applications. It is computed for a task $t$ as:
+
+\begin{equation}
+	CoE_t = \frac{1}{|\mathcal{E}_t|} \sum_{i \in \mathcal{E}_t} \max(\hat{p}_i)
+\end{equation}
+
+where $\mathcal{E}_t$ is the set of misclassified samples and $\hat{p}_i$ is the predicted probability distribution for sample $i$.
+
+\subsection{Total Confidence (TC)}
+
+Total Confidence measures how certain the model is on average about its top-1 prediction, regardless of whether that prediction is correct:
+
+\begin{equation}
+	TC_t = \frac{1}{N} \sum_{i=1}^{N} \max_{c} \, p_{i,c}
+\end{equation}
+
+A value of $TC=1$ means the model assigns all probability mass to a single class for every sample---it is always maximally decisive. A value close to $1/C$ would indicate near-uniform posteriors. TC is a measure of \emph{decisiveness}, not correctness: a well-calibrated model should have $TC \approx A_T$ (confident when right, uncertain when wrong), whereas a pathologically overconfident model can reach $TC \approx 1$ even at low accuracy.
+
+\subsection{Probability Margin (PM)}
+
+The Probability Margin is the natural, non-logarithmic measure of how decisively the model separates its top-1 prediction from its second-best alternative:
+
+\begin{equation}
+	PM_t = \frac{1}{N} \sum_{i=1}^{N} \Bigl( p_{i,(1)} - p_{i,(2)} \Bigr)
+\end{equation}
+
+where $p_{i,(1)} \ge p_{i,(2)}$ are the two highest posterior probabilities for sample $i$. A margin near $1$ means the model almost entirely ignores its second candidate; a margin near $0$ means the model is nearly tied between its top-two guesses and one should treat the prediction with caution. PM is bounded in $[0,1]$ and directly interpretable: a value of $0.7$ means the winning class is, on average, assigned $70\%$ more probability than the runner-up.
+
+\subsection{Average Predictive Entropy ($H$)}
+We utilize Shannon entropy to measure the uncertainty of the model's predictions. A higher entropy suggests that the model is distributing its probability mass across multiple classes, indicating lower certainty. For task $t$, the average entropy is calculated as:
+
+\begin{equation}
+	H_t = \frac{1}{N} \sum_{i=1}^{N} \left( - \sum_{c=1}^{C} p_{i,c} \log(p_{i,c}) \right)
+\end{equation}
+
+where $p_{i,c}$ is the probability assigned to class $c$ for sample $i$.
+
+\subsection*{Summary of calibration and uncertainty metrics}
+
+Table~\ref{tab:metrics_summary} collects all six metrics (accuracy and the five calibration/uncertainty indicators), their range, the direction of improvement, and the key question each one answers. Together they provide a multi-dimensional view of the model's reliability throughout continual learning: accuracy tells us \emph{how often} the model is right; ECE tells us \emph{how honest} its probabilities are; CoE tells us \emph{how dangerous} its mistakes are; TC tells us \emph{how decisive} it is overall; PM tells us \emph{how clearly} it separates its top-two candidates; and entropy tells us \emph{how spread} its uncertainty is across all classes.
+
+\begin{table}[htb]
+	\centering
+	\caption{Summary of the probabilistic calibration and uncertainty metrics used in this work. ``Better'' indicates the direction of the preferred value; ``context'' means both high and low values are informative depending on whether predictions are correct.}
+	\label{tab:metrics_summary}
+	\scriptsize
+	\setlength{\tabcolsep}{5pt}
+	\renewcommand{\arraystretch}{1.25}
+	\begin{tabular}{llcll}
+		\toprule
+		\textbf{Metric} & \textbf{Symbol} & \textbf{Range} & \textbf{Better} & \textbf{Key question} \\
+		\midrule
+		Accuracy                    & $A_T$  & $[0,1]$         & $\uparrow$   & What fraction of predictions are correct? \\
+		Expected Calibration Error  & ECE    & $[0,1]$         & $\downarrow$ & How well does confidence match actual accuracy? \\
+		Confidence on Errors        & CoE    & $[0,1]$         & $\downarrow$ & How confident is the model when it is \emph{wrong}? \\
+		Total Confidence            & TC     & $[0,1]$         & context      & How decisive is the model on its top-1 choice? \\
+		Probability Margin          & PM     & $[0,1]$         & context      & How much more likely is top-1 than top-2? \\
+		Predictive Entropy          & $H$    & $[0, \log C]$   & $\downarrow$ & How spread is probability mass over all $C$ classes? \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+With accuracy, forgetting, and the confidence and calibration metrics now all formally established, we turn to the empirical results themselves, beginning with the covariance estimators and mixture-of-Gaussian variants.
 
 \section{Covariance Estimation and Mixtures of Gaussians}
 
