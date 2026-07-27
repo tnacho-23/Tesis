@@ -1,7 +1,7 @@
 \chapter{Statistical and Probabilistic Foundations of the Feature Space}
 \label{ch:gaussian_space}
 
-The framework proposed in this thesis rests on a single working hypothesis: that the class-conditional feature distributions produced by a frozen visual foundation model are well approximated by multivariate Gaussians, and that the resulting decision surfaces can be described in terms of the geometry of the embedding space they live in. This chapter puts together, in one self-contained treatment, the mathematical and statistical tools used throughout this thesis to build and check that hypothesis. We start with the probabilistic modelling framework itself---Bayesian inference, the Maximum A Posteriori decision rule, and its Mixture-of-Gaussians extension. We then turn directly to the Gaussianity assumption these models depend on, presenting the moment-based diagnostics and the formal hypothesis tests, univariate first and then multivariate, including the Henze--Zirkler statistic and its diagonal adaptation, that are later applied empirically in Chapter~\ref{ch:results}. With that assumption in place, we introduce the inter-class separability metrics---the probabilistic Bhattacharyya distance and the geometric Euclidean distance---used to quantify how classes crowd the embedding space as new tasks arrive. We then explain why estimating a covariance matrix in this setting is difficult in the first place, a difficulty commonly known as the curse of dimensionality, and how it can be addressed through regularization; this naturally leads into the spectral tools---Principal Component Analysis and the associated eigenvalue-decay diagnostics---used to describe the intrinsic dimensionality of the feature space and, in turn, to understand why that regularization is needed.
+The framework proposed in this thesis rests on a single working hypothesis: that the class-conditional feature distributions produced by a frozen visual foundation model are well approximated by multivariate Gaussians, and that the resulting decision surfaces can be described in terms of the geometry of the embedding space they live in. This chapter puts together, in one self-contained treatment, the mathematical and statistical tools used throughout this thesis to build and check that hypothesis. We start with the probabilistic modelling framework itself---Bayesian inference, the Maximum A Posteriori decision rule, and its Mixture-of-Gaussians extension. We then turn directly to the Gaussianity assumption these models depend on, presenting the moment-based diagnostics and the formal hypothesis tests, univariate first and then multivariate, including the Henze--Zirkler statistic and its diagonal adaptation. With that assumption in place, we introduce the inter-class separability metrics---the probabilistic Bhattacharyya distance and the geometric Euclidean distance---used to quantify how classes crowd the embedding space as new tasks arrive. We then explain why estimating a covariance matrix in this setting is difficult in the first place, a difficulty commonly known as the curse of dimensionality, and how it can be addressed through regularization; this naturally leads into the spectral tools---Principal Component Analysis and the associated eigenvalue-decay diagnostics---used to describe the intrinsic dimensionality of the feature space and, in turn, to understand why that regularization is needed.
 
 \section{Foundations of Probabilistic Modeling}
 \label{sec:framework:probabilistic}
@@ -104,145 +104,132 @@ This whole classification framework---from the plain Bayes rule to its Gaussian 
 \section{Gaussianity Assumptions and Analysis}
 \label{sec:method:gaussianity_main}
 
-The validity of the Bayes classifier introduced in Section~\ref{sec:framework:probabilistic} depends on how well the class-conditional Gaussian distributions approximate the true data distribution. The covariance estimators and downstream classification framework proposed in this thesis rest on the working assumption that class-conditional features are approximately Gaussian in the embedding space of visual foundation models (such as DINOv2). The following analytical framework establishes the statistical basis for these assumptions and, subsequently, the concrete methodology used to validate them empirically without relying on manual semantic labels, employing a multi-layered statistical evaluation on the training split of our datasets.
+Gaussianity, in simple terms, is just how well a set of data points can be described by a normal distribution: a bell-shaped curve that, in one dimension, is fully defined by a mean and a variance, or, in many dimensions at once, by a mean vector and a covariance matrix. The classifier proposed in this thesis works by fitting one such Gaussian to each class and then, for a new observation, comparing how likely that observation is under each of these class-specific Gaussians. This only makes sense if the features actually produced for each class really do look Gaussian. If they do not, the mean and covariance we estimate stop being a good description of the data, and the classifier can end up making confident, well-defined decisions that are simply wrong, even though the underlying math is correct. Checking Gaussianity before trusting the classifier is therefore not a formality: it tells us whether modelling each class as a single Gaussian is actually a reasonable choice for this particular feature space, rather than just a convenient one.
 
-Our validation is structured across two levels, examined in that order in the rest of this section:
-\begin{enumerate}
-	\item \textbf{Per-Dimension (Univariate) Gaussianity:} Evaluated using moment-based shape diagnostics, the formal D'Agostino--Pearson omnibus normality test, and a coordinate-wise application of the Henze--Zirkler (HZ) test.
-	\item \textbf{Per-Class (Multivariate) Gaussianity:} Evaluated in the native high-dimensional feature space using a specialized diagonal-covariance adaptation of the HZ test to circumvent sample-size rank deficiencies.
-\end{enumerate}
+We check this assumption at two levels. We first look at \emph{per-dimension} (univariate) Gaussianity: whether each individual coordinate of the feature vector, taken on its own, looks Gaussian. We then look at \emph{per-class} (multivariate) Gaussianity: whether the full, high-dimensional feature vector of each class follows a joint Gaussian distribution.
 
-\subsection{Univariate Gaussianity: Conceptual Diagnostics}
-\label{sec:method:gaussianity:univariate_concept}
+\subsection{Per-Dimension Gaussianity}
+\label{sec:method:gaussianity:moments}
+\phantomsection\label{sec:method:gaussianity:normaltest}
+\phantomsection\label{sec:method:gaussianity:univariate_concept}
 
-A first layer of theoretical justification involves examining the univariate properties of individual feature components: the kurtosis and skewness of each coordinate's marginal distribution.
+We start at the simplest level: looking at each coordinate of the feature vector on its own, one at a time, and asking how close its distribution is to a normal curve. To verify Gaussianity at this per-dimension level, we combine two descriptive shape diagnostics with a formal statistical test, applying all of them to every (class~$c$, dimension~$j$) pair.
 
-\paragraph{Kurtosis} This statistic measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution \cite{joyce2011kurtosis}. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails.
+\subsubsection{Shape moments.}
+Skewness and kurtosis are both examples of what statisticians call \emph{moments}: numerical summaries computed from the data that describe the shape of its distribution, in the same way that the mean and variance are moments that describe its location and spread. Concretely, kurtosis and skewness describe the shape of a distribution:
 
-\begin{figure}[ht]
+The \textbf{kurtosis} measures the ``tailedness'' and peakedness of a probability distribution relative to a normal distribution \cite{joyce2011kurtosis}. As illustrated in Figure \ref{fig:kurtosis}, a perfectly Gaussian distribution has an excess kurtosis of zero (mesokurtic). Distributions with high kurtosis (leptokurtic, $Kurtosis > 0$) exhibit sharper peaks and heavier tails, indicating a higher concentration of data around the mean and a greater likelihood of extreme outliers. Conversely, low kurtosis (platykurtic, $Kurtosis < 0$) indicates a flatter peak and thinner tails.
+
+\begin{figure}[htb]
 	\centering
 	\includegraphics[width=0.37\textwidth]{imagenes/marco/kurtosis.png}
 	\caption{Visual representation of kurtosis levels: leptokurtic ($>0$), mesokurtic ($=0$) and platykurtic ($<0$) distributions \cite{joyce2011kurtosis}.}
 	\label{fig:kurtosis}
 \end{figure}
 
-\paragraph{Skewness} This measure quantifies the asymmetry of a distribution around its mean. As shown in Figure \ref{fig:skewness}, a symmetric distribution (center) is a fundamental assumption of the Gaussian model, implying that the mean $\boldsymbol{\mu}_c$, median, and mode coincide, providing an adequate representation of the class prototype within the embedding space. A positive skew (right) indicates a distribution with a long tail extending toward higher values, while a negative skew (left) indicates a long tail extending toward lower values. Significant skewness would suggest that the class-conditional mean is no longer a central representation of the feature distribution.
+ The \textbf{skewness} quantifies the asymmetry of a distribution around its mean. As shown in Figure \ref{fig:skewness}, a symmetric distribution (center) is a fundamental assumption of the Gaussian model, implying that the mean $\boldsymbol{\mu}_c$, median, and mode coincide, providing an adequate representation of the class prototype within the embedding space. A positive skew (right) indicates a distribution with a long tail extending toward higher values, while a negative skew (left) indicates a long tail extending toward lower values. Significant skewness would suggest that the class-conditional mean is no longer a central representation of the feature distribution.
 
-\begin{figure}[ht]
+\begin{figure}[htb]
 	\centering
-	\includegraphics[width=0.7\textwidth]{imagenes/marco/skeweness.jpg}
+	\includegraphics[width=0.9\textwidth]{imagenes/marco/skeweness.jpg}
 	\caption{Comparison of negatively-skewed, symmetric and positively-skewed distributions \cite{pearson1895skewness}.}
 	\label{fig:skewness}
 \end{figure}
 
-Taken together, these two diagnostics give an initial, coordinate-level read on how well the Gaussian approximation actually holds. Empirical evidence suggests that for many real-world datasets, both kurtosis and skewness values typically fall within the range $[-1,1]$ tails \cite{hair2019multivariate}, indicating distributions that are close to symmetric and free of excessively heavy.
-
-\subsection{Per-Dimension Gaussianity: Moments and Formal Tests}
-\label{sec:method:gaussianity:moments}
-\phantomsection\label{sec:method:gaussianity:normaltest}
-
-Building on the conceptual diagnostics above, we now formalize the per-dimension analysis into a concrete testing methodology. To verify Gaussianity at the level of individual feature coordinates, we apply three complementary indicators to every (class~$c$, dimension~$j$) pair.
-
-\subsubsection{Shape moments.}
 Following the normality diagnostics of Pearson~\cite{pearson1895skewness} and D'Agostino and Pearson~\cite{dagostino1971omnibus,dagostino1973tests}, we compute the sample skewness and excess kurtosis for each class~$c$ along each of the $d$ coordinates:
 \begin{equation}
 	\widehat{\mathrm{Skew}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^3}{\hat\sigma_{c,j}^{3}},\qquad
 	\widehat{\mathrm{Kurt}}_{c,j} \;=\; \frac{\frac{1}{n_c}\sum_{i}(x_{i,j}-\mu_{c,j})^4}{\hat\sigma_{c,j}^{4}} - 3,
 	\label{eq:moments}
 \end{equation}
-where both quantities vanish exactly for a theoretical Gaussian distribution~\cite{pearson1895skewness,joyce2011kurtosis}.
+where both quantities are computed exactly, unlike the qualitative reading of Figures~\ref{fig:kurtosis} and \ref{fig:skewness} above, and vanish exactly for a theoretical Gaussian distribution~\cite{pearson1895skewness,joyce2011kurtosis}.
 
-\subsubsection{D'Agostino--Pearson omnibus test.}
-The moments alone do not constitute a formal statistical test. We therefore apply the D'Agostino--Pearson omnibus test to every (class, dimension) pair~\cite{dagostino1971omnibus,dagostino1973tests}. The test combines the two shape statistics into a single composite statistic:
+Empirical evidence suggests that for many real-world datasets, both kurtosis and skewness typically fall within the range $[-1,1]$, with values in that range indicating distributions close to symmetric and free of excessively heavy tails \cite{hair2019multivariate}.
+
+\subsubsection{D'Agostino--Pearson test}
+
+This range is useful, but it is not, by itself, a formal test: looking at a single kurtosis or skewness value cannot tell us how confident we should be that a departure from zero is a real deviation from normality rather than plain sampling noise. The D'Agostino--Pearson test closes this gap by turning skewness and kurtosis into a single, joint hypothesis test~\cite{dagostino1971omnibus,dagostino1973tests}, applied to every (class, dimension) pair. Concretely, it converts each moment into a standardized score ($Z_1$ for skewness, $Z_2$ for kurtosis) and adds their squares into one combined statistic:
 \begin{equation}
 	K^2 \;=\; Z_1\!\left(\widehat{\mathrm{Skew}}\right)^2 + Z_2\!\left(\widehat{\mathrm{Kurt}}\right)^2 \;\sim\; \chi^2_2 \quad \text{under } H_0,
 	\label{eq:normaltest}
 \end{equation}
-where $Z_1$ and $Z_2$ are normalised transformations of the skewness and kurtosis estimators respectively, and $H_0$ is the hypothesis that the marginal data are normally distributed. We reject $H_0$ at significance level $\alpha=0.05$.
+where $H_0$ is the hypothesis that the coordinate's data is normally distributed. Under $H_0$, $K^2$ follows a known chi-squared distribution with two degrees of freedom, which lets us compute an exact probability (a $p$-value) for how extreme the observed $K^2$ is; we reject $H_0$, and conclude the coordinate is not Gaussian, whenever this probability falls below the significance level $\alpha=0.05$. 
 
 \subsubsection{Relaxed criterion.}
-Because the omnibus test is highly sensitive to larger sample sizes $n_c$ (where minor, non-critical departures from perfect normality still accumulate into significant $K^2$ values), we supplement it with a size-independent relaxed indicator. A dimension is classified as near-Gaussian if:
+The D'Agostino--Pearson test becomes more sensitive as the sample size $n_c$ grows: with enough samples, even small, practically harmless departures from normality become statistically significant, causing the test to reject $H_0$ more often than is practically useful. To compensate for this, we add a second, size-independent check based directly on the reference range introduced earlier in this section: a dimension is classified as near-Gaussian if
 \begin{equation}
 	|\mathrm{Skew}| < 1 \quad \text{and} \quad |\mathrm{Kurt}| < 1
 \end{equation}
-hold simultaneously. This relaxed criterion acts alongside the strict omnibus test to establish lower and upper bounds on the proportion of approximately Gaussian coordinates.
+hold simultaneously. 
 
-\subsection{The Henze--Zirkler Test}
-\label{sec:method:gaussianity:hz_theory}
-
-The diagnostics above operate one coordinate at a time, so they cannot pick up on dependencies between coordinates: a set of features can each look perfectly normal on their own while their joint distribution still departs from a proper multivariate Gaussian. The Henze--Zirkler (HZ) test~\cite{henze1990class} closes this gap: it is an omnibus test, applicable to a feature vector of any dimension $d$, that compares the empirical characteristic function of the data against the theoretical characteristic function of a multivariate normal distribution.
-
-Given $n$ centred samples $\vec{z}_i = \vec{x}_i - \hat{\boldsymbol{\mu}}_c$ and a smoothing bandwidth $b > 0$, the test statistic is built from three terms evaluated using the squared Mahalanobis distances $d_M^2(\cdot,\cdot)$ induced by the class covariance $\boldsymbol{\Sigma}_c$:
-
-\begin{equation}
-	A = \frac{1}{n^2} \sum_{j=1}^{n} \sum_{k=1}^{n} e^{-\frac{b^2}{2}d_M^2(\vec{z}_j, \vec{z}_k)},
-\end{equation}
-\begin{equation}
-	B = \frac{2}{n}(1+b^2)^{-d/2} \sum_{j=1}^{n} e^{-\frac{b^2}{2(1+b^2)}d_M^2(\vec{z}_j, \vec{0})},
-\end{equation}
-\begin{equation}
-	C = (1+2b^2)^{-d/2}.
-\end{equation}
-
-Term $A$ measures the average pairwise kernel similarity of the observed samples; term $B$ quantifies how consistently the empirical density decays away from the class centroid compared to a Gaussian; and term $C$ is the asymptotic self-similarity constant of a true $d$-dimensional Gaussian. The final statistic is:
-\begin{equation}
-	T_{n,b} = n \cdot \left[ A - B + C \right].
-\end{equation}
-
-Under the null hypothesis of multivariate normality, $T_{n,b}$ converges to a fixed value close to $1$; departures above $1$ indicate that the data is more structured (tighter clusters or heavier tails) than a Gaussian. The bandwidth $b$ controls the resolution of the characteristic function comparison and is set optimally as a function of $n$ and $d$. The next two subsections apply this same statistic to two settings that differ only in dimensionality: first the univariate case ($d=1$), applied per coordinate as a stricter complement to the tests above, and then the full, high-dimensional multivariate case ($d=768$) that the classifier actually operates in.
-
-\subsection{Univariate Henze-Zirkler Test per Dimension}
+\subsubsection{Henze--Zirkler test per dimension.}
 \label{sec:method:gaussianity:hz_univariate}
+The tests above only look at the shape of each coordinate's distribution, through its skewness and kurtosis. As a stricter check, we also apply the Henze--Zirkler (HZ) test~\cite{henze1990class} to every coordinate on its own: instead of summarising the data with a couple of shape numbers, it directly compares how the data is distributed against how a true Gaussian would be. The HZ statistic is defined for a feature vector of any dimension $d$; here we use its simplest form, one coordinate at a time ($d=1$), applied independently to every (class~$c$, dimension~$j$) pair. The same statistic, now with $d$ equal to the full embedding dimension, is used again in Section~\ref{sec:method:gaussianity:multivariate}.
 
-We bridge the per-dimension and per-class analyses by introducing a univariate HZ analysis applied independently to every (class~$c$, dimension~$j$) pair. This provides a stricter hypothesis-based criterion than the D'Agostino--Pearson test, while remaining more interpretable than the full-dimensional multivariate result presented next.
+Given $n_c$ centred samples $z_i = x_i - \hat{\mu}_{c,j}$ and a bandwidth $b>0$, the statistic is built from three simple terms, using the squared, variance-normalised distance $d_M^2(\cdot,\cdot)$ between two values:
+
+\begin{equation}
+	A = \frac{1}{n_c^2} \sum_{j=1}^{n_c} \sum_{k=1}^{n_c} e^{-\frac{b^2}{2}d_M^2(z_j, z_k)},
+\end{equation}
+\begin{equation}
+	B = \frac{2}{n_c}(1+b^2)^{-1/2} \sum_{j=1}^{n_c} e^{-\frac{b^2}{2(1+b^2)}d_M^2(z_j, 0)},
+\end{equation}
+\begin{equation}
+	C = (1+2b^2)^{-1/2}.
+\end{equation}
+
+In plain terms, $A$ checks how similar the samples are to one another, $B$ checks how quickly the data thins out around the mean, and $C$ is simply the value $B$ would take for a perfect Gaussian. Put together, the final statistic is:
+\begin{equation}
+	T_{n,b} = n_c \cdot \left[ A - B + C \right].
+\end{equation}
+$T_{n,b}$ stays close to a fixed reference value when the data really is Gaussian, and moves away from it when the data is more tightly clustered or more heavy-tailed than a Gaussian would be.
 
 \paragraph{Bandwidth.}
-For $d=1$, the standard HZ smoothing parameter reduces to:
+For $d=1$, the bandwidth reduces to a simple function of the sample size alone:
 \begin{equation}
 	b^2 \;=\; \frac{1}{2}\left(\frac{4}{3}\right)^{2/5} n_c^{-2/5}.
 	\label{eq:hz_bw_univariate}
 \end{equation}
 
-\paragraph{Efficient vectorised computation.}
-To handle all $d$ dimensions simultaneously without forming prohibitive $n_c \times n_c$ distance matrices, the pairwise kernel term in $T_{\mathrm{HZ}}$ is expanded via its Taylor series around $b^2 x_j x_k = 0$:
+\paragraph{Fast computation.}
+Computing $A$ directly means comparing all $n_c^2$ pairs of samples, which becomes costly once this has to be repeated for every coordinate. We avoid this by expanding the exponential in $A$ as a short Taylor series:
 \begin{equation}
 	A_m \;=\; \frac{1}{n_c^2}\sum_{j,k} e^{-\frac{b^2}{2}(z_{j,m}-z_{k,m})^2}
 	\;=\; \frac{1}{n_c^2}\sum_{\ell=0}^{L}
 	\frac{b^{2\ell}}{\ell!}\,S_\ell^2\;+\;\mathcal{O}\!\left((b^2)^{L+1}\right),
 	\label{eq:hz_taylor}
 \end{equation}
-where $S_\ell = \sum_j v_{j,m}\,z_{j,m}^\ell$, $v_{j,m} = \exp(-b^2 z_{j,m}^2 / 2)$, and $L=8$ terms are used to keep the approximation error below $10^{-6}$.
+where $S_\ell = \sum_j v_{j,m}\,z_{j,m}^\ell$ and $v_{j,m} = \exp(-b^2 z_{j,m}^2 / 2)$. Using $L=8$ terms keeps the approximation error below $10^{-6}$, while letting us compute all $d$ coordinates at once instead of one at a time.
 
-\paragraph{Expected value under $H_0$ and p-value.}
-For a general $d$-dimensional problem, the asymptotic expected value of $T_{\mathrm{HZ}}$ under exact normality is:
+\paragraph{What to expect under $H_0$.}
+If a coordinate is truly Gaussian ($H_0$), $T_{n,b}$ should fluctuate around a known reference value rather than around zero. For a general dimension $d$, this reference is approximately
 \begin{equation}
 	\mathbb{E}_{H_0}[T_{\mathrm{HZ}}] \;=\; 1 - (1 + 2b^2)^{-d/2},
 	\label{eq:hz_expected_general}
 \end{equation}
-which is the reference used for the multivariate diagonal test of Section~\ref{sec:method:gaussianity:multivariate} ($d=768$): even a modest bandwidth causes $(1+2b^2)^{-d/2}\to 0$ for large $d$, driving $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]\to 1$.
-
-For the univariate case ($d=1$) treated in this section, we instead use the exact finite-sample expectation, which includes higher-order correction terms that the large-$d$ asymptotic approximation of Equation~\eqref{eq:hz_expected_general} discards:
+a formula we reuse, with $d$ equal to the full embedding dimension, in Section~\ref{sec:method:gaussianity:multivariate}. For the univariate case treated here ($d=1$), this approximation is not accurate enough, so we use the exact expectation instead:
 \begin{equation}
 	\mathbb{E}_{H_0}[T_{\mathrm{HZ}}] \;=\; 1 - a^{-1/2}\left(1 + \frac{b^2}{a} + \frac{3b^4}{4a^2}\right), \qquad a = 1+2b^2,
 	\label{eq:hz_expected_univariate}
 \end{equation}
-with $b^2$ given by the bandwidth of Equation~\eqref{eq:hz_bw_univariate}.
+with $b^2$ as given above. For $n_c \in [60,\,400]$, this gives a small bandwidth ($b^2 \approx 0.04$) and a near-zero baseline ($\mathbb{E}_{H_0}[T_{\mathrm{HZ}}] \approx 0.04$). In other words, a genuinely Gaussian coordinate should give a $T_{\mathrm{HZ}}$ value fluctuating tightly around this near-zero baseline.
 
-Under the null hypothesis $H_0$ of perfect univariate normality, we theoretically expect the empirical statistic $T_{\mathrm{HZ}}$ to be close to $0$. For the class sizes encountered here ($n_c \in [60,\,400]$), the adaptive bandwidth is small ($b^2 \approx 0.04$), which yields a baseline expectation of $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}] \approx 0.04$. Consequently, any coordinate that is genuinely Gaussian will yield an empirical $T_{\mathrm{HZ}}$ value fluctuating tightly around this near-zero baseline, in contrast to the high-dimensional multivariate case where $T_{\mathrm{HZ}} \to 1$.
-
-\subsection{Per-Class Gaussianity: Diagonal Henze--Zirkler Adaptation}
+\subsection{Per-Class Gaussianity}
 \label{sec:method:gaussianity:multivariate}
 
-Having applied the HZ statistic one coordinate at a time, we now turn to its genuinely multivariate use: testing the joint, $d$-dimensional distribution of each class directly. Computing a standard full-covariance HZ test is mathematically intractable in high-dimensional spaces where the per-class sample size is smaller than the feature dimensionality ($n_c < d$). Under these conditions, the empirical covariance matrix becomes singular and non-invertible, preventing the calculation of standard Mahalanobis distances.
+We now move from testing one coordinate at a time to testing each class's full feature vector at once, across all $d$ dimensions together. This uses the same HZ statistic $T_{n,b}$ from Section~\ref{sec:method:gaussianity:hz_univariate}, just with $d$ set to the full embedding dimension instead of $d=1$. This joint test is needed because per-coordinate normality is not enough on its own: a set of coordinates can each look Gaussian by itself while still not being jointly Gaussian, if the way they relate to each other does not match what a multivariate Gaussian would look like.
 
-To circumvent this rank deficiency without resorting to destructive dimensionality reduction, we formulate a diagonal-covariance adaptation of the HZ test. The required Mahalanobis distances are computed analytically by inverting only the $d$ per-coordinate sample variances (effectively regularizing the space), with a numerical floor of $\varepsilon=10^{-10}$ applied to guard against inactive dimensions:
+Applying the test this way runs into a problem, though. Both $A$ and $B$ need the Mahalanobis distance, and computing it requires inverting the class covariance matrix $\boldsymbol{\Sigma}_c$. Whenever a class has fewer samples than feature dimensions ($n_c < d$), which is the case throughout this thesis, the estimated covariance matrix cannot be inverted, so the standard version of the test simply cannot be computed.
+
+To work around this without dropping any dimensions, we use a simplified, diagonal version of $\boldsymbol{\Sigma}_c$: instead of inverting the full matrix, we only invert its $d$ individual per-coordinate variances, treating the coordinates as unrelated for this purpose. A small constant ($\varepsilon = 10^{-10}$) is added to these variances so that coordinates with almost no spread do not cause a division by a near-zero number. This simplified version can always be computed, no matter how small $n_c$ is, which is what makes the test usable in this setting.
+
+One thing changes when we switch to this high-dimensional, diagonal version of the test: the reference value $T_{\mathrm{HZ}}$ should be close to under $H_0$. The general formula is the same one given earlier,
 \begin{equation}
-	\mathbb{E}[T_{\mathrm{HZ}}] \;=\; 1 - (1+2b^2)^{-d/2} \;\to\; 1 \quad \text{as } d \to \infty,
-	\label{eq:hz_expected}
+	\mathbb{E}_{H_0}[T_{\mathrm{HZ}}] \;=\; 1 - (1+2b^2)^{-d/2},
 \end{equation}
-meaning that values concentrated near $T_{\mathrm{HZ}} \approx 1$ serve as the Gaussian reference under the diagonal model.
+but here $d$ is large, so the term $(1+2b^2)^{-d/2}$ becomes essentially zero even for a modest bandwidth $b$, and the whole expression becomes close to $1$ instead of the near-$0$ value used in the univariate case. In practice, this means that a class whose features really are Gaussian should give a $T_{\mathrm{HZ}}$ value close to $1$, not close to $0$.
 
-Having established, at both the univariate and multivariate levels, how well class-conditional features actually satisfy the Gaussianity assumption, we now turn to how these Gaussians are positioned \emph{relative to one another} within the embedding space.
+It is important to clarify explicitly that, because our modified HZ test enforces a diagonal covariance matrix to handle this small-sample regime, it does not mathematically guarantee full, arbitrary multivariate Gaussianity, where the covariances between every pair of dimensions would be fully unconstrained. However, given how severe the data limitation is for each class relative to the embedding dimension ($n_c < d$), this evaluation serves as a highly robust and reliable approximation for that stronger, unconstrained notion of Gaussianity.
 
 \section{Inter-Class Structural Separability Analysis}
 \label{sec:method:separability}
@@ -290,8 +277,6 @@ As the total number of observed classes $k$ scales throughout the continual lear
 \end{enumerate}
 Together, these metrics bridge empirical classification failure modes with the underlying statistical architecture of the learned representations.
 
-The separability picture above already hints at why estimating each class's covariance matrix reliably matters so much: as classes crowd closer together, small errors in $\Sigma_c$ translate directly into decision-surface errors. We now look at why that estimation is difficult in the first place, and how it can be made reliable in the high-dimensional, small-sample regime this thesis operates in.
-
 \section{Covariance Estimation in High-Dimensional Spaces}
 \label{sec:gsc:covariance}
 
@@ -313,87 +298,47 @@ When the dimensionality $d$ scales while the sample size $n$ remains fixed or gr
 
 \subsection{Theoretical Foundations of Regularization}
 
-To overcome the numerical and structural instability of the empirical SCM in high dimensions, the theoretical framework must transition from pure maximum likelihood estimation toward \textit{regularization}. The conceptual objective is to trade a manageable amount of bias for a drastic reduction in estimator variance.
+The problems described above all trace back to the same cause: using the plain SCM in a regime where it cannot be trusted. The standard fix is \textit{regularization}: we stop trying to estimate the covariance matrix as precisely as possible, and instead accept a small, controlled amount of bias in exchange for a much more stable estimate.
 
-Conceptually, these regularized estimation strategies fall into two primary paradigms:
+In practice, regularization is implemented through two main strategies:
 
 \begin{enumerate}
-	\item \textbf{Spectral Regularization and Conditioning:} These approaches directly manipulate the empirical eigenspectrum. By placing a lower bound on near-zero eigenvalues or adding a perturbation matrix (e.g., diagonal loading), they artificially bound the condition number of the matrix. This guarantees strict positive definiteness ($\boldsymbol{\Sigma} \succ 0$), ensuring that the precision matrix remains numerically stable during inversion.
+	\item \textbf{Spectral regularization and conditioning}~\cite{Friedman1989}: this strategy works directly on the eigenvalues of the covariance matrix. Since the problem is that some eigenvalues are zero or too close to zero, the fix is to push them up a bit, either by setting a minimum allowed eigenvalue or, more simply, by adding a small constant to the diagonal of the matrix (often called diagonal loading). This keeps every eigenvalue safely above zero, so the matrix stays invertible and its inverse does not blow up.
 
-	\item \textbf{Structured Shrinkage:} Shrinkage theory, pioneered by Stein's loss formulations, constructs an estimator as a convex combination of the high-variance SCM and a low-variance structured ``target'' matrix (such as the identity matrix or a diagonal variance matrix). By shrinking the empirical estimator toward a well-behaved target, these methods systematically pull the distorted, spread-out eigenvalues back toward their true mean, minimizing the expected mean squared error.
+	\item \textbf{Structured shrinkage}~\cite{Ledoit2004,Chen2010}: this strategy takes a different route. Instead of correcting individual eigenvalues, it blends the unstable sample covariance matrix with a much simpler, well-behaved ``target'' matrix (for example, the identity matrix, scaled appropriately, or a diagonal matrix). The final estimate is a weighted average of the two, and by shrinking it toward this stable target, the distorted, spread-out eigenvalues of the sample covariance are pulled back closer to their true values, reducing the mean squared error of the estimate.
 \end{enumerate}
 
-These two regularisation paradigms motivate the family of covariance estimators used throughout this thesis---diagonal, full, hybrid, shared, OAS, and Ledoit--Wolf---each trading a different amount of bias for a reduction in estimator variance. The eigenvalue anomalies described above are, at their root, a question of how variance is distributed across the $d$ coordinates of the feature space; we now turn to the spectral tools used to expose that distribution directly.
 
-\section{Spectral Geometry and Dimensionality of the Feature Space}
+\section{Spectral Geometry of the Feature Space}
 \label{sec:gsc:spectral}
 
-The validity of high-dimensional Gaussian modelling, and the practical behaviour of the covariance estimators just introduced, are both governed by the spectral structure of the embedding space: the way in which variance is distributed across the $d$ coordinates of the feature vector $\vec{x} \in \mathbb{R}^d$. We first develop Principal Component Analysis (PCA) as the analytical tool used to expose this structure, and then use it to define the effective dimensionality of the feature space and to design a controlled dimension-reduction probe.
+We now look at how variance is spread across the $d$ coordinates of the embedding---that is, whether the data varies a lot along every one of its $d$ dimensions, or whether most of that variation is actually concentrated in just a few of them, with the rest being close to constant. This matters because it directly affects both how trustworthy our Gaussian modelling is and how well the covariance estimators of the previous section can be expected to behave. We use Principal Component Analysis (PCA) to look at this spread, then use what it shows us, called \emph{spectral decay}, to ask a simple question: is the feature space really as high-dimensional as it looks, or can it be described well with far fewer dimensions?
 
 \subsection{Principal Component Analysis}
 \label{sec:marco:pca}
 
-Principal Component Analysis (PCA) is a linear dimensionality-reduction technique that finds an orthonormal basis for the data by diagonalising the empirical covariance matrix~\cite{jolliffe2002principal}. Given a centred data matrix $\mathbf{X} \in \mathbb{R}^{N \times d}$ (zero-mean columns), the empirical covariance is
-
-\begin{equation}
-\mathbf{S} = \frac{1}{N-1}\mathbf{X}^{T}\mathbf{X}.
-\end{equation}
-
-Its eigendecomposition $\mathbf{S} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^{T}$ yields orthonormal eigenvectors $\mathbf{P} = [\mathbf{p}_1, \ldots, \mathbf{p}_d]$ sorted so that the corresponding eigenvalues satisfy $\lambda_1 \ge \lambda_2 \ge \cdots \ge \lambda_d \ge 0$. Each eigenvector $\mathbf{p}_i$ is a \emph{principal component} (PC), and $\lambda_i$ equals the variance of the data projected onto $\mathbf{p}_i$.
-
-\paragraph{Dimensionality reduction.}
-Retaining only the leading $k$ eigenvectors defines the projection matrix $\mathbf{P}_k = [\mathbf{p}_1, \ldots, \mathbf{p}_k] \in \mathbb{R}^{d \times k}$. A new observation $\vec{x} \in \mathbb{R}^d$ is mapped to a $k$-dimensional representation via
-
-\begin{equation}
-\tilde{\vec{x}} = \mathbf{P}_k^{T}(\vec{x} - \boldsymbol{\mu}),
-\label{eq:pca_project}
-\end{equation}
-
-where $\boldsymbol{\mu}$ is the global mean estimated from the training corpus. The resulting coordinates $\tilde{\vec{x}}$ are decorrelated: $\operatorname{Cov}(\tilde{\vec{x}}) = \operatorname{diag}(\lambda_1, \ldots, \lambda_k)$. The fraction of total variance preserved by the projection is
-
-\begin{equation}
-R(k) = \frac{\sum_{i=1}^{k}\lambda_i}{\sum_{i=1}^{d}\lambda_i}.
-\end{equation}
-
-\paragraph{Optimality and geometric interpretation.}
-Among all rank-$k$ linear projections, PCA minimises the mean-squared reconstruction error and maximises the variance of the projected data (Eckart--Young theorem~\cite{eckart1936approximation}). Geometrically, the projected subspace aligns with the axes of the data ellipsoid along which the observations spread most.
-
-\paragraph{Application to high-dimensional embeddings.}
-When the original dimension $d$ is large (e.g.\ $d=768$ for DINOv2 ViT-B/14) but the data occupy a low-dimensional subspace---as evidenced by rapid eigenvalue decay---reducing to $k \ll d$ dimensions before downstream classification offers two complementary benefits: (i) it concentrates the discriminative signal in fewer coordinates, potentially improving the accuracy of subsequent covariance estimators; and (ii) it reduces computational cost by a factor of $\mathcal{O}((d/k)^2)$ for quadratic (Mahalanobis) classifiers. The trade-off is that components beyond $k$ are discarded, which may remove residual discriminative information if the spectrum does not decay quickly enough.
+PCA is a standard and widely used technique~\cite{jolliffe2002principal}: given a centred data matrix $\mathbf{X}\in\mathbb{R}^{N\times d}$, PCA diagonalises its empirical covariance matrix, $\mathbf{S} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^{T}$, where the columns of $\mathbf{P}$ are orthonormal directions in the feature space (the \emph{principal components}), and the diagonal of $\boldsymbol{\Lambda}$ holds their associated eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$. Each eigenvalue simply tells us how much variance in the data lies along its corresponding direction, so together they describe exactly how the total variance of the embedding is distributed across the $d$ dimensions.
 
 \subsection{Spectral Decay and Effective Dimensionality}
 \label{sec:gsc:spectral_decay}
 
-The practical validity of high-dimensional Gaussian modeling is further supported by examining the spectral structure of the feature space through Principal Component Analysis. The covariance of the class-mean-centred embeddings can be decomposed as $\boldsymbol{\Sigma} = \mathbf{P}\boldsymbol{\Lambda}\mathbf{P}^T$, where the diagonal of $\boldsymbol{\Lambda}$ contains the eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$ and $\mathbf{P}$ holds the corresponding orthonormal eigenvectors.
+We call the sequence of eigenvalues $\lambda_1, \lambda_2, \dots, \lambda_d$, sorted from largest to smallest, the \emph{spectrum} of the feature space, and how quickly it shrinks is its \emph{decay}. A fast decay means that a handful of directions already explain most of the variance, and the remaining directions add very little; a slow, flat decay means variance is spread out roughly evenly across most of the $d$ dimensions. Concretely, the fraction of total variance explained by the leading $k$ components is
+\begin{equation}
+	R(k) = \frac{\sum_{i=1}^{k}\lambda_i}{\sum_{i=1}^{d}\lambda_i}.
+	\label{eq:pca_variance_ratio}
+\end{equation}
 
-\paragraph{Variance concentration.}
-If the eigenvalue spectrum decays steeply---most variance is explained by the first $k \ll d$ components---then the effective dimensionality of the feature distribution is much lower than the nominal $d$. Concretely, the fraction of variance explained by the leading $k$ components is $\sum_{i=1}^{k}\lambda_i \,/\, \sum_{i=1}^{d}\lambda_i$.
+This matters for two practical reasons. First, if $R(k)$ is already close to $1$ for some $k \ll d$, the data effectively lives in a $k$-dimensional subspace, even though it is represented using $d$ numbers; we call this its \emph{effective dimensionality}, and it is often much smaller than $d$. Second, this tells us whether the feature space could be safely compressed: if most of the discriminative information is packed into the first $k$ components, reducing the embedding to just those $k$ dimensions before classification should barely hurt accuracy, while making the small-sample covariance-estimation problem of the previous section considerably easier, since it is now a $k$-dimensional problem rather than a $d$-dimensional one. 
 
-\subsection{Global Spectral Analysis of the Foundation Embeddings}
-\label{sec:method:spectral:analysis}
+To measure this decay in practice, we compute the empirical eigenspectrum of the $\ell_2$-normalised embeddings, pooled across an entire benchmark's training split rather than split by class. Sorting the resulting $d$ eigenvalues from largest to smallest lets us read off, directly, both the variance explained by each individual component and the cumulative variance explained as more components are added.
 
-To characterize the global variance distribution of the foundation feature space independently of individual class-conditional labels, we compute the empirical eigenspectrum of the $\ell_2$-normalised embeddings pooled across the entirety of each benchmark's training split. The $d=768$ eigenvalues ($\lambda_1 \ge \lambda_2 \ge \dots \ge \lambda_d \ge 0$) of the pooled data covariance matrix are sorted in descending order to analyze individual percentage-of-variance contributions and the cumulative explained variance.
+A steep, fast decay tells us the visual signal is concentrated in a small, active subspace, with the remaining directions being largely redundant; a slow, flat decay instead tells us the signal is spread thinly across most of the ambient space. 
 
-This diagnostic explicitly measures the \emph{effective intrinsic dimensionality} of the shared representation. A rapid, steep eigenvalue decay implies that the visual discriminative signal is concentrated within a tight, low-dimensional active subspace, pointing to high structural redundancy in the ambient space. Conversely, a slow, uniform decay indicates an isotropic distribution where discriminative information is scattered widely across the full ambient space. Furthermore, this global spectral profile establishes a strict theoretical upper bound on the effective rank available to the localized, per-class covariance estimators, as a class-specific model can only populate directional parameters already spanned by the pooled population spectrum.
-
-\subsection{Downstream PCA Dimension-Reduction Probing}
+\subsection{PCA Dimension-Reduction Testing}
 \label{sec:method:spectral:pca_test}
 
-While the spectral analysis of Section~\ref{sec:method:spectral:analysis} describes the native distribution of the features, it does not evaluate whether a low-dimensional concentration can be systematically exploited to alleviate the high-dimensional small-sample rank deficiency ($n_c < d$) highlighted in Section~\ref{sec:gsc:covariance}. To establish a diagnostic boundary on performance under forced compression, we introduce a downstream PCA dimension-reduction test.
+The analysis above tells us how concentrated the variance is, but not whether that concentration can actually be exploited to help with the small-sample rank deficiency ($n_c < d$). To check this directly, we introduce a test in which we deliberately compress the features before classification and see how the framework performs.
 
-Rather than fitting a localized, data-dependent Principal Component Analysis on each target stream---which would violate the strict class-incremental constraints by altering the projection matrix over time---we utilize a fixed, out-of-distribution linear projection matrix $\mathbf{P}_k \in \mathbb{R}^{d \times k}$. This projection matrix is pre-trained exclusively on the supervised distribution of the \emph{ImageNet-21k} corpus, acting as a general-purpose, dataset-agnostic structural probe.
+Rather than fitting PCA separately on each target stream, which would break the class-incremental setting by letting the projection change over time, we use a single, fixed projection matrix $\mathbf{P}_k \in \mathbb{R}^{d\times k}$, pre-trained once on ImageNet-21k and never updated afterwards. 
 
-For a chosen reduced target dimensionality $k \in \{64, 256\}$, the $\ell_2$-normalized foundation features $\mathbf{x} \in \mathbb{R}^d$ are projected into a compressed subspace via:
-\begin{equation}
-	\tilde{\mathbf{x}} = \mathbf{P}_k^{\top} (\mathbf{x} - \boldsymbol{\mu}_{\text{global}}),
-	\label{eq:pca_projection}
-\end{equation}
-where $\boldsymbol{\mu}_{\text{global}}$ is the stationary global mean of the pre-training corpus. The class-conditional Gaussian classifiers (both Diagonal and Full covariance parameterisations) are subsequently initialized, trained, and evaluated entirely within this frozen, low-dimensional coordinate system.
-
-The relative scaling of accuracy and estimator stability across these reduced dimensions serves as a multi-faceted probe into the underlying geometry:
-
-The robustness of downstream CIL performance under forced compression ($k \ll d$) demonstrates an alignment between the current discriminative signal and the leading principal axes of the supervised out-of-distribution probe, confirming that trailing variances act primarily as non-essential noise. Conversely, a pronounced accuracy degradation alongside decreasing dimensionality reveals that fine-grained inter-class decision boundaries remain heavily reliant on the long tail of the spectrum, rendering the full ambient high-dimensional space mandatory for preserving the class representations.
-
-Furthermore, the relative performance gap between the Full and Diagonal covariance models exposes the interaction between subspace compression and data scarcity. A narrowing of the gap at lower dimensionalities indicates that the regularizing effect of the projection successfully mitigates the small-sample rank deficiency of the SCM. In contrast, a wider divergence or a systemic drop in Full covariance precision points to a structural distortion of underlying class-conditional correlations induced by the linear transformation.
-
-Having established the geometry of the feature space---its Gaussianity, its inter-class separability, and its spectral structure---this chapter's characterization of the feature space is complete. Chapter~\ref{ch:results} applies these tools to the empirical results of the proposed framework, beginning with the average accuracy and forgetting scores that quantify raw continual-learning performance, and, immediately after them, the confidence and calibration metrics used to judge how reliable those predictions actually are.
+Comparing performance across these reduced dimensions tells us two things at once: whether performance holds up under compression, which would confirm that the discarded directions really were mostly redundant; and whether the gap between models narrows as $k$ shrinks, which would confirm that the compression is also helping with the small-sample covariance problem, rather than just discarding useful information.
