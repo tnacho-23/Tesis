@@ -19,7 +19,7 @@ Building on this observation, this thesis proposes a continual-learning object-r
 \begin{figure}[htb]
 	\centering
 	\includegraphics[width=0.7\textwidth]{imagenes/methodology/block_diagram_approach.pdf}
-	\caption{Conceptual overview of the proposed continual-learning framework. An input image is mapped by a frozen visual foundation model to a stable feature vector $\vec{x}$. Each object class $c_k$ is modeled independently by a class-conditional Gaussian distribution ($G_k$). New classes are registered dynamically by estimating their unique parameters without modifying existing models. Inference selects the class that maximizes the posterior probability $p(c_k \vert{} \vec{x})$ under a Bayesian formulation.}
+	\caption{Overview of the continual-learning framework: a frozen foundation model extracts features $\vec{x}$, classes are modeled independently as Gaussians ($G_k$) to allow dynamic registration without retraining, and inference predicts via Bayesian posterior maximization.}
 	\label{fig:intro_overview}
 \end{figure}
 

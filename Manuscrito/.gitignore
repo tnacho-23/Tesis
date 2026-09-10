@@ -37,6 +37,7 @@ temp/
 *.bak
 *.acn
 *.ist
+*.glsdefs
 
 # --- IDE Configs ---
 .vscode/

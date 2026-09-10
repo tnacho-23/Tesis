@@ -86,16 +86,13 @@
  	year = {2017}
  }
 
-@misc{AnImageIsWorth,
- 	title={An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale}, 
- 	author={Alexey Dosovitskiy and Lucas Beyer and Alexander Kolesnikov and Dirk Weissenborn and Xiaohua Zhai and Thomas Unterthiner and Mostafa Dehghani and Matthias Minderer and Georg Heigold and Sylvain Gelly and Jakob Uszkoreit and Neil Houlsby},
- 	year={2021},
- 	eprint={2010.11929},
- 	archivePrefix={arXiv},
- 	primaryClass={cs.CV},
- 	url={https://arxiv.org/abs/2010.11929}, 
- }
-
+@inproceedings{AnImageIsWorth,
+	title     = {An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale},
+	author    = {Alexey Dosovitskiy and Lucas Beyer and Alexander Kolesnikov and and others},
+	booktitle = {International Conference on Learning Representations (ICLR)},
+	year      = {2021},
+	url       = {https://openreview.net/forum?id=YicbFdNTTy}
+}
 % ────────────────────────────────────────────────────────────
 % Foundation Models and Datasets
 % ────────────────────────────────────────────────────────────
@@ -118,13 +115,13 @@
 }
 
 @article{oquab2024dinov,
-	title={{DINO}v2: Learning Robust Visual Features without Supervision},
-	author={Maxime Oquab and Timoth{\'e}e Darcet and Th{\'e}o Moutakanni and Huy V. Vo and Marc Szafraniec and Vasil Khalidov and Pierre Fernandez and Daniel HAZIZA and Francisco Massa and Alaaeldin El-Nouby and Mido Assran and Nicolas Ballas and Wojciech Galuba and Russell Howes and Po-Yao Huang and Shang-Wen Li and Ishan Misra and Michael Rabbat and Vasu Sharma and Gabriel Synnaeve and Hu Xu and Herve Jegou and Julien Mairal and Patrick Labatut and Armand Joulin and Piotr Bojanowski},
-	journal={Transactions on Machine Learning Research},
-	issn={2835-8856},
-	year={2024},
-	url={https://openreview.net/forum?id=a68SUt6zFt},
-	note={Featured Certification. Code available at: \url{https://github.com/facebookresearch/dinov2}}
+	title   = {{DINO}v2: Learning Robust Visual Features without Supervision},
+	author  = {Maxime Oquab and Timoth{\'e}e Darcet and Th{\'e}o Moutakanni and others},
+	journal = {Transactions on Machine Learning Research},
+	issn    = {2835-8856},
+	year    = {2024},
+	url     = {https://openreview.net/forum?id=a68SUt6zFt},
+	note    = {Featured Certification. Code available at: \url{https://github.com/facebookresearch/dinov2}. Accessed: 2026-08-11.}
 }
 
 %%Deep learning vs ML image
@@ -157,21 +154,27 @@
 	bibsource    = {dblp computer science bibliography, https://dblp.org}
 }
 
-@article{imagenetR,
-	title={The Many Faces of Robustness: A Critical Analysis of Out-of-Distribution Generalization},
-	author={Dan Hendrycks and Steven Basart and Norman Mu and Saurav Kadavath and Frank Wang and Evan Dorundo and Rahul Desai and Tyler Zhu and Samyak Parajuli and Mike Guo and Dawn Song and Jacob Steinhardt and Justin Gilmer},
-	journal={arXiv preprint arXiv:2006.16241},
-	year={2020}
-}
+@INPROCEEDINGS{imagenetR,
+	author={Hendrycks, Dan and Basart, Steven and Mu, Norman and Kadavath, Saurav and Wang, Frank and Dorundo, Evan and Desai, Rahul and Zhu, Tyler and Parajuli, Samyak and Guo, Mike and Song, Dawn and Steinhardt, Jacob and Gilmer, Justin},
+	booktitle={2021 IEEE/CVF International Conference on Computer Vision (ICCV)}, 
+	title={The Many Faces of Robustness: A Critical Analysis of Out-of-Distribution Generalization}, 
+	year={2021},
+	volume={},
+	number={},
+	pages={8320-8329},
+	keywords={Degradation;Computer vision;Computational modeling;Benchmark testing;Gain measurement;Market research;Robustness;Transfer/Low-shot/Semi/Unsupervised Learning;Recognition and classification},
+	doi={10.1109/ICCV48922.2021.00823}}
 
-@misc{caltech256, title={Caltech 256}, note ={doi: 10.22002/D1.20087}, abstractNote={We introduce a challenging set of 256 object categories containing a total of 30607 images. The original Caltech-101 was collected by choosing a set of object categories, downloading examples from Google Images and then manually screening out all images that did not fit the category. Caltech-256 is collected in a similar manner with several improvements: a) the number of categories is more than doubled, b) the minimum number of images in any category is increased from 31 to 80, c) artifacts due to image rotation are avoided and d) a new and larger clutter category is introduced for testing background rejection. We suggest several testing paradigms to measure classification performance, then benchmark the dataset using two simple metrics as well as a state-of-the-art spatial pyramid matching algorithm. Finally we use the clutter category to train an interest detector which rejects uninformative background regions.}, publisher={CaltechDATA}, author={Griffin, Gregory and Holub, Alex and Perona, Pietro}, year={2022}}
+
+@misc{caltech256, title={Caltech 256}, note ={doi: 10.22002/D1.20087. Accessed: 2026-08-11}, abstractNote={We introduce a challenging set of 256 object categories containing a total of 30607 images. The original Caltech-101 was collected by choosing a set of object categories, downloading examples from Google Images and then manually screening out all images that did not fit the category. Caltech-256 is collected in a similar manner with several improvements: a) the number of categories is more than doubled, b) the minimum number of images in any category is increased from 31 to 80, c) artifacts due to image rotation are avoided and d) a new and larger clutter category is introduced for testing background rejection. We suggest several testing paradigms to measure classification performance, then benchmark the dataset using two simple metrics as well as a state-of-the-art spatial pyramid matching algorithm. Finally we use the clutter category to train an interest detector which rejects uninformative background regions.}, publisher={CaltechDATA}, author={Griffin, Gregory and Holub, Alex and Perona, Pietro}, year={2022}} 
+
 
 @misc{cifar100,
 	author       = {Alex Krizhevsky},
 	title        = {The CIFAR-100 Dataset},
 	year         = {2009},
 	howpublished = {\url{https://www.cs.toronto.edu/~kriz/cifar.html}},
-	note         = {Accessed: 2025-10-02},
+	note         = {Accessed: 2025-10-02}
 }
 
 @misc{rw2019timm,
@@ -248,14 +251,13 @@
 	keywords={Point cloud compression;Knowledge engineering;Solid modeling;Three-dimensional displays;Image recognition;Memory management;Pattern recognition},
 	doi={10.1109/ICPR56361.2022.9956715}}
 
-@misc{taskarithmeticloracontinual,
-	title={Task Arithmetic with LoRA for Continual Learning}, 
-	author={Rajas Chitale and Ankit Vaidya and Aditya Kane and Archana Ghotkar},
-	year={2023},
-	eprint={2311.02428},
-	archivePrefix={arXiv},
-	primaryClass={cs.CV},
-	url={https://arxiv.org/abs/2311.02428}, 
+
+@inproceedings{taskarithmeticloracontinual,
+title     = {Task Arithmetic with LoRA for Continual Learning},
+author    = {Chitale, Rajas and Vaidya, Ankit and Kane, Aditya and Ghotkar, Archana},
+booktitle = {Workshop on Advancing Neural Network Training: Computational Efficiency, Scalability, and Resource Optimization (WANT@NeurIPS)},
+year      = {2023},
+url       = {https://openreview.net/forum?id=4CLNFKi12w}
 }
 
 @inbook{Sluyters90,
@@ -624,24 +626,12 @@
  	year = {2015}
  }
 
-@article{DINO,
-	author       = {Mathilde Caron and
-	Hugo Touvron and
-	Ishan Misra and
-	Herv{\'{e}} J{\'{e}}gou and
-	Julien Mairal and
-	Piotr Bojanowski and
-	Armand Joulin},
-	title        = {Emerging Properties in Self-Supervised Vision Transformers},
-	journal      = {CoRR},
-	volume       = {abs/2104.14294},
-	year         = {2021},
-	url          = {https://arxiv.org/abs/2104.14294},
-	eprinttype   = {arXiv},
-	eprint       = {2104.14294},
-	timestamp    = {Tue, 04 May 2021 15:12:43 +0200},
-	biburl       = {https://dblp.org/rec/journals/corr/abs-2104-14294.bib},
-	bibsource    = {dblp computer science bibliography, https://dblp.org}
+@inproceedings{DINO,
+	title     = {Emerging Properties in Self-Supervised Vision Transformers},
+	author    = {Caron, Mathilde and Touvron, Hugo and Misra, Ishan and J{\'e}gou, Herv{\'e} and Mairal, Julien and Bojanowski, Piotr and Joulin, Armand},
+	booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+	pages     = {9650--9660},
+	year      = {2021}
 }
 
 @article{ibot,
