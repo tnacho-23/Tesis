@@ -14,7 +14,9 @@ First, in \textbf{Supervised Learning}, the model learns a mapping from input va
 
 Second, \textbf{Unsupervised Learning} deals with unlabeled data $\mathcal{D} = \{\mathbf{x}_i\}_{i=1}^N$. Instead of predicting a target, the goal is to discover the underlying structure or distribution of the data. Common tasks include Clustering, which groups similar data points (e.g., K-Means or Gaussian Mixture Models), and Dimensionality Reduction, which projects high-dimensional data into a lower-dimensional space while preserving essential information (e.g., PCA or t-SNE).
 
-Finally, \textbf{Reinforcement Learning} is based on an agent interacting with an environment to maximize a cumulative reward. Unlike supervised learning, the agent is not told which actions to take but must discover them through trial and error. This process is often modeled as a Markov Decision Process (MDP) \cite{Sutton2018}, where the agent transitions between states based on actions, receiving feedback in the form of numerical rewards. The focus is on finding an optimal policy that balances exploration (trying new actions) and exploitation (using known high-reward actions).
+Finally, \textbf{Reinforcement Learning} is based on an agent interacting with an environment to maximize a cumulative reward. Unlike supervised learning, the agent is not told which actions to take but must discover them through trial and error. This process is often modeled as a Markov Decision Process (MDP) \cite{Sutton2018}, where the agent transitions between states based on actions, receiving feedback in the form of numerical rewards. 
+The focus is on finding an optimal policy that maximizes long-term return, a process that requires balancing exploration (trying new actions) and exploitation (capitalizing on known high-reward actions) during learning.
+ %The focus is on finding an optimal policy that balances exploration (trying new actions) and exploitation (using known high-reward actions).
 
 \subsection{Deep Learning}
 
@@ -41,7 +43,10 @@ Having established this general background in Artificial Intelligence, Machine L
 \section{Continual Learning}
 \label{sec:framework:cl}
 
-Continual Learning (CL), also known as lifelong learning, addresses the problem of progressively acquiring knowledge from non-stationary data streams over time. In object classification, this setup presents data as a sequence of disjoint tasks, where each task introduces a new set of object categories. The primary challenge is enabling a model to learn these novel categories incrementally without degrading its classification performance on previously acquired ones. As illustrated in Figure \ref{fig:task_time}, a \textbf{task} in this context is defined as a specific learning experience or dataset –such as Task A, B, or C. Each task is potentially characterized by unique data distributions or objectives, as symbolized by the varying shapes (e.g., circles vs. hearts) above the task labels.
+Continual Learning (CL), also known as lifelong learning, addresses the problem of progressively acquiring knowledge from non-stationary data streams over time. In object classification, this setup presents data as a sequence of disjoint tasks, where each task introduces a new set of object categories. The primary challenge is enabling a model to learn these novel categories incrementally without degrading its classification performance on previously acquired ones. As illustrated in Figure \ref{fig:task_time}, a \textbf{task} in this context a is 
+defined as a specific learning session or split—such as Task A, B, or C—each introducing distinct class-conditional data distributions, symbolized by the varying shapes (e.g., circles vs. hearts) above the task labels.
+
+% is defined as a specific learning experience or dataset –such as Task A, B, or C. Each task is potentially characterized by unique data distributions or objectives, as symbolized by the varying shapes (e.g., circles vs. hearts) above the task labels.
 
 Unlike conventional training approaches that rely on a fixed dataset and a stationary environment, CL emphasizes the arrival of these tasks at distinct intervals along the \textbf{time} axis. This sequential arrival requires the model to be inherently non-stationary, adapting its internal representations as environments evolve. The primary challenge in this paradigm lies in the ongoing integration of new information from a current task (e.g., Task B) while simultaneously preserving the knowledge previously acquired from Task A.
 
@@ -67,8 +72,8 @@ Without specific architectural or algorithmic safeguards, this sequential learni
 	\label{fig:catastrophic_forgetting}
 \end{figure}
 
-\subsection{Elasticity and Plasticity}
-A central concept in continual learning is the balance between elasticity and plasticity. \textbf{Plasticity} refers to the ability of a model to adapt rapidly to new information, ensuring that it can effectively learn novel tasks. \textbf{Elasticity} (or stability), in contrast, emphasizes preserving the parameters and representations that are crucial for retaining old knowledge \cite{API}. Achieving an appropriate equilibrium between these two properties is known as the \textbf{stability–plasticity dilemma} \cite{CL}.
+\subsection{Stability and Plasticity}
+A central concept in continual learning is the balance between stability and plasticity. \textbf{Stability} emphasizes preserving the parameters and representations that are crucial for retaining old knowledge \cite{API}. \textbf{Plasticity}, in contrast, refers to the ability of a model to adapt rapidly to new information, ensuring that it can effectively learn novel tasks. Achieving an appropriate equilibrium between these two properties is known as the \textbf{stability–plasticity dilemma} \cite{CL}.
 
 \subsection{Main Paradigms}
 As shown in Figure \ref{fig:task_vs_class}, two principal paradigms define how continual learning problems are formulated. \textbf{Task-incremental learning (Task-IL)} assumes that the task identity is available during inference, allowing for task-specific components to be isolated \cite{task_il}. \textbf{Class-incremental learning (Class-IL)}, on the other hand, does not provide the task identity at test time, requiring the model to distinguish between all classes seen across all tasks simultaneously \cite{masana_class_il}.
@@ -139,7 +144,7 @@ A complementary line of work also keeps the feature extractor frozen, just like 
 
 \begin{itemize}
 	\item \textbf{SLCA} \cite{zhang2023slca} proposes a slow learner with classifier alignment for continual learning on pre-trained models: the backbone is fine-tuned with a substantially reduced learning rate to preserve its pre-trained generality, while a separate classifier head is periodically re-aligned to correct for the resulting representation drift, enabling efficient incremental learning without the full instability of end-to-end fine-tuning.
-	\item \textbf{ACIL} \cite{zhuang2022acil} instead treats the classifier itself analytically: it introduces closed-form, recursive least-squares updates for a linear classifier operating on the frozen embeddings, which provably reproduces the solution of joint training over all classes seen so far without ever revisiting past data, offering exact memorisation and privacy protection without exemplar storage.
+	\item \textbf{ACIL} \cite{zhuang2022acil} treats incremental learning analytically: following an initial base phase where the CNN backbone is trained via backpropagation and subsequently frozen, it projects the extracted embeddings into a higher-dimensional space via a randomized feature expansion layer with non-linear activations. A linear classifier is then updated over these expanded features using recursive regularized least-squares, which provably reproduces the joint-training closed-form solution over all observed classes without revisiting past data, ensuring absolute memorization and data privacy without exemplar storage.
 	\item \textbf{FeCAM} \cite{goswami2024fecam} exploits the heterogeneity of class distributions in this exemplar-free setting by replacing the Euclidean or purely linear decision rules of the methods above with a Mahalanobis-distance-based classifier, explicitly accounting for the fact that different classes occupy differently shaped regions of the frozen embedding space.
 \end{itemize}
 

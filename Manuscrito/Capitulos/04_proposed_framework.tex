@@ -50,7 +50,7 @@ In practice, adding a new class $c$ to the system means passing its training ima
 \section{Covariance Estimation}
 \label{sec:covariance_estimation}
 
-Due to the high dimensionality of the extracted feature ($\vec{x}\in \mathbb{R}^d$), the empirical sample covariance matrix (SCM) is a poor estimator for each class: its eigenvalues are biased, and the matrix is singular whenever $n_c < d$. In our setting $d = 768$ while $n_c$ ranges from approximately $40$ to $400$ depending on the benchmark, so the matrix always has at most $n_c - 1$ non-zero eigenvalues out of $d = 768$, leaving $d - (n_c - 1)$ eigenvalues that are structurally zero before any regularisation is applied. We focus on how to obtain a well-conditioned covariance estimate under the Gaussian modeling assumption. Our benchmarks are tested using different covariance estimation methods:
+Due to the high dimensionality of the extracted feature ($\vec{x}\in \mathbb{R}^d$), the empirical sample covariance matrix (SCM) is a poor estimator for each class: its eigenvalues are biased, and the matrix is singular whenever $n_c \leq d$. In our setting $d = 768$ while $n_c$ ranges from approximately $40$ to $400$ depending on the benchmark, so the matrix always has at most $n_c - 1$ non-zero eigenvalues out of $d = 768$, leaving $d - (n_c - 1)$ eigenvalues that are structurally zero before any regularisation is applied. We focus on how to obtain a well-conditioned covariance estimate under the Gaussian modeling assumption. Our benchmarks are tested using different covariance estimation methods:
 
 \subsection{Diagonal Covariances}
 In this configuration, we assume that the features within each class $c$ are independent, leading to a diagonal covariance matrix $\boldsymbol{\Sigma}_c = \text{diag}(\sigma_{c,1}^2, \sigma_{c,2}^2, \dots, \sigma_{c,d}^2)$. This simplification significantly reduces the number of parameters to estimate from $O(d^2)$ to $O(d)$, which is particularly advantageous when the dimensionality $d = 768$ is large relative to the number of samples per class. For each class $c \in \{1, \dots, C\}$, the mean vector $\boldsymbol{\mu}_c$ and the diagonal elements of $\boldsymbol{\Sigma}_c$ are computed as:
@@ -165,42 +165,46 @@ In order to capture potential multi-modality within the feature space of a singl
 
 \subsection{Mixture of 2 Gaussians}
 
-Forcing each class to be defined as a GMM with $K=2$ components, each class $c$ can be modeled by a probability density function:
+Forcing each class to be defined as a GMM with $K=2$ components, each class $c$ is modeled by a probability density function:
 
 \begin{equation}
 	p(\vec{x}|c) = \sum_{k=1}^{K} \pi_{c,k} \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})
 \end{equation}
 
-where $\pi_{c,k}$ represents the mixing weight of the $k$-th component for class $c$, subject to $\sum \pi_{c,k} = 1$. In this specific variant, the covariance matrices $\boldsymbol{\Sigma}_{c,k}$ are restricted to be diagonal to maintain computational efficiency and prevent over-fitting in the high-dimensional DINOv2 space.The parameters $\{\pi_{c,k}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}\}$ are estimated using the Expectation-Maximization (EM) algorithm. To ensure numerical stability, a small constant $\epsilon = 10^{-5}$ is added to the diagonal of each covariance matrix. The log-likelihood for a test sample $\vec{x}$ is calculated using the \textit{LogSumExp} operator to avoid underflow:
+where $\pi_{c,k}$ represents the mixing weight of the $k$-th component for class $c$, subject to $\sum_{k=1}^{K} \pi_{c,k} = 1$. The parameters $\{\pi_{c,k}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}\}$ are estimated using the Expectation-Maximization (EM) algorithm. Depending on the evaluated variant (\textit{MOG2-D}, \textit{MOG2-F}, or \textit{MOG2-H}), the component covariance matrices $\boldsymbol{\Sigma}_{c,k}$ adopt diagonal, regularized full, or hybrid structures. For numerical stability, a small constant is added to the diagonal entries.
+
+The log-likelihood of a test sample $\vec{x}$ is computed stably via the \textit{LogSumExp} (or \texttt{logaddexp}) operator:
 
 \begin{equation}
-	\ln p(\vec{x}|c) = \text{lnaddexp} \left( \ln(\pi_{c,1} \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,1}, \boldsymbol{\Sigma}_{c,1})), \ln(\pi_{c,2} \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,2}, \boldsymbol{\Sigma}_{c,2})) \right)
+	\ln p(\vec{x}|c) = \text{LogSumExp}_{k=1}^{2} \left( \ln \pi_{c,k} + \ln \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right)
 \end{equation}
 
-In the implementation, this is expanded as:
+which expands in implementation to:
 
 \begin{equation}
-	\ln p(\vec{x}|c) = \ln \left( \exp( \ln \pi_{c,1} + \ln A_{c,1} - \frac{1}{2} d_{M,1} ) + \exp( \ln \pi_{c,2} + \ln A_{c,2} - \frac{1}{2} d_{M,2} ) \right)
+	\ln p(\vec{x}|c) = \ln \left( \sum_{k=1}^{2} \exp \left( \ln \pi_{c,k} + \ln A_{c,k} - \frac{1}{2} d_{M}(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right) \right)
 \end{equation}
 
-where $d_{M,k}$ is the diagonal Mahalanobis distance to the $k$-th component and $\ln A_{c,k}$ is the normalization constant. This approach allows the model to better represent classes that may contain significantly different visual sub-types or clusters within the latent embedding space.
-
+where $d_{M}(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) = (\vec{x} - \boldsymbol{\mu}_{c,k})^T \boldsymbol{\Sigma}_{c,k}^{-1} (\vec{x} - \boldsymbol{\mu}_{c,k})$ is the squared Mahalanobis distance to the $k$-th component—evaluated coordinate-wise for the diagonal model or via Cholesky factorisation for full and hybrid configurations—and $\ln A_{c,k} = -\frac{1}{2}(d \ln(2\pi) + \ln|\boldsymbol{\Sigma}_{c,k}|)$ represents the corresponding log-normalisation term.
 
 \subsection{Mixture of up-to-4 Gaussians}
 
-To adapt to the varying complexity of different classes within the different datasets, we implement a flexible Gaussian Mixture Model where the number of components $K_c$ for each class $c$ is not fixed. Instead, the model selects the most appropriate number of components $K_c \in \{1, 2, 3, 4\}$ by minimizing the Bayesian Information Criterion (BIC).The BIC is defined as:
+To adapt to the varying complexity of different classes across benchmarks, we implement a flexible Gaussian Mixture Model where the number of components $K_c$ for each class $c$ is not fixed. Instead, the model selects the most appropriate number of components $K_c \in \{1, 2, 3, 4\}$ by minimizing the Bayesian Information Criterion (BIC):
 
 \begin{equation}
-	\text{BIC} = \ln(n)k - 2\ln(\hat{L})
+	\text{BIC} = k_p \ln(n_c) - 2\ln(\hat{L})
 	\label{eq:bic_mog4}
 \end{equation}
 
-where $n$ is the number of samples in the class, $k$ is the number of free parameters to be estimated, and $\hat{L}$ is the maximized value of the likelihood function. By using diagonal covariance matrices, the number of parameters per component is kept low ($2d + 1$), allowing the selection process to favor multi-modal distributions only when the increase in likelihood justifies the additional parameters. For each component $k$ in class $c$, the diagonal covariance $\boldsymbol{\Sigma}_{c,k} = \text{diag}(\sigma_{c,k,1}^2, \dots, \sigma_{c,k,d}^2)$ is regularized with $\epsilon = 10^{-6}$. The classification of a test sample $\vec{x}$ involves calculating the weighted log-likelihood across all active classes:
+where $n_c$ is the number of available samples for class $c$, $\hat{L}$ is the maximized likelihood of the fitted mixture, and $k_p$ represents the number of free parameters. Importantly, model selection via BIC is performed using diagonal covariance matrices to maintain computational tractability, prevent numerical degeneration in the small-sample regime ($n_c < d$), and keep the parameter penalty lightweight ($k_p = K_c(2d + 1) - 1$). 
+
+Once the optimal number of components $K_c$ and their sample assignments are determined, the component covariance matrices $\boldsymbol{\Sigma}_{c,k}$ can be instantiated according to the desired parameterisation: diagonal (MOG4-D), regularized full (MOG4-F), hybrid (MOG4-H), or paired with a globally pooled covariance matrix (MOG4-Shared). 
+
+At inference time, the classification log-likelihood of an input embedding $\vec{x}$ across all active classes is computed stably via the LogSumExp ($\text{LSE}$) operator:
 
 \begin{equation}
-	\ln p(\vec{x}|c) = \text{LSE}_{k=1}^{K_c} \left( \ln \pi_{c,k} - \frac{1}{2} \left( \sum_{j=1}^{d} \ln(2\pi\sigma_{c,k,j}^2) + \sum_{j=1}^{d} \frac{(x_j - \mu_{c,k,j})^2}{\sigma_{c,k,j}^2} \right) \right)
+	\ln p(\vec{x}|c) = \text{LSE}_{k=1}^{K_c} \left( \ln \pi_{c,k} + \ln A_{c,k} - \frac{1}{2} d_M(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right)
 \end{equation}
 
-where $\text{LSE}$ denotes the LogSumExp operator. This methodology allows for a more granular representation of class distributions—using a single Gaussian for simple, compact classes and up to four Gaussians for classes with high intra-class variance or distinct visual sub-clusters—while preserving the numerical efficiency of diagonal estimators.
-
+where $d_M(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})$ denotes the squared Mahalanobis distance to the $k$-th component—evaluated coordinate-wise under diagonal covariances or via Cholesky factorisation for full-rank and hybrid parameterisations—and $\ln A_{c,k}$ represents the corresponding log-normalisation term. This decoupling ensures that the complexity of the cluster structure is selected robustly, while still allowing the final classifier to leverage richer second-order geometry.
 
