@@ -42,7 +42,7 @@ The four resulting benchmarks span a wide spectrum of statistical difficulty for
 	\centering
 	\caption{Statistical characterisation of the four benchmarks. $\overline{n_c}$ denotes the average sample budget per class.}
 	\label{tab:dataset_summary}
-	\scriptsize
+	\small
 	\setlength{\tabcolsep}{4pt}
 	\begin{tabular}{lcccccc}
 		\toprule
@@ -139,7 +139,7 @@ Table~\ref{tab:metrics_summary} collects all six metrics (accuracy and the five 
 	\centering
 	\caption{Summary of the probabilistic calibration and uncertainty metrics used in this work. ``Better'' indicates the direction of the preferred value; ``context'' means both high and low values are informative depending on whether predictions are correct.}
 	\label{tab:metrics_summary}
-	\scriptsize
+	\resizebox{\textwidth}{!}{%
 	\setlength{\tabcolsep}{5pt}
 	\renewcommand{\arraystretch}{1.25}
 	\begin{tabular}{llcll}
@@ -154,6 +154,7 @@ Table~\ref{tab:metrics_summary} collects all six metrics (accuracy and the five 
 		Predictive Entropy          & $H$    & $[0, \log C]$   & $\downarrow$ & How spread is probability mass over all $C$ classes? \\
 		\bottomrule
 	\end{tabular}
+}
 \end{table}
 
 With accuracy, forgetting, and the confidence and calibration metrics now all formally established, we turn to the empirical results themselves, beginning with the covariance estimators and mixture-of-Gaussian variants.
@@ -375,7 +376,7 @@ Before asking why some classes are harder than others, it helps to look at how a
 \subsection{Per-Class Accuracy Once All Classes Are Added}
 \label{sec:an:recall_distributions}
 
-Once every task has been added to the stream, the Diag-Cov classifier reaches overall accuracies of $86.6\%$, $90.2\%$, and $72.5\%$ on CIFAR-100, Caltech-256, and ImageNet-R respectively, while Full-Cov reaches $88.9\%$, $94.7\%$, and $74.7\%$ on those same benchmarks. Figures~\ref{fig:class_acc_hist_cifar}--\ref{fig:class_acc_hist_caltech} break these overall numbers down by class, showing how accuracy is actually spread across categories rather than being uniform.
+Once every task has been added to the stream, the final overall accuracy evaluated across the complete label space reaches $86.6\%$, $72.5\%$, and $90.2\%$ under Diag-Cov for CIFAR-100, ImageNet-R, and Caltech-256, respectively, while Full-Cov attains $88.9\%$, $74.7\%$, and $94.7\%$ on these same benchmarks. It is important to note that these values represent the classification accuracy over all classes at the final task checkpoint ($S_{T,T}$), rather than the average incremental accuracy ($A_T$) computed across all intermediate learning sessions. Figures~\ref{fig:class_acc_hist_cifar}--\ref{fig:class_acc_hist_caltech} break these overall numbers down by class, illustrating how performance is distributed across individual categories once the full label space is populated.
 
 \begin{figure}[htbp]
 	\centering
@@ -398,13 +399,15 @@ Once every task has been added to the stream, the Diag-Cov classifier reaches ov
 	\label{fig:class_acc_hist_caltech}
 \end{figure}
 
-The shapes of these histograms show two different pictures depending on the benchmark: on some, per-class accuracy is spread out across nearly the whole range, from very low to very high; on others, it stays tightly concentrated in one region. Either way, some classes always come out clearly better recognised than others.
+The shape of these histograms reveals clear structural differences across benchmarks:
 
-On Split CIFAR-100, the recall profiles for both Diag-Cov and Full-Cov are tightly concentrated and broadly unimodal, skewed toward the highest accuracy bins. This concentration reflects the stable, well-behaved nature of low-resolution natural features, where most categories have compact feature distributions that single-component Gaussians approximate with little residual variance. Split Caltech-256 shows an even cleaner concentration peak; under Full-Cov estimation, the median shifts toward $97.8\%$, putting most of the dataset into a near-perfect recognition cluster. This shows that although high-resolution object photography introduces large variance across coordinates, its semantic categories occupy well isolated, linearly separable regions of the DINOv2 manifold, letting a full precision matrix separate the few remaining competitive boundaries.
+On Split CIFAR-100 (Figure~\ref{fig:class_acc_hist_cifar}), the per-class accuracy distributions for both Diag-Cov and Full-Cov are unimodal and skewed toward the highest accuracy bins, with medians of $88.0\%$ and $91.0\%$, respectively. Most categories form representations in the feature space that single-component Gaussians capture adequately, leaving only a small tail of confusable categories below the $70\%$ mark.
 
-Split ImageNet-R, by contrast, shows a dispersed, flat distribution with a long tail of low-accuracy classes extending down past the $40\%$ mark. Unlike the tight concentration seen in CIFAR-100 and Caltech-256, the visual features of ImageNet-R are not well concentrated. Because the imagery is intentionally out-of-distribution---spanning stylized art, cartoons, and hand-drawn sketches---the frozen foundation encoder maps these samples into broad, diffuse, and anisotropic representations. This lack of spatial concentration produces large intra-class variance and complex directional skewness, which limits the modeling capacity of single independent Gaussians.
+Split ImageNet-R (Figure~\ref{fig:class_acc_hist_imagenetr}), by contrast, exhibits a dispersed, flat distribution with a heavy lower tail extending below $40\%$ accuracy. Because the dataset consists of non-photographic renditions (e.g., stylized art, sketches, and cartoons), the frozen foundation encoder maps instances into broader, more diffuse distributions. This elevated intra-class variance limits the capacity of a single unimodal Gaussian to fit the data tightly, resulting in broader confusion across neighboring categories.
 
-As explained in Section~\ref{sec:incremental_update}, this gap between classes cannot come from forgetting in the usual sense: each class-conditional Gaussian is estimated once and frozen the moment its class is added, so nothing about how well an old class is modelled can change afterwards. If some classes still end up much harder than others once every task has been seen, the cause has to be something else, namely how close different classes actually sit to each other in the embedding space. The rest of this section looks at that directly.
+Split Caltech-256 (Figure~\ref{fig:class_acc_hist_caltech}) displays an even sharper concentration at the upper bound. Under Full-Cov estimation, the median accuracy shifts to $97.8\%$, placing the majority of classes in a near-perfect recognition regime. Because most categories exhibit high visual consistency, a single Gaussian fits their distribution well, resulting in the vast majority of classes achieving over 70\% accuracy.
+
+As explained in the incremental analysis, this gap between classes cannot come from forgetting in the usual sense: each class-conditional Gaussian is estimated once and frozen the moment its class is added, so nothing about how well an old class is modelled can change afterwards. If some classes still end up much harder than others once every task has been seen, the cause has to be something else, namely how close different classes actually sit to each other in the embedding space. The rest of this section looks at that directly
 
 \subsection{Class Overlap: Bhattacharyya and Euclidean Distances}
 \label{sec:an:interclass}
@@ -458,100 +461,100 @@ To see how close different classes sit to each other in the embedding space, we 
 	\label{fig:euclidean_thresholds}
 \end{figure}
 
-The scaling trajectories of the pairwise Bhattacharyya distances (Figures~\ref{fig:bhattacharyya} and~\ref{fig:bhattacharyya_thresholds}) and mean Euclidean distances (Figures~\ref{fig:euclidean} and~\ref{fig:euclidean_thresholds}) show a consistent pattern across the foundation embedding manifolds. Rather than an overall compression of the representation space as tasks accumulate, the global layout of the features stays fairly stable, while performance is limited mainly by a small, heavy-tailed set of overlapping class pairs.
+The scaling trajectories of the pairwise Bhattacharyya distances (Figures~\ref{fig:bhattacharyya} and~\ref{fig:bhattacharyya_thresholds}) and mean Euclidean distances (Figures~\ref{fig:euclidean} and~\ref{fig:euclidean_thresholds}) show a consistent pattern across the foundation embedding manifolds. Rather than an overall compression of the representation space as tasks accumulate, the global layout of the features stays fairly stable, while performance is limited mainly by a small subset of highly overlapping class pairs.
 
-One sign of this stability is that both macro-averaged distance metrics plateau quickly across all benchmarks once around 30 categories are introduced. At full class-set size, the mean pairwise $D_B$ settles at $220.61$ for Caltech-256, $89.43$ for CIFAR-100, and $84.81$ for ImageNet-R. This same ordering is matched by the macro-averaged mean Euclidean distance, where Caltech-256 keeps a wide geometric separation of $\overline{d_E} = 0.978$, while CIFAR-100 and ImageNet-R stay more densely packed at $\overline{d_E} = 0.749$ and $\overline{d_E} = 0.727$, respectively. Caltech-256's clear separability advantage on both metrics reflects its greater visual and semantic diversity, which keeps per-class distributions distinct.
+One sign of this stability is that both macro-averaged distance metrics plateau quickly across all benchmarks once around 30 categories are introduced. At full class-set size, the mean pairwise $D_B$ settles at $89.43$ for CIFAR-100, $84.81$ for ImageNet-R, and $220.61$ for Caltech-256. This same ordering is matched by the macro-averaged mean Euclidean distance, where CIFAR-100 and ImageNet-R stay more densely packed at $\overline{d_E} = 0.749$ and $\overline{d_E} = 0.727$, respectively, while Caltech-256 maintains a wide geometric separation of $\overline{d_E} = 0.978$. Caltech-256's clear separability advantage across both metrics reflects its greater visual and semantic diversity, which keeps per-class distributions distinct.
 
-However, as the label space grows denser, the minimum pairwise distance metrics decay steadily, and this is the real driver behind the accuracy gaps between classes seen in the previous subsection. Once every class has been added, the minimum pairwise $D_B$ drops to $3.57$ on CIFAR-100, $11.54$ on ImageNet-R, and $20.96$ on Caltech-256. This localized crowding is confirmed by the Euclidean mean separation, which hits minimum values of $0.144$, $0.205$, and $0.275$ for the respective datasets.
+However, as the label space grows denser, the minimum pairwise distance metrics decay steadily, and this localized crowding is the primary driver behind the per-class accuracy discrepancies documented in Section~\ref{sec:an:recall_distributions}. Once every class has been added, the minimum pairwise $D_B$ drops to $3.57$ on CIFAR-100, $11.54$ on ImageNet-R, and $20.96$ on Caltech-256. This localized proximity is corroborated by the Euclidean mean separation, which reaches minimum values of $0.144$, $0.205$, and $0.275$ for the respective datasets.
 
-Tracking the density thresholds shows that this crowding is an isolated effect rather than a general collapse of the space. Over $99.8\,\%$ of all possible class combinations stay well above a threshold of $D_B = 50$ on every evaluated benchmark. Similarly, class pairs with $d_E < 0.5$ make up only a small fraction of the total, accounting for $0.91\,\%$ of pairs in CIFAR-100, $2.20\,\%$ in ImageNet-R, and just $0.04\,\%$ in Caltech-256.
+Tracking the density thresholds shows that this crowding is an isolated effect rather than a general collapse of the representation space. Over $99.8\,\%$ of all possible class combinations stay well above a threshold of $D_B = 50$ on every evaluated benchmark. Similarly, class pairs with $d_E < 0.5$ make up only a small fraction of the total, accounting for $0.91\,\%$ of pairs in CIFAR-100, $2.20\,\%$ in ImageNet-R, and just $0.04\,\%$ in Caltech-256.
 
-So the classifier is not working in a uniformly collapsed or muddy feature space. Instead, the accuracy ceilings ($88.87\%$ for CIFAR-100, $77.99\%$ for ImageNet-R, and $94.36\%$ for Caltech-256 under the strongest Gaussian configurations) are set by a small number of highly confusable prototype pairs, which is exactly what produces the long low-accuracy tail seen on ImageNet-R in the previous subsection.
+Consequently, the classifier does not operate within a globally compromised feature space. Instead, performance ceilings are determined by a sparse set of highly confusable prototype pairs, directly accounting for the tail of low per-class accuracy observed on ImageNet-R in Section~\ref{sec:an:recall_distributions}.
 
-The two metrics act as complementary diagnostics for these failure points. While $d_E$ isolates pure first-order geometric separation between prototype centroids, $D_B$ also penalizes covariance shape and volume differences. This explains why a pair such as boy/girl in CIFAR-100 stands out as the single biggest source of confusion in the system: it combines a very small geometric centroid distance ($d_E = 0.145$) with nearly identical, overlapping second-order covariance structures, pushing the probabilistic separation down to its minimum. To see exactly which classes this affects and why, we now look at individual class confusion patterns, examining the visual and geometric identities of the worst-performing classes in the system.
+The two metrics serve as complementary diagnostics for these failure points. While $d_E$ isolates pure first-order geometric separation between prototype centroids, $D_B$ also accounts for covariance geometry and volume differences. This explains why a pair such as \emph{boy/girl} in CIFAR-100 stands out as the single most severe point of confusion in the system: it combines an exceptionally small centroid separation ($d_E = 0.145$) with nearly identical, overlapping covariance structures, driving probabilistic separation to its minimum. To identify which specific categories are affected and examine their geometry in detail, the next subsection analyzes the worst-performing classes and their corresponding confusion sinks.
 
 \subsection{Worst-Performing Classes and Failure Diagnostics}
 \label{sec:worst_classes}
 
-Breaking macro-level performance metrics down into class-specific failure points gives a clearer view of the resolution limits of the visual foundation embedding space and the boundaries of each covariance parameterisation. To isolate these failure cases, we rank and track the five object categories with the lowest per-class recall scores across all benchmarks.
+Breaking macro-level performance metrics down into class-specific failure points gives a clearer view of the resolution limits of the visual foundation embedding space and the boundaries of each covariance parameterisation. To isolate these failure cases, we rank and track the five object categories with the lowest per-class accuracy scores across all benchmarks.
 
-We analyze these failure patterns across two parameterisations: Table~\ref{tab:worst_diag} characterizes the five lowest-performing classes under the independent feature assumptions of the Diagonal Covariance model, while Table~\ref{tab:worst_full} evaluates the corresponding distribution shifts and re-orderings under the regularized Full Covariance parameterisation. For both, the table records the empirical recall, the dominant confusion sink, the localized pairwise Bhattacharyya distance ($D_B$), and the Euclidean distance ($d_E$) to that primary target. These are compared directly against the dataset-level macro-averaged distances ($\overline{D_B}$ and $\overline{d_E}$) established in Section~\ref{sec:an:interclass}. Localized metrics falling well below these macro-averages give a direct geometric indication of significant prototype overlap.
+We analyze these failure patterns across two parameterisations: Table~\ref{tab:worst_diag} characterizes the five lowest-performing classes under the independent feature assumptions of the Diagonal Covariance model, while Table~\ref{tab:worst_full} evaluates the corresponding distribution shifts and re-orderings under the regularized Full Covariance parameterisation. For both, the table records the per-class accuracy (Class-Acc\%), the dominant confusion sink, the localized pairwise Bhattacharyya distance ($D_B$), and the Euclidean distance ($d_E$) to that primary target. These are compared directly against the dataset-level macro-averaged distances ($\overline{D_B}$ and $\overline{d_E}$) established in Section~\ref{sec:an:interclass}. Localized metrics falling well below these macro-averages give a direct geometric indication of significant prototype overlap.
 
 \begin{table}[htbp]
 	\centering
 	\small
-	\caption{Bottom-5 recall classes under Diag-Cov. $\text{Conf.}\%$: error rate to primary confusion target. $D_B, d_E$: target Bhattacharyya/Euclidean distances ($\overline{D_B}, \overline{d_E}$: dataset averages).}
+	\caption{Bottom-5 accuracy classes under Diag-Cov. $\text{Conf.}\%$: error rate to primary confusion target. $D_B, d_E$: target Bhattacharyya/Euclidean distances ($\overline{D_B}, \overline{d_E}$: dataset averages).}
 	\label{tab:worst_diag}
 	\begin{adjustbox}{width=0.95\columnwidth, center}
 		\small
 		\begin{tabular}{llccccccc}
 			\toprule
-			\textbf{Dataset} & \textbf{Class} & \textbf{Acc\%} & \textbf{Main Confusion} & \textbf{Conf.\%} & $D_B$ & $\overline{D_B}$ & $d_E$ & $\overline{d_E}$ \\
+			\textbf{Dataset} & \textbf{Class} & \textbf{Class-Acc\%} & \textbf{Main Confusion} & \textbf{Conf.\%} & $D_B$ & $\overline{D_B}$ & $d_E$ & $\overline{d_E}$ \\
 			\midrule
 			\textbf{Split CIFAR-100}
-			& boy          & 50.0 & girl       & 30.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
-			& maple\_tree & 60.0 & oak\_tree  & 19.0 & 19.41 & 89.43 & 0.327 & 0.749 \\
-			& girl         & 65.0 & boy        & 23.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
-			& cloud        & 65.0 & sea        &  8.0 & 30.54 & 89.43 & 0.451 & 0.749 \\
-			& shrew        & 69.0 & mouse      & 16.0 & 16.45 & 89.43 & 0.331 & 0.749 \\
+			& boy           & 50.0 & girl        & 30.0 &    3.45 & 89.43 & 0.145 & 0.749 \\
+			& maple\_tree   & 60.0 & oak\_tree   & 19.0 & 19.41 & 89.43 & 0.327 & 0.749 \\
+			& girl          & 65.0 & boy         & 23.0 &    3.45 & 89.43 & 0.145 & 0.749 \\
+			& cloud         & 65.0 & sea         &   8.0 & 30.54 & 89.43 & 0.451 & 0.749 \\
+			& shrew         & 69.0 & mouse       & 16.0 & 16.45 & 89.43 & 0.331 & 0.749 \\
 			\midrule
 			\textbf{Split ImageNet-R}
-			& cabbage        & 35.3 & vase           & 17.6 & 50.50 & 84.81 & 0.587 & 0.727 \\
-			& saint\_bernard & 36.4 & basset\_hound  &  9.1 & 66.44 & 84.81 & 0.643 & 0.727 \\
-			& bow\_tie       & 39.3 & scarf          & 21.4 & 16.57 & 84.81 & 0.331 & 0.727 \\
-			& beaver         & 40.0 & backpack       &  8.6 & 34.74 & 84.81 & 0.500 & 0.727 \\
-			& bee            & 41.6 & fly            & 15.6 & 20.51 & 84.81 & 0.378 & 0.727 \\
+			& cabbage       & 35.3 & vase        & 17.6 & 50.50 & 84.81 & 0.587 & 0.727 \\
+			& saint\_bernard & 36.4 & basset\_hound &   9.1 & 66.44 & 84.81 & 0.643 & 0.727 \\
+			& bow\_tie      & 39.3 & scarf       & 21.4 & 16.57 & 84.81 & 0.331 & 0.727 \\
+			& beaver        & 40.0 & backpack    &   8.6 & 34.74 & 84.81 & 0.500 & 0.727 \\
+			& bee           & 41.6 & fly         & 15.6 & 20.51 & 84.81 & 0.378 & 0.727 \\
 			\midrule
 			\textbf{Split Caltech-256}
-			& top-hat        & 31.2 & cowboy-hat     & 31.2 & 29.75 & 220.61 & 0.319 & 0.978 \\
-			& paperclip      & 52.6 & drinking-straw & 21.1 & 62.94 & 220.61 & 0.645 & 0.978 \\
-			& canoe          & 57.1 & people         & 28.6 & 57.87 & 220.61 & 0.641 & 0.978 \\
-			& drinking-straw & 64.7 & people         & 11.8 & 27.33 & 220.61 & 0.465 & 0.978 \\
-			& traffic-light  & 65.0 & people         & 15.0 & 66.27 & 220.61 & 0.675 & 0.978 \\
+			& top-hat       & 31.2 & cowboy-hat  & 31.2 & 29.75 & 220.61 & 0.319 & 0.978 \\
+			& paperclip     & 52.6 & drinking-straw & 21.1 & 62.94 & 220.61 & 0.645 & 0.978 \\
+			& canoe         & 57.1 & people      & 28.6 & 57.87 & 220.61 & 0.641 & 0.978 \\
+			& drinking-straw & 64.7 & people     & 11.8 & 27.33 & 220.61 & 0.465 & 0.978 \\
+			& traffic-light & 65.0 & people      & 15.0 & 66.27 & 220.61 & 0.675 & 0.978 \\
 			\bottomrule
 		\end{tabular}
 	\end{adjustbox}
 \end{table}
 
-Table~\ref{tab:worst_full} details the equivalent classification landscapes under the regularized Full Covariance model. While the low-recall sets overlap heavily on the localized natural structures of Split CIFAR-100, they diverge substantially on the high-resolution object coordinates of Split Caltech-256. Because $\overline{D_B}$ and $\overline{d_E}$ represent fundamental global properties of the static underlying feature distributions, they remain identical to the baseline values reported in Table~\ref{tab:worst_diag}. 
+Table~\ref{tab:worst_full} details the equivalent classification landscape under the regularized Full Covariance model. On Split CIFAR-100, the most difficult classes remain largely the same between both models. On Split Caltech-256, however, the ranking changes considerably because modeling feature correlations helps separate classes with complex boundaries. The dataset averages $\overline{D_B}$ and $\overline{d_E}$ do not change, as they measure the overall spacing of the frozen features across the benchmark.
 
 \begin{table}[htbp]
 	\centering
 	\small
-	\caption{Bottom-5 recall classes under Full-Cov. $\text{Conf.}\%$: error rate to primary confusion target. $D_B, d_E$: target Bhattacharyya/Euclidean distances ($\overline{D_B}, \overline{d_E}$: dataset averages).}
+	\caption{Bottom-5 accuracy classes under Full-Cov. $\text{Conf.}\%$: error rate to primary confusion target. $D_B, d_E$: target Bhattacharyya/Euclidean distances ($\overline{D_B}, \overline{d_E}$: dataset averages).}
 	\label{tab:worst_full}
 	\begin{adjustbox}{width=0.95\columnwidth, center}
 		\small
 		\begin{tabular}{llccccccc}
 			\toprule
-			\textbf{Dataset} & \textbf{Class} & \textbf{Acc\%} & \textbf{Main Confusion} & \textbf{Conf.\%} & $D_B$ & $\overline{D_B}$ & $d_E$ & $\overline{d_E}$ \\
+			\textbf{Dataset} & \textbf{Class} & \textbf{Class-Acc\%} & \textbf{Main Confusion} & \textbf{Conf.\%} & $D_B$ & $\overline{D_B}$ & $d_E$ & $\overline{d_E}$ \\
 			\midrule
 			\textbf{Split CIFAR-100}
-			& boy          & 58.0 & girl       & 16.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
-			& girl         & 67.0 & boy        & 15.0 &   3.45 & 89.43 & 0.145 & 0.749 \\
-			& otter        & 67.0 & seal       &  8.0 & 16.42 & 89.43 & 0.342 & 0.749 \\
-			& maple\_tree & 68.0 & oak\_tree  & 19.0 & 19.41 & 89.43 & 0.327 & 0.749 \\
-			& forest       & 68.0 & pine\_tree &  7.0 & 25.46 & 89.43 & 0.422 & 0.749 \\
+			& boy           & 58.0 & girl        & 16.0 &    3.45 & 89.43 & 0.145 & 0.749 \\
+			& girl          & 67.0 & boy         & 15.0 &    3.45 & 89.43 & 0.145 & 0.749 \\
+			& otter         & 67.0 & seal        &   8.0 & 16.42 & 89.43 & 0.342 & 0.749 \\
+			& maple\_tree   & 68.0 & oak\_tree   & 19.0 & 19.41 & 89.43 & 0.327 & 0.749 \\
+			& forest        & 68.0 & pine\_tree  &   7.0 & 25.46 & 89.43 & 0.422 & 0.749 \\
 			\midrule
 			\textbf{Split ImageNet-R}
-			& bow\_tie    & 28.6 & cowboy\_hat & 14.3 & 14.51 & 84.81 & 0.323 & 0.727 \\
-			& bee          & 33.8 & fly        & 11.7 & 20.51 & 84.81 & 0.378 & 0.727 \\
-			& beaver       & 37.1 & backpack   &  8.6 & 34.74 & 84.81 & 0.500 & 0.727 \\
-			& cowboy\_hat & 39.0 & hammer     &  6.8 & 21.01 & 84.81 & 0.404 & 0.727 \\
-			& candle       & 40.7 & stole      &  9.3 & 19.73 & 84.81 & 0.379 & 0.727 \\
+			& bow\_tie      & 28.6 & cowboy\_hat & 14.3 & 14.51 & 84.81 & 0.323 & 0.727 \\
+			& bee           & 33.8 & fly         & 11.7 & 20.51 & 84.81 & 0.378 & 0.727 \\
+			& beaver        & 37.1 & backpack    &   8.6 & 34.74 & 84.81 & 0.500 & 0.727 \\
+			& cowboy\_hat   & 39.0 & hammer      &   6.8 & 21.01 & 84.81 & 0.404 & 0.727 \\
+			& candle        & 40.7 & stole       &   9.3 & 19.73 & 84.81 & 0.379 & 0.727 \\
 			\midrule
 			\textbf{Split Caltech-256}
-			& drinking-straw  & 52.9 & soda-can     & 11.8 &  51.11 & 220.61 & 0.614 & 0.978 \\
-			& people          & 66.7 & picnic-table &  4.8 &  55.38 & 220.61 & 0.619 & 0.978 \\
-			& top-hat          & 68.8 & wine-bottle  &  6.2 & 100.90 & 220.61 & 0.802 & 0.978 \\
-			& american-flag   & 70.0 & speed-boat   &  5.0 & 108.32 & 220.61 & 0.823 & 0.978 \\
-			& bowling-ball    & 71.4 & bowling-pin  & 14.3 &  68.73 & 220.61 & 0.644 & 0.978 \\
+			& drinking-straw & 52.9 & soda-can   & 11.8 &  51.11 & 220.61 & 0.614 & 0.978 \\
+			& people        & 66.7 & picnic-table &   4.8 &  55.38 & 220.61 & 0.619 & 0.978 \\
+			& top-hat       & 68.8 & wine-bottle &   6.2 & 100.90 & 220.61 & 0.802 & 0.978 \\
+			& american-flag & 70.0 & speed-boat  &   5.0 & 108.32 & 220.61 & 0.823 & 0.978 \\
+			& bowling-ball  & 71.4 & bowling-pin & 14.3 &  68.73 & 220.61 & 0.644 & 0.978 \\
 			\bottomrule
 		\end{tabular}
 	\end{adjustbox}
 \end{table}
 
-To ground these proximity numbers in something visual, we look at typical images taken directly from the benchmark data streams. Figures~\ref{fig:worst_repr_cifar}, \ref{fig:worst_repr_imagenetr}, and~\ref{fig:worst_repr_caltech} present the target classes side by side with their main cross-category confusion partners, the samples most frequently confused by the classifier. Looking at these cross-class pairs shows the structural and semantic similarities that drive the lower tails of our recall curves.
+To ground these proximity numbers in something visual, we look at typical images taken directly from the benchmark data streams. Figures~\ref{fig:worst_repr_cifar}, \ref{fig:worst_repr_imagenetr}, and~\ref{fig:worst_repr_caltech} present the target classes side by side with their main cross-category confusion partners, the samples most frequently confused by the classifier. Examining these cross-class pairs illustrates the visual and semantic similarities that drive the lower tail of the per-class accuracy distributions.
 
 % ==========================================
 % FIGURE 1: CIFAR-100 (4x2 Grid) - FIXED
@@ -605,7 +608,7 @@ To ground these proximity numbers in something visual, we look at typical images
 		{\small (h) Mouse}
 	\end{minipage}
 	
-	\caption{Representative visual specimens of the primary low-recall classes and corresponding confusion sinks on the Split CIFAR-100 benchmark, mapped to the tracking trends outlined in Table~\ref{tab:worst_diag} and Table~\ref{tab:worst_full}.}
+	\caption{Representative visual specimens of the primary low-accuracy classes and corresponding confusion sinks on the Split CIFAR-100 benchmark, mapped to the tracking trends outlined in Table~\ref{tab:worst_diag} and Table~\ref{tab:worst_full}.}
 	\label{fig:worst_repr_cifar}
 \end{figure}
 
@@ -736,7 +739,8 @@ The pairwise relationships extracted from the distributions once every class has
 
 This localized failure breaks down into three patterns:
 \begin{itemize}
-	\item \textbf{Semantic and Visual Near-Synonyms:} The most notable confusion comes from pairs that share basic silhouette, texture, or composition under DINOv2's representation. Cases such as boy$\leftrightarrow$girl ($D_B = 3.45$, $d_E = 0.145$), bow\_tie$\leftrightarrow$scarf ($D_B = 16.57$), and top-hat$\leftrightarrow$cowboy-hat ($D_B = 29.75$) show co-located distributions, where high-frequency discriminative features are largely absent from frozen, general-purpose embeddings.
+	\item \textbf{Semantic and Visual Near-Synonyms:} The most notable confusion comes from pairs that share basic silhouette, texture, or composition under DINOv2's representation.  Pairs such as boy$\leftrightarrow$girl ($D_B = 3.45$, $d_E = 0.145$), bow\_tie$\leftrightarrow$scarf ($D_B = 16.57$), and top-hat$\leftrightarrow$cowboy-hat ($D_B = 29.75$) form overlapping distributions because a general-purpose frozen encoder prioritizes shared global semantics over subtle, fine-grained differences.
+	
 	\item \textbf{Contextual and Manifold Sinks:} Proximity in the embedding space often comes from shared background or composition rather than category membership. This is shown by the overlap of cloud$\leftrightarrow$sea ($D_B = 30.54$) through matching color palettes, and by broad categories like people acting as confusion sinks for unrelated objects (canoe, drinking-straw) that happen to be photographed with human subjects in frame.
 	\item \textbf{The Mechanics of Apparent Forgetting:} This pairwise crowding is what actually explains the modest rise in forgetting recorded throughout the stream. Class-conditional models are estimated independently and frozen, so the representations themselves do not degrade over time. Apparent forgetting comes strictly from the growth of the label space, which raises the chance of inserting a new category close to one already learned.
 \end{itemize}
@@ -826,20 +830,21 @@ If most of the variance really does sit in a moderate-dimensional subspace, comp
 
 \begin{table}[htbp]
 	\centering
-	\caption{Final average accuracy (\%) of the Gaussian continual-learning classifier after projecting DINOv2 embeddings to $d\!\in\!\{64,\,256\}$ dimensions via PCA. \emph{Diag}: diagonal covariance; \emph{Full}: full covariance with adaptive ridge regularisation. Higher is better.}
+	\caption{Final average accuracy (\%) of the Gaussian continual-learning classifier across dimensionality settings, comparing PCA projections ($d \in \{64, 256\}$) against the full feature space ($d = 768$). \emph{Diag}: diagonal covariance; \emph{Full}: full covariance with adaptive ridge regularisation. Bold indicates the highest accuracy within each dimensionality setting. Higher is better.}
 	\label{tab:pca_accuracy}
-	\small
-	\setlength{\tabcolsep}{5pt}
-	\begin{tabular}{l|ccc|ccc}
+	\resizebox{\textwidth}{!}{%
+	\setlength{\tabcolsep}{4.5pt}
+	\begin{tabular}{l|ccc|ccc|ccc}
 		\toprule
-		& \multicolumn{3}{c|}{\textbf{PCA $d=64$}} & \multicolumn{3}{c}{\textbf{PCA $d=256$}} \\
-		\textbf{Benchmark} & Diag & Full & MOG4-Shared & Diag & Full & MOG4-Shared \\
+		& \multicolumn{3}{c|}{\textbf{PCA $d=64$}} & \multicolumn{3}{c|}{\textbf{PCA $d=256$}} & \multicolumn{3}{c}{\textbf{Original $d=768$}} \\
+		\textbf{Benchmark} & Diag & Full & MOG4-Shared & Diag & Full & MOG4-Shared & Diag & Full & MOG4-Shared \\
 		\midrule
-		CIFAR-100      & 78.48 & \textbf{83.05} & 82.24 & 85.22 & 82.29 & \textbf{88.16} \\
-		ImageNet-R     & 64.04 & 49.65 & \textbf{66.84} & 71.79 & 61.25 & \textbf{77.06} \\
-		Caltech-256    & 87.20 & 43.40 & \textbf{90.58} & 90.01 & 91.09 & \textbf{94.42} \\
+		CIFAR-100   & 78.48 & \textbf{83.05} & 82.24 & 85.22 & 82.29 & \textbf{88.16} & 86.07 & 88.38 & \textbf{88.98} \\
+		ImageNet-R  & 64.04 & 49.65 & \textbf{66.84} & 71.79 & 61.25 & \textbf{77.06} & 77.12 & 74.71 & \textbf{80.19} \\
+		Caltech-256 & 87.20 & 43.40 & \textbf{90.58} & 90.01 & 91.09 & \textbf{94.42} & 90.06 & \textbf{94.93} & 94.61 \\
 		\bottomrule
 	\end{tabular}
+		}
 \end{table}
 
 The behavior across dimensionalities maps directly onto the shape of the spectrum described above. Scaling the PCA dimensionality from $d=64$ to $d=256$ lifts Diag-Cov's accuracy on every benchmark ($+6.7$\,pp on Split CIFAR-100, $+7.8$\,pp on Split ImageNet-R, $+2.8$\,pp on Split Caltech-256), confirming that although fewer than 130 components already capture 90\% of the variance, the remaining low-variance tail still holds fine-grained information that helps resolve close class boundaries.
@@ -868,7 +873,7 @@ We compute the sample skewness and excess kurtosis defined in Chapter~\ref{ch:ga
     \centering
     \caption{Per-dimension Gaussianity statistics over all $(C \times d)$ (class, dimension) pairs per dataset ($d=768$). $|\!\mathrm{Skew}|_\mu$ and $|\!\mathrm{Kurt}|_\mu$ are mean absolute values; $\mathbb{P}[\cdot]$ is the fraction of pairs satisfying each cut-off.}
     \label{tab:gaussianity_stats}
-    \scriptsize
+    \small
     \setlength{\tabcolsep}{4pt}
     \begin{tabular}{lcc cc cc}
         \toprule
@@ -911,7 +916,7 @@ As a stricter check, we also apply the univariate Henze--Zirkler (HZ) test defin
 	\centering
 	\caption{Summary results from computing the univariate Henze--Zirkler test statistic over all $(C \times d)$ class-dimension pairs on the training split. $\mathbb{E}_{H_0}[T_{\mathrm{HZ}}]$ is the theoretical expectation under perfect normality, as defined in Chapter~\ref{ch:gaussian_space}, evaluated at the per-class sample size $n_c$.}
 	\label{tab:gaussianity_hz_univariate}
-	\scriptsize
+	\small
 	\setlength{\tabcolsep}{4pt}
 	\begin{tabular}{lcc c}
 		\toprule
@@ -937,7 +942,7 @@ We work around this the same way: by using a diagonal version of the covariance,
     \centering
     \caption{Summary results from computing the diagonal HZ test statistic over all classes in the ambient foundation feature space ($d=768$), using all available training samples. Values concentrated near $T_{\mathrm{HZ}} \approx 1.00$ indicate convergence toward empirical multivariate Gaussianity under the feature-independence assumption.}
     \label{tab:gaussianity_hz}
-    \scriptsize
+    \small
     \setlength{\tabcolsep}{4pt}
     \begin{tabular}{lcc c}
         \toprule
