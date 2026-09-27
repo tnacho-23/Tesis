@@ -895,7 +895,7 @@ We apply the joint hypothesis test defined in Chapter~\ref{ch:gaussian_space}, r
     \centering
     \caption{Per-feature normality tests on the training split (fractions of $(C \times d)$ pairs). \emph{normaltest}: D'Agostino--Pearson $\chi^2_2$ at $\alpha{=}0.05$. \emph{relaxed}: $|\mathrm{Skew}|<1$ and $|\mathrm{Kurt}|<1$ simultaneously.}
     \label{tab:gaussianity_normaltest}
-    \scriptsize
+    \small
     \setlength{\tabcolsep}{6pt}
     \begin{tabular}{lccc}
         \toprule
@@ -936,7 +936,7 @@ Taken together, these three diagnostics agree: the individual coordinates of the
 
 Per-dimension normality is necessary but not sufficient: a set of coordinates can each look Gaussian on their own while still not being jointly Gaussian, so we now test each class's full $d=768$-dimensional feature vector at once, using the same HZ statistic as before but with $d$ set to the full embedding dimension. As explained in Chapter~\ref{ch:gaussian_space}, this runs into the same problem as everywhere else in this thesis: since $n_c \leq d$ for every benchmark, the full covariance matrix needed for the standard version of the test cannot be inverted.
 
-We work around this the same way: by using a diagonal version of the covariance, so only the $d$ per-coordinate variances need to be inverted instead of the full matrix. This changes what to expect under $H_0$ as well. In the univariate case above, a Gaussian coordinate gives $T_{\mathrm{HZ}}$ close to $0$; here, because $d$ is large, the same expectation formula pushes the reference value close to $1$ instead. Table~\ref{tab:gaussianity_hz} shows that all three benchmarks concentrate tightly around $T_{\mathrm{HZ}} = 1$, right where a Gaussian class should land under this diagonal test.
+We address this in the same way: by using a diagonal version of the covariance, inverting only the $d$ coordinate variances instead of the full matrix. Because $d$ is large, the theoretical expectation of the statistic for Gaussian data centers near $1$ instead of $0$. Here, we employ $T_{\mathrm{HZ}}$ strictly as a diagnostic summary statistic rather than executing a formal hypothesis test. Table~\ref{tab:gaussianity_hz} shows that values across all three benchmarks concentrate tightly around $T_{\mathrm{HZ}} = 1$, aligning well with the expected Gaussian baseline.
 
 \begin{table}[htb]
     \centering
@@ -955,14 +955,38 @@ We work around this the same way: by using a diagonal version of the covariance,
     \end{tabular}
 \end{table}
 
-As already noted in Chapter~\ref{ch:gaussian_space}, restricting this test to a diagonal covariance means it cannot guarantee full, unconstrained multivariate Gaussianity, where every pair of dimensions is allowed to correlate freely. But given how little data is available per class relative to the embedding dimension, this diagonal version is the only one we can actually compute, and it works as a reasonable stand-in for the stronger, unconstrained test. The consistent convergence to $T_{\mathrm{HZ}} \approx 1.00$ across all three benchmarks is what supports using independent-feature probabilistic classifiers on this embedding space.
+As already noted in Chapter~\ref{ch:gaussian_space}, restricting this statistic to a diagonal covariance means it cannot guarantee full, unconstrained multivariate Gaussianity, where every pair of dimensions is allowed to correlate freely. But given how little data is available per class relative to the embedding dimension, this diagonal version is the only one we can actually compute, and it works as a reasonable stand-in for the stronger, unconstrained test. The consistent convergence to $T_{\mathrm{HZ}} \approx 1.00$ across all three benchmarks is what supports using independent-feature probabilistic classifiers on this embedding space.
 
 \subsection{Empirical Validation of the Gaussian Assumption}
 \label{sec:an:gauss}
 
-The Gaussianity tests above confirm that the per-coordinate normality assumption is well supported across all three benchmarks: 96.1\,\% of CIFAR-100 coordinates, 85.9\,\% of ImageNet-R, and 74.7\,\% of Caltech-256 satisfy the informal symmetry cut-off $|\text{Skew}|<0.5$. The key distinction between the two covariance estimators follows directly from the $n_c < d$ regime. The \textbf{Diag-Cov} model estimates only $d$ parameters per class and is therefore always well-conditioned; its squared Mahalanobis distances are broadly distributed near the theoretical $\chi^2_{d=768}$ mode, with dispersion growing from CIFAR-100 to Caltech-256 in line with the heavy-tail ordering of Table~\ref{tab:gaussianity_stats}. The \textbf{Full-Cov} model, by contrast, requires estimating a $d\times d$ matrix from $n_c < d$ samples: the resulting covariance is rank-deficient, the eigenvalues outside the spanned subspace collapse to the regularisation floor, and the quadratic form becomes degenerate, producing a sharp spike at $\overline{n_c}-1$ (approximately 498, 168, and 103 on CIFAR-100, ImageNet-R, and Caltech-256 respectively) rather than spreading across the $\chi^2_{768}$ support. This problem comes from the \emph{estimator}, not from the data: the per-coordinate distributions are near-Gaussian, as shown above. Keeping inter-feature correlations while avoiding rank deficiency is still an open challenge; the hybrid variant is one practical way to balance the two.
+The Gaussianity analysis above confirms that the per-coordinate normality assumption is well supported across all three benchmarks: $97.8\%$ of CIFAR-100 coordinates, $91.6\%$ of ImageNet-R, and $82.3\%$ of Caltech-256 satisfy the relaxed Gaussianity criteria ($|\text{Skew}| < 1$ and $|\text{Kurt}| < 1$). 
 
-For \textbf{MOG4-Shared}, the same $n_c < d$ regime explains why it avoids this trade-off in the first place. Because MOG4-Shared estimates a single covariance from the pooled residuals of every active class rather than one covariance per class, it is never forced to invert a $d\times d$ matrix built from a single class's small sample, so it does not run into the rank-deficiency spike that hurts Full-Cov. On top of that, letting each class use up to four centroids means a class does not need its own feature distribution to be a single, unimodal Gaussian to be modelled well: a mixture of a few Gaussians can still fit a class whose marginals depart from normality more than the ones tested here. This is consistent with MOG4-Shared's results throughout this chapter, and it is one more reason it holds up better than either single-covariance model on its own.
+We compute the squared Mahalanobis distance of every sample $\vec{x}$ to its class mean $\boldsymbol{\mu}_c$:
+\begin{equation}
+	D_M^2(\vec{x}) = (\vec{x} - \boldsymbol{\mu}_c)^\top \boldsymbol{\Sigma}_c^{-1} (\vec{x} - \boldsymbol{\mu}_c).
+\end{equation}
+Specifically, for each category $c \in \{1, \dots, C\}$, the parameters $\boldsymbol{\mu}_c$ and $\boldsymbol{\Sigma}_c$ are estimated from all available instances $X_c$ belonging to that class. We then evaluate $D_M^2$ for every individual instance against its own class distribution and aggregate the resulting distances across all classes into a single benchmark-level empirical distribution, plotted directly against the theoretical $\chi^2_{d=768}$ density \cite{pearson1895skewness}. The fundamental divergence between the two estimators stems directly from the sample regime $n_c \leq d$.
+
+Under the \textbf{Diag-Cov} model, the covariance is restricted to per-coordinate variances $\boldsymbol{\Sigma}_c = \operatorname{diag}(\sigma_{c,1}^2, \dots, \sigma_{c,d}^2)$, reducing the distance to an uncoupled sum of standardized residuals: $D_M^2(\vec{x}) = \sum_{k=1}^{d} ((x_k - \mu_{c,k})/\sigma_{c,k})^2$. Because it estimates only $d = 768$ parameters per class, the estimator remains strictly non-singular and well-conditioned. As illustrated in Figure~\ref{fig:chi-diag}, the empirical distributions aggregate across all classes and center near the theoretical mode ($\mathbb{E}[\chi^2_{d=768}] = 768$). The moderate over-dispersion relative to the reference curve reflects residual cross-coordinate correlations and heavy-tail effects, scaling from CIFAR-100 to Caltech-256 in accordance with the tail statistics in Table~\ref{tab:gaussianity_stats}.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.97\linewidth]{imagenes/results/mahalanobis_diag.png}
+	\caption{Empirical density of squared Mahalanobis distances aggregated across all classes under the Diagonal Covariance model, compared against the theoretical $\chi^2_{d=768}$ distribution. The empirical mass centers near the theoretical mode, confirming coordinate-wise Gaussian behavior.}
+	\label{fig:chi-diag}
+\end{figure}
+
+The \textbf{Full-Cov} model, by contrast, estimates the complete $d \times d$ covariance matrix in a regime where instances per class are fewer than the dimensionality ($n_c \leq d = 768$). Consequently, the sample covariance matrix is rank-deficient, spanning at most $n_c - 1$ dimensions. As shown in Figure~\ref{fig:chi-full} the quadratic form degenerates: the distances aggregate into a sharp spike concentrated at the average empirical rank $\overline{n_c} - 1$ (peaking at approximately 498 on CIFAR-100, 168 on ImageNet-R, and 103 on Caltech-256) rather than spreading across the true $\chi^2_{768}$ domain. This collapse is an estimator artifact caused by finite-sample rank deficiency ($n_c \leq d$), rather than a failure of Gaussianity in the underlying feature space.
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[width=0.97\linewidth]{imagenes/results/mahalanobis_full_cov.png}
+	\caption{Empirical squared Mahalanobis distances aggregated across all classes under the Full Covariance model versus the theoretical $\chi^2_{d=768}$ density. Finite-sample rank deficiency ($n_c \leq d$) collapses the quadratic form into an artifactual spike near $\overline{n_c}-1$.}
+	\label{fig:chi-full}
+\end{figure}
+
+For \textbf{MOG4-Shared}, the same $n_c \leq d$ regime explains why it avoids this trade-off in the first place. Because MOG4-Shared estimates a single covariance from the pooled residuals of every active class rather than one covariance per class, it is never forced to invert a $d\times d$ matrix built from a single class's small sample, so it does not run into the rank-deficiency spike that hurts Full-Cov. On top of that, letting each class use up to four centroids means a class does not need its own feature distribution to be a single, unimodal Gaussian to be modelled well: a mixture of a few Gaussians can still fit a class whose marginals depart from normality more than the ones tested here. This is consistent with MOG4-Shared's results throughout this chapter, and it is one more reason it holds up better than either single-covariance model on its own.
 
 \section{Computational Cost and Practical Considerations}
 \label{sec:computational_requirements}
