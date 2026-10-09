@@ -72,7 +72,6 @@ Substituting the multivariate Gaussian density into the MAP rule, the decision r
 \subsubsection{Mixture of Gaussians (MoG)}
 
 A Mixture of Gaussians models a complex probability density as a convex combination of $K$ distinct Gaussian components. This approach is fundamental for clustering and density estimation in multi-modal distributions. Therefore, to capture multimodal feature distributions, the class-conditional model can be extended to a mixture:
-
 \begin{equation}
 	p(\vec{x} \mid y=c)
 	=
@@ -155,19 +154,18 @@ This range is useful, but it is not, by itself, a formal test: looking at a sing
 \end{equation}
 where $H_0$ is the hypothesis that the coordinate's data is normally distributed. Under $H_0$, $K^2$ follows a known chi-squared distribution with two degrees of freedom, which lets us compute an exact probability (a $p$-value) for how extreme the observed $K^2$ is; we reject $H_0$, and conclude the coordinate is not Gaussian, whenever this probability falls below the significance level $\alpha=0.05$. 
 
-\subsubsection{Relaxed criterion.}
+\subsubsection{Relaxed criterion}
 The D'Agostino--Pearson test becomes more sensitive as the sample size $n_c$ grows: with enough samples, even small, practically harmless departures from normality become statistically significant, causing the test to reject $H_0$ more often than is practically useful. To compensate for this, we add a second, size-independent check based directly on the reference range introduced earlier in this section: a dimension is classified as near-Gaussian if
 \begin{equation}
 	|\mathrm{Skew}| < 1 \quad \text{and} \quad |\mathrm{Kurt}| < 1
 \end{equation}
 hold simultaneously. 
 
-\subsubsection{Henze--Zirkler test per dimension.}
+\subsubsection{Henze--Zirkler test per dimension}
 \label{sec:method:gaussianity:hz_univariate}
 The tests above only look at the shape of each coordinate's distribution, through its skewness and kurtosis. As a stricter check, we also apply the Henze--Zirkler (HZ) test~\cite{henze1990class} to every coordinate on its own: instead of summarising the data with a couple of shape numbers, it directly compares how the data is distributed against how a true Gaussian would be. The HZ statistic is defined for a feature vector of any dimension $d$; here we use its simplest form, one coordinate at a time ($d=1$), applied independently to every (class~$c$, dimension~$j$) pair. The same statistic, now with $d$ equal to the full embedding dimension, is used again in Section~\ref{sec:method:gaussianity:multivariate}.
 
 Given $n_c$ centred samples $z_i = x_i - \hat{\mu}_{c,j}$ and a bandwidth $b>0$, the statistic is built from three simple terms, using the squared, variance-normalised distance $d_M^2(\cdot,\cdot)$ between two values:
-
 \begin{equation}
 	A = \frac{1}{n_c^2} \sum_{j=1}^{n_c} \sum_{k=1}^{n_c} e^{-\frac{b^2}{2}d_M^2(z_j, z_k)},
 \end{equation}

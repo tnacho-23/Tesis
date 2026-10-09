@@ -63,17 +63,15 @@ The three primary datasets differ along two largely orthogonal axes: visual comp
 
  As is common in the continual learning literature \cite{wang2022learning}, we quantify performance using two standard metrics derived from the test accuracy scores obtained after each task: the average accuracy and the average forgetting.
 
-On the one hand, \textbf{Average Accuracy ($A_t$)}, presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point.
-
+On the one hand, \textbf{Average Accuracy ($A_t$)}, presented on equation \eqref{eq_AA}, measures overall performance after task $t$. It is the mean test accuracy across all tasks learned up to that point:
 \begin{equation}
-	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}
+	A_t = \frac{1}{t} \sum_{\tau=1}^{t} S_{t,\tau}.
 	\label{eq_AA}
 \end{equation}
 
-On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops.
-
+On the other hand, \textbf{Forgetting ($F_{t}$)}, presented on equation \eqref{eq_AF}, quantifies how much the model has forgotten earlier tasks. It computes, for each past task, how much accuracy has dropped compared to its best historical score, and averages those drops:
 \begin{equation}
-	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right)
+	F_t = \frac{1}{t-1} \sum_{\tau=1}^{t-1} \left( \max_{k \le t-1} S_{k,\tau} - S_{t,\tau} \right).
 	\label{eq_AF}
 \end{equation}
 
@@ -86,28 +84,23 @@ Accuracy and forgetting measure whether the model's predictions are correct, but
 
 \subsection{Expected Calibration Error (ECE)}
 This metric quantifies the mismatch between predictive confidence and empirical accuracy. We partition the predictions into $M$ equally spaced bins based on their confidence scores. The ECE is defined as the weighted average of the absolute difference between the accuracy and confidence of each bin:
-
 \begin{equation}
-	ECE_t = \sum_{m=1}^{M} \frac{|B_m|}{N} \left| acc(B_m) - conf(B_m) \right|\label{eq_ECE}
+	ECE_t = \sum_{m=1}^{M} \frac{|B_m|}{N} \left| acc(B_m) - conf(B_m) \right|,\label{eq_ECE}
 \end{equation}
-
 where $N$ is the total number of samples, $B_m$ is the set of indices of samples whose prediction confidence falls into the $m$-th interval, and $acc(B_m)$ and $conf(B_m)$ represent the mean accuracy and mean confidence within that bin, respectively.
 
 \subsection{Confidence on Errors (CoE)}
 To specifically analyze the model's behavior when it fails, we measure the average confidence assigned to the winning (but incorrect) class. High CoE indicates a model that is ``dangerously wrong'', which matters in safety-oriented applications. It is computed for a task $t$ as:
-
 \begin{equation}
-	CoE_t = \frac{1}{|\mathcal{E}_t|} \sum_{i \in \mathcal{E}_t} \max(\hat{p}_i)
+	CoE_t = \frac{1}{|\mathcal{E}_t|} \sum_{i \in \mathcal{E}_t} \max(\hat{p}_i),
 \end{equation}
-
 where $\mathcal{E}_t$ is the set of misclassified samples and $\hat{p}_i$ is the predicted probability distribution for sample $i$.
 
 \subsection{Total Confidence (TC)}
 
 Total Confidence measures how certain the model is on average about its top-1 prediction, regardless of whether that prediction is correct:
-
 \begin{equation}
-	TC_t = \frac{1}{N} \sum_{i=1}^{N} \max_{c} \, p_{i,c}
+	TC_t = \frac{1}{N} \sum_{i=1}^{N} \max_{c} \, p_{i,c}.
 \end{equation}
 
 A value of $TC=1$ means the model assigns all probability mass to a single class for every sample---it is always maximally decisive. A value close to $1/C$ would indicate near-uniform posteriors. TC is a measure of \emph{decisiveness}, not correctness: a well-calibrated model should have $TC \approx A_T$ (confident when right, uncertain when wrong), whereas a badly overconfident model can reach $TC \approx 1$ even at low accuracy.
@@ -115,20 +108,16 @@ A value of $TC=1$ means the model assigns all probability mass to a single class
 \subsection{Probability Margin (PM)}
 
 The Probability Margin is the natural, non-logarithmic measure of how decisively the model separates its top-1 prediction from its second-best alternative:
-
 \begin{equation}
-	PM_t = \frac{1}{N} \sum_{i=1}^{N} \Bigl( p_{i,(1)} - p_{i,(2)} \Bigr)
+	PM_t = \frac{1}{N} \sum_{i=1}^{N} \Bigl( p_{i,(1)} - p_{i,(2)} \Bigr),
 \end{equation}
-
 where $p_{i,(1)} \ge p_{i,(2)}$ are the two highest posterior probabilities for sample $i$. A margin near $1$ means the model almost entirely ignores its second candidate; a margin near $0$ means the model is nearly tied between its top-two guesses and one should treat the prediction with caution. PM is bounded in $[0,1]$ and directly interpretable: a value of $0.7$ means the winning class is, on average, assigned $70\%$ more probability than the runner-up.
 
 \subsection{Average Predictive Entropy ($H$)}
 We utilize Shannon entropy to measure the uncertainty of the model's predictions. A higher entropy suggests that the model is distributing its probability mass across multiple classes, indicating lower certainty. For task $t$, the average entropy is calculated as:
-
 \begin{equation}
-	H_t = \frac{1}{N} \sum_{i=1}^{N} \left( - \sum_{c=1}^{C} p_{i,c} \log(p_{i,c}) \right)
+	H_t = \frac{1}{N} \sum_{i=1}^{N} \left( - \sum_{c=1}^{C} p_{i,c} \log(p_{i,c}) \right),
 \end{equation}
-
 where $p_{i,c}$ is the probability assigned to class $c$ for sample $i$.
 
 \subsection*{Summary of calibration and uncertainty metrics}

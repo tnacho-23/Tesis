@@ -274,8 +274,7 @@
 		\if\@auspicio\@empty\else
 		\vfill
 			\normalfont
-			Este trabajo ha sido parcialmente financiado por:
-            
+			Este trabajo ha sido parcialmente financiado por: \\
             \@auspicio
 		\fi
 

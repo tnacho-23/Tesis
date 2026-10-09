@@ -210,11 +210,9 @@ The original ViT was designed and evaluated primarily on Object Classification, 
 Most vision datasets are still built around labels assigned by hand, but recent work has shifted toward foundation models trained via self-supervised learning instead, following the same general pre-training paradigm described earlier in this chapter: no human-provided labels are used at all. A leading example of this approach is \textbf{DINOv2} \cite{oquab2024dinov}, which produces visual features that are robust and general enough to perform well ``out of the box,'' both at the level of whole-image descriptions and at the level of individual patch tokens.
 
 DINOv2 is built around a \textbf{Student-Teacher self-distillation} framework, extending earlier work on DINO \cite{DINO} and iBOT \cite{ibot}. Two networks of identical architecture are trained in parallel: a \textit{Student} network $g_{\theta_s}$, whose weights are updated by gradient descent as usual, and a \textit{Teacher} network $g_{\theta_t}$, which is never trained directly and instead tracks the student as an Exponential Moving Average (EMA) of its weights $\theta_s$:
-
 \begin{equation}
-	\theta_t \leftarrow \lambda \theta_t + (1 - \lambda) \theta_s
+	\theta_t \leftarrow \lambda \theta_t + (1 - \lambda) \theta_s,
 \end{equation}
-
 where $\lambda \in [0, 1]$ is a smoothing parameter controlling how slowly the teacher follows the student. During training, the framework optimizes two complementary objectives to learn both global and fine-grained spatial representations:
 
 \begin{itemize}
@@ -222,7 +220,7 @@ where $\lambda \in [0, 1]$ is a smoothing parameter controlling how slowly the t
 	\item \textbf{Patch-Level Loss (iBOT):} To force the model to capture dense, local structure rather than only a global summary, a subset of the student's input patch tokens are masked out. The student must then reconstruct the teacher's corresponding patch-level features, computed from the same image without any masking.
 	\item \textbf{KoLeo Regularization:} To keep the resulting embeddings spread out across the feature space rather than collapsing into a narrow region, DINOv2 adds a term based on the Kozachenko-Leonenko (KoLeo) differential entropy estimator, which penalizes feature vectors for lying too close to their nearest neighbor within a training batch:
 	\begin{equation}
-		\mathcal{L}_{\text{KoLeo}} = -\frac{1}{n}\sum_{i=1}^{n} \log \left( \min_{j \neq i} \| \vec{x}_i - \vec{x}_j \|_2 \right)
+		\mathcal{L}_{\text{KoLeo}} = -\frac{1}{n}\sum_{i=1}^{n} \log \left( \min_{j \neq i} \| \vec{x}_i - \vec{x}_j \|_2 \right),
 	\end{equation}
 	where $\vec{x}_i$ is the $\ell_2$-normalized feature vector of the $i$-th image in a batch of size $n$.
 \end{itemize}

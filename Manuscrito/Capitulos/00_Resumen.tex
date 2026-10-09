@@ -1,47 +1,49 @@
-  \noindent\hfill
- \begin{minipage}[t]{0.6\textwidth}
- 	%RESUMEN DE LA TESIS PARA OPTAR AL \\
- 	%GRADO DE DOCTOR[A] EN INGENIERÍA \\
- 	%ELÉCTRICA, \\
- 	RESUMEN DE LA TESIS PARA OPTAR AL \\
- 	GRADO DE MAGÍSTER EN CIENCIAS DE LA \\ INGENIERÍA, MENCIÓN ELÉCTRICA, \\
- 	MEMORIA PARA OPTAR AL TÍTULO DE \\ INGENIERO CIVIL ELÉCTRICO \\
- 	{POR: IGNACIO ROMERO ARAVENA} \\
- 	{FECHA: \the\year} \\
- 	{PROF. GUÍA: JAVIER RUIZ DEL SOLAR} \\
- 	{PROF. CO-GUÍA: PATRICIO LONCOMILLA}
- \end{minipage}
- 
- \begin{center}
- 	MITIGACIÓN DEL OLVIDO CATASTRÓFICO EN LA CLASIFICACIÓN DE OBJETOS MEDIANTE REPRESENTACIONES GAUSSIANAS DE CLASES
- \end{center}
- 
- \noindent Los modelos tradicionales de aprendizaje profundo suelen fallar cuando trabajan con datos que cambian en el tiempo, ya que incorporar clases nuevas exige un reentrenamiento costoso o provoca que el modelo olvide lo aprendido. Para resolver esto, se propone un método de aprendizaje continuo libre de gradientes enfocado en el reconocimiento visual. En lugar de optimizar parámetros, el sistema aborda la tarea estimando densidades en forma cerrada a partir de las representaciones de  un modelo fundacional como extractor de características congelado, modelando cada clase mediante una distribución gaussiana multivariada. Así, las clases nuevas se integran al instante, sin requerir retropropagación, almacenamiento de muestras, ni ajuste de parámetros. Además, como la información de las clases anteriores nunca se altera, se previene el olvido por diseño. Al evaluarse en benchmarks como Split CIFAR-100, Split ImageNet-R y Split Caltech-256, este enfoque logra un rendimiento competitivo frente a métodos que dependen de optimización de parámetros. Entre las configuraciones probadas, la variante MOG4-Shared —que combina una mezcla de gaussianas por clase con una covarianza compartida— logró el mejor desempeño. Finalmente, un análisis estadístico valida el supuesto gaussiano y muestra que la covarianza óptima depende de los datos disponibles por clase.
+\noindent\hfill
+\begin{minipage}[t]{0.7\textwidth}
+	RESUMEN DE LA TESIS PARA OPTAR AL GRADO \\ DE MAGÍSTER
+	EN CIENCIAS DE LA INGENIERÍA, \\ MENCIÓN  ELÉCTRICA
+	Y MEMORIA PARA OPTAR \\ AL TÍTULO DE 
+	INGENIERO CIVIL ELÉCTRICO \\
+	POR: IGNACIO ALBERTO ROMERO ARAVENA \\
+	FECHA: \the\year \\
+	PROFESOR GUÍA: JAVIER RUIZ DEL SOLAR SAN MARTÍN
+\end{minipage}
+
+\begin{center}
+	CLASS-INCREMENTAL LEARNING USING GAUSSIAN MODELING AND FOUNDATION MODELS
+\end{center}
+
+%\noindent Traditional deep learning models struggle with non-stationary data, as adding new categories typically requires costly retraining or causes catastrophic forgetting. This thesis introduces a gradient-free, class-incremental learning framework that frames lifelong visual recognition as closed-form density estimation rather than parameter optimization. By pairing a frozen foundation model as backbone with per-class multivariate Gaussian models, new classes are integrated instantly without backpropagation,  storing past samples, or fine-tuning. Because existing class statistics remain untouched, the framework eliminates forgetting by design. Evaluated across benchmarks such as Split CIFAR-100, Split ImageNet-R, and Split Caltech-256, this approach achieves competitive performance against optimization-heavy methods. Among the tested variants, MOG4-Shared—which combines a compact per-class mixture with a single shared covariance—provides the best trade-off between computational efficiency and accuracy. Finally, evaluating the feature space of the DINOv2 foundation model through normality tests, spectral analysis, and Bhattacharyya distances validates the Gaussian assumption for feature extraction and shows that the optimal covariance structure depends directly on sample availability per class.
+
+\noindent Traditional deep learning models struggle with non-stationary data, as adding new categories typically requires costly retraining or causes catastrophic forgetting. This thesis introduces a gradient-free, class-incremental learning framework that frames lifelong visual recognition as closed-form density estimation rather than parameter optimization. By pairing a frozen foundation model as backbone with per-class multivariate Gaussian models, new classes are integrated instantly without backpropagation, storing past samples, or fine-tuning. Because existing class statistics remain untouched, the framework eliminates forgetting by design.Evaluated across benchmarks such as Split CIFAR-100, Split ImageNet-R, and Split Caltech-256, this approach achieves competitive performance against optimization-heavy methods. Among the tested variants, MOG4-Shared—which combines a compact per-class mixture with a single shared covariance—provides the best trade-off between computational efficiency and accuracy. To rigorously assess performance and feature space properties, the framework incorporates a comprehensive set of metrics and evaluation tools, such as Expected Calibration Error and Probability Margin to measure probability calibration and predictive uncertainty; Bhattacharyya distance and Euclidean distance to quantify inter-class structural separability and overlap; Henze-Zirkler and D'Agostino-Pearson statistics to evaluate multivariate and per-feature normality; and spectral analysis alongside subspace compression tracking to examine eigenvalue distribution and validate the Gaussian feature assumption.
+
  
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  % SÓLO PARA TESIS EN INGLÉS 
  % BORRAR EN CASO DE ESCRITURA EN ESPAÑOL
  \newpage
  
- \noindent\hfill
- \begin{minipage}[t]{0.6\textwidth}
- 	%RESUMEN DE LA TESIS PARA OPTAR AL \\
- 	%GRADO DE DOCTOR[A] EN INGENIERÍA \\
- 	%ELÉCTRICA, \\
- 	RESUMEN DE LA TESIS PARA OPTAR AL \\
- 	GRADO DE MAGÍSTER EN CIENCIAS DE LA \\ INGENIERÍA, MENCIÓN ELÉCTRICA, \\
- 	MEMORIA PARA OPTAR AL TÍTULO DE \\ INGENIERO CIVIL ELÉCTRICO \\
- 	{POR: IGNACIO ROMERO ARAVENA} \\
- 	{FECHA: \the\year} \\
- 	{PROF. GUÍA: JAVIER RUIZ DEL SOLAR} \\
- 	{PROF. CO-GUÍA: PATRICIO LONCOMILLA}
- \end{minipage}
+\noindent\hfill
+\begin{minipage}[t]{0.7\textwidth}
+	RESUMEN DE LA TESIS PARA OPTAR AL GRADO \\ DE MAGÍSTER
+	EN CIENCIAS DE LA INGENIERÍA, \\ MENCIÓN  ELÉCTRICA
+    Y MEMORIA PARA OPTAR \\ AL TÍTULO DE 
+	INGENIERO CIVIL ELÉCTRICO \\
+	POR: IGNACIO ALBERTO ROMERO ARAVENA \\
+	FECHA: \the\year \\
+	PROFESOR GUÍA: JAVIER RUIZ DEL SOLAR SAN MARTÍN
+\end{minipage}
+
  
  \begin{center}
- 	MITIGATING CATASTROPHIC FORGETTING IN  OBJECT CLASSIFICATION VIA GAUSSIAN CLASS REPRESENTATIONS
+ 	APRENDIZAJE INCEMENTAL POR CLASE MEDIANTE MODELADO GAUSSIANO Y MODELOS FUNDACIONALES
  \end{center}
  
- \noindent Traditional deep learning models struggle with non-stationary data, as adding new categories typically requires costly retraining or causes catastrophic forgetting. This thesis introduces a gradient-free, class-incremental learning framework that frames lifelong visual recognition as closed-form density estimation rather than parameter optimization. By pairing a frozen foundation model as backbone with per-class multivariate Gaussian models, new classes are integrated instantly without backpropagation,  storing past samples, or fine-tuning. Because existing class statistics remain untouched, the framework eliminates forgetting by design. Evaluated across benchmarks such as Split CIFAR-100, Split ImageNet-R, and Split Caltech-256, this approach achieves competitive performance against optimization-heavy methods. Among the tested variants, MOG4-Shared—which combines a compact per-class mixture with a single shared covariance—provides the best trade-off between computational efficiency and accuracy. Finally, evaluating the feature space of the DINOv2 foundation model through normality tests, spectral analysis, and Bhattacharyya distances validates the Gaussian assumption for feature extraction and shows that the optimal covariance structure depends directly on sample availability per class.
+ %\noindent Los modelos tradicionales de aprendizaje profundo suelen fallar cuando trabajan con datos que cambian en el tiempo, ya que incorporar clases nuevas exige un reentrenamiento costoso o provoca que el modelo olvide lo aprendido. Para resolver esto, se propone un método de aprendizaje continuo libre de gradientes enfocado en el reconocimiento visual. En lugar de optimizar parámetros, el sistema aborda la tarea estimando densidades en forma cerrada a partir de las representaciones de  un modelo fundacional como extractor de características congelado, modelando cada clase mediante una distribución gaussiana multivariada. Así, las clases nuevas se integran al instante, sin requerir retropropagación, almacenamiento de muestras, ni ajuste de parámetros. Además, como la información de las clases anteriores nunca se altera, se previene el olvido por diseño. Al evaluarse en benchmarks como Split CIFAR-100, Split ImageNet-R y Split Caltech-256, este enfoque logra un rendimiento competitivo frente a métodos que dependen de optimización de parámetros. Entre las configuraciones probadas, la variante MOG4-Shared —que combina una mezcla de gaussianas por clase con una covarianza compartida— logró el mejor desempeño. Los experimentos analizan rigurosamente la geometría del espacio de características mediante pruebas formales de normalidad, la estructura de la covarianza, la separabilidad interclase y métricas de calibración de incertidumbre.
+ 
+ \noindent Los modelos de aprendizaje profundo tradicionales enfrentan dificultades con datos no estacionarios, requiriendo reentrenamientos costosos o sufriendo olvido catastrófico. Para resolverlo, esta se propone un marco de aprendizaje incremental por clases libre de gradientes que plantea el reconocimiento visual como una estimación de densidad en forma cerrada. Al utilizar un modelo fundacional congelado y modelar cada clase mediante distribuciones gaussianas multivariadas, las nuevas categorías se integran al instante sin retropropagación ni almacenamiento de muestras, eliminando el olvido por diseño. Evaluado en benchmarks como Split CIFAR-100, Split ImageNet-R y Split Caltech-256, el enfoque logra un rendimiento competitivo frente a métodos de optimización pesados. La variante MOG4-Shared—que combina una mezcla de gaussianas por clase con una covarianza compartida—ofrece el mejor equilibrio entre eficiencia y precisión. Para un análisis riguroso, el marco incorpora diversas herramientas, como el error de calibración esperado y el margen de probabilidad para la calibración e incertidumbre; distancias de Bhattacharyya y euclidiana para la separabilidad interclase; estadísticas de Henze-Zirkler y D'Agostino-Pearson para la normalidad multivariada y por característica; y análisis espectral junto con compresión de subespacios para examinar la distribución de valores propios y validar la hipótesis gaussiana.
+ 
+ 
  
 
  %En el caso de redactar la tesis en inglés, se debe incluir un resumen adicional en dicho idioma con su título en inglés, ya que el resumen en español (con título en español) es obligatorio independientemente del idioma de la tesis. Ambos resúmenes deben reflejar el mismo contenido. Sin embargo, dado que cada uno debe cumplir independientemente con el límite de doscientas (200) palabras, no es necesario que sean una traducción textual el uno del otro. Las mismas recomendaciones estructurales indicadas en el resumen anterior aplican para ambos.

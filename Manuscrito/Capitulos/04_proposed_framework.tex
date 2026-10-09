@@ -25,7 +25,7 @@ Given an input image, the feature extractor maps it to a fixed high-dimensional 
 
 Given an input image $x \in \mathcal{X}$, the frozen foundation model $\mathcal{F}$ produces a fixed-dimensional embedding
 \begin{equation}
-    \vec{x} = \mathcal{F}(x) \in \mathbb{R}^d
+    \vec{x} = \mathcal{F}(x) \in \mathbb{R}^d,
     \label{eq:feature_extractor}
 \end{equation}
 and all learning is performed directly in the stationary feature space $\mathbb{R}^d$. We adopt a generative modelling framework and assume class-conditional Gaussian feature distributions:
@@ -54,30 +54,26 @@ Due to the high dimensionality of the extracted feature ($\vec{x}\in \mathbb{R}^
 
 \subsection{Diagonal Covariances}
 In this configuration, we assume that the features within each class $c$ are independent, leading to a diagonal covariance matrix $\boldsymbol{\Sigma}_c = \text{diag}(\sigma_{c,1}^2, \sigma_{c,2}^2, \dots, \sigma_{c,d}^2)$. This simplification significantly reduces the number of parameters to estimate from $O(d^2)$ to $O(d)$, which is particularly advantageous when the dimensionality $d = 768$ is large relative to the number of samples per class. For each class $c \in \{1, \dots, C\}$, the mean vector $\boldsymbol{\mu}_c$ and the diagonal elements of $\boldsymbol{\Sigma}_c$ are computed as:
-
 \begin{equation}
-	\boldsymbol{\mu}_c = \frac{1}{n_c} \sum_{i=1}^{n_c} \vec{x}_i, \quad \sigma_{c,j}^2 = \frac{1}{n_c-1} \sum_{i=1}^{n_c} (x_{i,j} - \mu_{c,j})^2 + \epsilon
+	\boldsymbol{\mu}_c = \frac{1}{n_c} \sum_{i=1}^{n_c} \vec{x}_i, \quad \sigma_{c,j}^2 = \frac{1}{n_c-1} \sum_{i=1}^{n_c} (x_{i,j} - \mu_{c,j})^2 + \epsilon,
 \end{equation}
 where $\epsilon = 10^{-6}$ is a small constant added to ensure numerical stability and strictly positive variances. The log-likelihood of a test sample $\vec{x}$ belonging to class $c$ is determined by the discriminant function:
-
 \begin{equation}
-	g_c(\vec{x}) = \ln P(\vec{x}|c) + \ln P(c)
+	g_c(\vec{x}) = \ln P(\vec{x}|c) + \ln P(c).
 \end{equation}
 
 Under the assumption of a uniform prior $P(c)$ and Gaussian distribution, this simplifies to:
-
 \begin{equation}
-	g_c(\vec{x}) = -\frac{1}{2} \sum_{j=1}^{d} \left( \ln(2\pi\sigma_{c,j}^2) + \frac{(x_j - \mu_{c,j})^2}{\sigma_{c,j}^2} \right)
+	g_c(\vec{x}) = -\frac{1}{2} \sum_{j=1}^{d} \left( \ln(2\pi\sigma_{c,j}^2) + \frac{(x_j - \mu_{c,j})^2}{\sigma_{c,j}^2} \right).
 \end{equation}
 
 
 \subsection{Full Covariances}
 \label{sec:method:full_cov}
 
-To account for the dependencies between different dimensions of the feature vector, we estimate a full covariance matrix $\boldsymbol{\Sigma}_c \in \mathbb{R}^{d \times d}$ for each class $c$. While this provides a richer representation of the class distribution, the estimation of $d^2$ parameters is prone to ill-conditioning when the number of samples $n_c$ is limited.The mean vector $\boldsymbol{\mu}_c$ and the empirical covariance $\boldsymbol{\Sigma}_c$ are calculated as:
-
+To account for the dependencies between different dimensions of the feature vector, we estimate a full covariance matrix $\boldsymbol{\Sigma}_c \in \mathbb{R}^{d \times d}$ for each class $c$. While this provides a richer representation of the class distribution, the estimation of $d^2$ parameters is prone to ill-conditioning when the number of samples $n_c$ is limited. The mean vector $\boldsymbol{\mu}_c$ and the empirical covariance $\boldsymbol{\Sigma}_c$ are calculated as:
 \begin{equation}
-	\boldsymbol{\mu}_c = \frac{1}{n_c} \sum_{i=1}^{n_c} \vec{x}_i, \quad \boldsymbol{\Sigma}_c = \frac{1}{n_c - 1} \sum_{i=1}^{n_c} (\vec{x}_i - \boldsymbol{\mu}_c)(\vec{x}_i - \boldsymbol{\mu}_c)^T
+	\boldsymbol{\mu}_c = \frac{1}{n_c} \sum_{i=1}^{n_c} \vec{x}_i, \quad \boldsymbol{\Sigma}_c = \frac{1}{n_c - 1} \sum_{i=1}^{n_c} (\vec{x}_i - \boldsymbol{\mu}_c)(\vec{x}_i - \boldsymbol{\mu}_c)^T.
 \end{equation}
 
 To ensure that the matrix is invertible and to improve numerical stability, a regularization is applied by adding a small identity term to the diagonal: $\hat{\boldsymbol{\Sigma}}_c = \boldsymbol{\Sigma}_c + \epsilon I$, with $\epsilon = 10^{-6}$.
@@ -90,14 +86,12 @@ For obtaining the precision matrix $Q_c$ (the inverse of the covariance matrix $
 with $C_c$ lower triangular and $I$ the identity, so that $L_c = C_c^{-1}$ is the Cholesky factor of the precision matrix $Q_c = L_c^T L_c$.
 
 Then, the squared Mahalanobis distance and the log-determinant are computed from $\boldsymbol{\mu}_c$ and $L_c$ as:
-
 \begin{equation}
-	d_M(\vec{x}, \boldsymbol{\mu}_c, L_c) = (\vec{x} L_c - \boldsymbol{\mu}_c L_c)^T (\vec{x} L_c - \boldsymbol{\mu}_c L_c)
+	d_M(\vec{x}, \boldsymbol{\mu}_c, L_c) = (\vec{x} L_c - \boldsymbol{\mu}_c L_c)^T (\vec{x} L_c - \boldsymbol{\mu}_c L_c),
 	\label{eq:cholesky_mahalanobis}
 \end{equation}
-
 \begin{equation}
-	\ln |\hat{\boldsymbol{\Sigma}}_c| = 2 \sum_{i=1}^{d}{\ln(L_{c \, i,i})}
+	\ln |\hat{\boldsymbol{\Sigma}}_c| = 2 \sum_{i=1}^{d}{\ln(L_{c \, i,i})}.
 	\label{eq:cholesky_logdet}
 \end{equation}
 
@@ -121,16 +115,13 @@ This formulation avoids the numerical issues that arise when near-zero eigenvalu
 \label{sec:method:oas}
 
 Oracle Approximating Shrinkage (OAS) is a shrinkage technique that computes an structurally optimized covariance matrix by finding an optimal compromise between the sample covariance matrix and a structured target (the identity matrix scaled by the average trace). The OAS estimator provides a more accurate estimation of the covariance $\boldsymbol{\Sigma}_c$ by minimizing the Mean Squared Error (MSE) under the assumption of Gaussianity. The estimated covariance is defined as:
-
 \begin{equation}
-	\hat{\boldsymbol{\Sigma}}_{\text{OAS}, c} = (1 - \rho_c) \hat{\boldsymbol{\Sigma}}_{\text{SCM}, c} + \rho_c \hat{F}_c
+	\hat{\boldsymbol{\Sigma}}_{\text{OAS}, c} = (1 - \rho_c) \hat{\boldsymbol{\Sigma}}_{\text{SCM}, c} + \rho_c \hat{F}_c,
 \end{equation}
 where $\rho_c$ is the shrinkage coefficient calculated specifically for class $c$, $\hat{\boldsymbol{\Sigma}}_{\text{SCM}, c}$ is the sample covariance matrix, and $\hat{F}_c = \frac{\text{tr}(\hat{\boldsymbol{\Sigma}}_{\text{SCM}, c})}{d} I$ is the shrinkage target. In our implementation, we compute the precision matrix $\Psi_c = \hat{\boldsymbol{\Sigma}}_{\text{OAS}, c}^{-1}$ directly via the OAS algorithm. This precision matrix is then used to calculate the Mahalanobis distance in the log-likelihood discriminant function:
-
 \begin{equation}
-	g_c(\vec{x}) = \ln A_c - \frac{1}{2} (\vec{x} - \boldsymbol{\mu}_c)^T \Psi_c (\vec{x} - \boldsymbol{\mu}_c)
+	g_c(\vec{x}) = \ln A_c - \frac{1}{2} (\vec{x} - \boldsymbol{\mu}_c)^T \Psi_c (\vec{x} - \boldsymbol{\mu}_c),
 \end{equation}
-
 where $\ln A_c$ is the normalization constant derived from the log-determinant of the OAS-estimated covariance matrix, evaluated numerically via the stable log-determinant of the eigendecomposition. This approach ensures that the model captures class-specific correlations while remaining robust to the ``curse of dimensionality.''
 
 \subsection{Ledoit-Wolff}
@@ -166,45 +157,35 @@ In order to capture potential multi-modality within the feature space of a singl
 \subsection{Mixture of 2 Gaussians}
 
 Forcing each class to be defined as a GMM with $K=2$ components, each class $c$ is modeled by a probability density function:
-
 \begin{equation}
-	p(\vec{x}|c) = \sum_{k=1}^{K} \pi_{c,k} \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})
+	p(\vec{x}|c) = \sum_{k=1}^{K} \pi_{c,k} \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}),
 \end{equation}
-
 where $\pi_{c,k}$ represents the mixing weight of the $k$-th component for class $c$, subject to $\sum_{k=1}^{K} \pi_{c,k} = 1$. The parameters $\{\pi_{c,k}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}\}$ are estimated using the Expectation-Maximization (EM) algorithm. Depending on the evaluated variant (\textit{MOG2-D}, \textit{MOG2-F}, or \textit{MOG2-H}), the component covariance matrices $\boldsymbol{\Sigma}_{c,k}$ adopt diagonal, regularized full, or hybrid structures. For numerical stability, a small constant is added to the diagonal entries.
 
 The log-likelihood of a test sample $\vec{x}$ is computed stably via the \textit{LogSumExp} (or \texttt{logaddexp}) operator:
-
 \begin{equation}
-	\ln p(\vec{x}|c) = \text{LogSumExp}_{k=1}^{2} \left( \ln \pi_{c,k} + \ln \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right)
+	\ln p(\vec{x}|c) = \text{LogSumExp}_{k=1}^{2} \left( \ln \pi_{c,k} + \ln \mathcal{N}(\vec{x} | \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right),
 \end{equation}
-
 which expands in implementation to:
-
 \begin{equation}
-	\ln p(\vec{x}|c) = \ln \left( \sum_{k=1}^{2} \exp \left( \ln \pi_{c,k} + \ln A_{c,k} - \frac{1}{2} d_{M}(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right) \right)
+	\ln p(\vec{x}|c) = \ln \left( \sum_{k=1}^{2} \exp \left( \ln \pi_{c,k} + \ln A_{c,k} - \frac{1}{2} d_{M}(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right) \right),
 \end{equation}
-
 where $d_{M}(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) = (\vec{x} - \boldsymbol{\mu}_{c,k})^T \boldsymbol{\Sigma}_{c,k}^{-1} (\vec{x} - \boldsymbol{\mu}_{c,k})$ is the squared Mahalanobis distance to the $k$-th component—evaluated coordinate-wise for the diagonal model or via Cholesky factorisation for full and hybrid configurations—and $\ln A_{c,k} = -\frac{1}{2}(d \ln(2\pi) + \ln|\boldsymbol{\Sigma}_{c,k}|)$ represents the corresponding log-normalisation term.
 
 \subsection{Mixture of up-to-4 Gaussians}
 
 To adapt to the varying complexity of different classes across benchmarks, we implement a flexible Gaussian Mixture Model where the number of components $K_c$ for each class $c$ is not fixed. Instead, the model selects the most appropriate number of components $K_c \in \{1, 2, 3, 4\}$ by minimizing the Bayesian Information Criterion (BIC):
-
 \begin{equation}
-	\text{BIC} = k_p \ln(n_c) - 2\ln(\hat{L})
+	\text{BIC} = k_p \ln(n_c) - 2\ln(\hat{L}),
 	\label{eq:bic_mog4}
 \end{equation}
-
 where $n_c$ is the number of available samples for class $c$, $\hat{L}$ is the maximized likelihood of the fitted mixture, and $k_p$ represents the number of free parameters. Importantly, model selection via BIC is performed using diagonal covariance matrices to maintain computational tractability, prevent numerical degeneration in the small-sample regime ($n_c < d$), and keep the parameter penalty lightweight ($k_p = K_c(2d + 1) - 1$). 
 
 Once the optimal number of components $K_c$ and their sample assignments are determined, the component covariance matrices $\boldsymbol{\Sigma}_{c,k}$ can be instantiated according to the desired parameterisation: diagonal (MOG4-D), regularized full (MOG4-F), hybrid (MOG4-H), or paired with a globally pooled covariance matrix (MOG4-Shared). 
 
 At inference time, the classification log-likelihood of an input embedding $\vec{x}$ across all active classes is computed stably via the LogSumExp ($\text{LSE}$) operator:
-
 \begin{equation}
-	\ln p(\vec{x}|c) = \text{LSE}_{k=1}^{K_c} \left( \ln \pi_{c,k} + \ln A_{c,k} - \frac{1}{2} d_M(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right)
+	\ln p(\vec{x}|c) = \text{LSE}_{k=1}^{K_c} \left( \ln \pi_{c,k} + \ln A_{c,k} - \frac{1}{2} d_M(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k}) \right),
 \end{equation}
-
 where $d_M(\vec{x}, \boldsymbol{\mu}_{c,k}, \boldsymbol{\Sigma}_{c,k})$ denotes the squared Mahalanobis distance to the $k$-th component—evaluated coordinate-wise under diagonal covariances or via Cholesky factorisation for full-rank and hybrid parameterisations—and $\ln A_{c,k}$ represents the corresponding log-normalisation term. This decoupling ensures that the complexity of the cluster structure is selected robustly, while still allowing the final classifier to leverage richer second-order geometry.
 
